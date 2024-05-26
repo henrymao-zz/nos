@@ -456,14 +456,13 @@ RUN apt-get update && apt-get install -y \
         libgrpc++-dev \
         libgrpc-dev \
         libprotoc-dev \
-        protobuf-compiler-grpc \
         valgrind \
         python3-protobuf \
         python3-grpcio \
         thrift-compiler \
         gfortran \
         libopenmpi-dev \
-        libthrift-0.17.0 \
+        libthrift-0.16.0 \
         libthrift-dev \
         libboost-all-dev \
         libboost-graph-dev \
@@ -629,7 +628,7 @@ RUN update-alternatives --set iptables /usr/sbin/iptables-legacy
 RUN apt-get install python3-m2crypto
 
 # Install libthrift package needed by saithrift
-RUN apt-get install  libthrift-0.17 \
+RUN apt-get install  libthrift-0.16 \
         libthrift-dev \
         thrift-compiler\
         python3-thrift
