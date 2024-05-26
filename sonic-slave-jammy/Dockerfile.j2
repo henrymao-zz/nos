@@ -452,10 +452,14 @@ RUN apt-get update && apt-get install -y \
 
 {%- if CONFIGURED_ARCH != "arm64" and CONFIGURED_ARCH != "armhf" %}
 RUN apt-get update && apt-get install -y \
+# For grpc
+        libgflags-dev                       \
+        libgoogle-perftools-dev             \
+        ruby-googleauth                     \
+        ruby-googleapis-common-protos-types \
+        ruby-simplecov                      \
+        cython3                             \
 # For p4 libraries
-        libgrpc++-dev \
-        libgrpc-dev \
-        libprotoc-dev \
         valgrind \
         python3-protobuf \
         python3-grpcio \
