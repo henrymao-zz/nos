@@ -1,0 +1,184 @@
+name: docker-database
+summary: SONiC database container
+description: A Chiselled rock for SONiC database container
+version: "1.0.0"
+
+# Use a "bare" base for an even smaller rock
+base: ubuntu@22.04 
+
+# Meeting requirement R1 by making sure the rock builds on Jammy
+build-base: ubuntu@22.04
+
+license: Apache-2.0
+
+# Target architecture is amd64
+platforms:
+  amd64:  # Make sure this value matches your computer's architecture
+
+services:
+   supervisor:
+     command: "/usr/local/bin/docker-database-init.sh"
+     startup: enabled
+     override: replace
+
+# For meeting requirement R2, simply don't specify any entrypoint (aka "services")
+
+parts:
+  install-common:
+    #common setup
+    plugin: nil
+    source: .
+    source-type: local
+      #after: [install-dependents]
+
+    override-stage: |
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-3-200_3.5.0-1_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-route-3-200_3.5.0-1_amd64.deb || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-genl-3-200_3.5.0-1_amd64.deb  || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-nf-3-200_3.5.0-1_amd64.deb    || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-cli-3-200_3.5.0-1_amd64.deb   || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libyang_1.0.73_amd64.deb            || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libswsscommon_1.0.0_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libyang-cpp_1.0.73_amd64.deb        || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/python3-yang_1.0.73_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/python3-swsscommon_1.0.0_amd64.deb  || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/sonic-db-cli_1.0.0_amd64.deb        || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/sonic-eventd_1.0.0-0_amd64.deb      || apt-get -y install -f  
+      apt-get -y install -f rsyslog python3
+
+      #python
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_py_common-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_yang_mgmt-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_yang_models-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_containercfgd-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_config_engine-1.0-py3-none-any.whl
+
+      # for templating
+      pip3 install j2cli
+    
+      # binaries
+      mkdir -p ${CRAFT_PRIME}/usr/local/bin
+      cp -r /usr/local/bin/* ${CRAFT_PRIME}/usr/local/bin/
+      mkdir -p ${CRAFT_PRIME}/usr/bin
+      cp -r /usr/bin/* ${CRAFT_PRIME}/usr/bin
+      mkdir -p ${CRAFT_PRIME}/usr/sbin/
+      cp /usr/sbin/rsyslogd ${CRAFT_PRIME}/usr/sbin/
+
+      # python
+      mkdir -p ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+      cp -r /usr/lib/python3/dist-packages/*  ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+
+      mkdir -p ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages
+      cp -r /usr/local/lib/python3.10/dist-packages/* ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages/
+
+      # dynamic libs
+      mkdir -p ${CRAFT_PRIME}/lib/x86_64-linux-gnu
+      cp -r /lib/x86_64-linux-gnu/* ${CRAFT_PRIME}/lib/x86_64-linux-gnu/
+      mkdir -p ${CRAFT_PRIME}/lib64
+      cp -r /lib64/* ${CRAFT_PRIME}/lib64
+      mkdir -p ${CRAFT_PRIME}/lib/python3.10
+      cp -r /lib/python3.10/* ${CRAFT_PRIME}/lib/python3.10/
+      #rm -rf  ${CRAFT_PRIME}/usr/lib
+
+  install-common-files:
+    plugin: nil
+    after: [install-common]
+    override-prime: |
+      mkdir -p usr/share/sonic/templates/
+      mkdir -p usr/share/sonic/scripts/
+      mkdir -p etc/rsyslog.d/
+
+      cp ${CRAFT_PROJECT_DIR}/files/swss_vars.j2         usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/files/readiness_probe.sh   usr/bin/
+      cp ${CRAFT_PROJECT_DIR}/files/container_startup.py usr/share/sonic/scripts/
+      cp ${CRAFT_PROJECT_DIR}/files/00-load-omprog.conf  etc/rsyslog.d/
+      cp ${CRAFT_PROJECT_DIR}/files/rsyslog.conf           etc/
+
+  install-database-runtime:
+    plugin: nil
+    source: . 
+    source-type: local
+    after: [install-common-files]
+
+    # locally built package dependencies
+    override-stage: |
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/libprotobuf32_3.21.12-3_amd64.deb || apt-get -y install -f
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/libprotobuf-lite32_3.21.12-3_amd64.deb  || apt-get -y install -f
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/python3-protobuf_3.21.12-3_amd64.deb          || apt-get -y install -f
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/libdashapi_1.0.0_amd64.deb || apt-get -y install -f
+      apt-get install -y redis-tools redis-server
+
+      #ip command
+      apt-get install -y iproute2
+      
+      #python
+      pip3 install click supervisor==4.2.5 supervisord-dependent-startup==1.4.0
+
+      # binaries
+      mkdir -p ${CRAFT_PRIME}/usr/local/bin
+      cp -r /usr/local/bin/* ${CRAFT_PRIME}/usr/local/bin/
+      mkdir -p ${CRAFT_PRIME}/usr/bin
+      cp -r /usr/bin/* ${CRAFT_PRIME}/usr/bin
+
+      # python
+      mkdir -p ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+      cp -r /usr/lib/python3/dist-packages/*  ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+
+      mkdir -p ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages
+      cp -r /usr/local/lib/python3.10/dist-packages/* ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages/
+
+      # dynamic libs
+      mkdir -p ${CRAFT_PRIME}/lib/x86_64-linux-gnu
+      cp -r /lib/x86_64-linux-gnu/* ${CRAFT_PRIME}/lib/x86_64-linux-gnu/
+
+      #config files
+      mkdir -p ${CRAFT_PRIME}/etc/supervisor/conf.d
+      mkdir -p ${CRAFT_PRIME}/var/log/supervisor
+
+      cp ${CRAFT_PROJECT_DIR}/etc/supervisor/supervisord.conf ${CRAFT_PRIME}/etc/supervisor/
+
+      #sed -ri 's/^# save ""$/save ""/g;                    \
+      #         s/^daemonize yes$/daemonize no/;            \
+      #         s/^logfile .*$/logfile ""/;                 \
+      #         s/^# syslog-enabled no$/syslog-enabled no/; \
+      #         s/^# unixsocket/unixsocket/;                \
+      #         s/redis-server.sock/redis.sock/g;           \
+      #         s/^client-output-buffer-limit pubsub [0-9]+mb [0-9]+mb [0-9]+/client-output-buffer-limit pubsub 0 0 0/; \
+      #         s/^notify-keyspace-events ""$/notify-keyspace-events AKE/; \
+      #         s/^databases [0-9]+$/databases 100/' /etc/redis/redis.conf 
+
+      mkdir -p ${CRAFT_PRIME}/etc/redis/
+      cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf ${CRAFT_PRIME}/etc/redis/
+
+    override-prime: |
+      cp ${CRAFT_PROJECT_DIR}/docker-database-init.sh usr/local/bin/
+
+      mkdir -p usr/share/sonic/templates
+      cp ${CRAFT_PROJECT_DIR}/database_config.json.j2 usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/database_global.json.j2 usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/supervisord.conf.j2     usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/critical_processes.j2   usr/share/sonic/templates/
+
+      mkdir -p etc/sysctl.d/
+      cp ${CRAFT_PROJECT_DIR}/files/sysctl-net.conf               etc/sysctl.d/
+      cp ${CRAFT_PROJECT_DIR}/files/update_chassisdb_config       usr/local/bin/
+      cp ${CRAFT_PROJECT_DIR}/files/supervisor-proc-exit-listener usr/bin/
+
+      cp ${CRAFT_PROJECT_DIR}/flush_unused_database   usr/local/bin/
+      
+  add-user:
+    plugin: nil
+    after: [install-database-runtime]
+
+    overlay-script: |
+      #syslog user
+      groupadd -R $CRAFT_OVERLAY syslog
+      useradd -R $CRAFT_OVERLAY -M -r -g adm syslog
+
+      #redis user
+      groupadd -R $CRAFT_OVERLAY redis
+      useradd -R $CRAFT_OVERLAY -M -r -g redis redis
+
+    prime:
+      - etc/passwd
+      - etc/group

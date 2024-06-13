@@ -1,0 +1,184 @@
+name: docker-lldp
+summary: SONiC lldp container
+description: A Chiselled rock for SONiC lldp container
+version: "1.0.0"
+
+# Use a "bare" base for an even smaller rock
+base: ubuntu@22.04 
+
+# Meeting requirement R1 by making sure the rock builds on Jammy
+build-base: ubuntu@22.04
+
+license: Apache-2.0
+#manifest: "\n{\n    \"version\": \"1.0.0\",\n    \"package\": {\n        \"version\": \"1.0.0\",\n        \"depends\": [],\n        \"name\": \"teamd\"\n    },\n    \"service\": {\n        \"name\": \"teamd\",\n        \"requires\": [],\n        \"after\": [],\n        \"before\": [],\n        \"dependent-of\": [],\n        \"asic-service\": true,\n        \"host-service\": false,\n        \"warm-shutdown\": {\n            \"after\": [\"swss\"],\n            \"before\": [\"syncd\"]\n        },\n        \"fast-shutdown\": {\n            \"after\": [\"swss\"],\n            \"before\": [\"syncd\"]\n        },\n        \"syslog\": {\n            \"support-rate-limit\": true\n        }\n    },\n    \"container\": {\n        \"privileged\": false,\n        \"volumes\": [],\n        \"tmpfs\": []\n    },\n    \"cli\": {\n        \"config\": \"\",\n        \"show\": \"\",\n        \"clear\": \"\"\n    }\n}"
+
+# Target architecture is amd64
+platforms:
+  amd64:  # Make sure this value matches your computer's architecture
+
+services:
+   rsyslogd:
+     command: "/usr/sbin/rsyslogd -n -iNONE"
+     startup: enabled
+     override: replace
+    
+   start:
+     command: "/usr/bin/start.sh"
+     startup: enabled
+     override: replace
+     after: [rsyslogd]
+
+   lldp:
+     # TODO need to warp with a script to parse cfg-gen
+     command: "command=/usr/sbin/lldpd -d -I Ethernet[0-9]*,eth0 -C eth0"
+     startup: enabled
+     override: replace
+     after: [start]
+
+   waitfor_lldp_ready:
+     command: "/usr/bin/waitfor_lldp_ready.sh"
+     startup: enabled
+     override: replace
+     after: [lldp]
+
+   lldp-syncd:
+     # need to start after lldp started
+     command: "/usr/bin/env python3 -m lldp_syncd"
+     startup: enabled
+     override: replace
+     after: [waitfor_lldp_ready]
+
+   lldpmgrd:
+     # need to start after lldp-syncd running
+     command: "/usr/bin/lldpmgrd"
+     startup: enabled
+     override: replace
+     after: [lldp-syncd]
+
+# For meeting requirement R2, simply don't specify any entrypoint (aka "services")
+
+parts:
+  install-common:
+    #common setup
+    plugin: nil
+    source: .
+    source-type: local
+      #after: [install-dependents]
+
+    override-stage: |
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-3-200_3.5.0-1_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-route-3-200_3.5.0-1_amd64.deb || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-genl-3-200_3.5.0-1_amd64.deb  || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-nf-3-200_3.5.0-1_amd64.deb    || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libnl-cli-3-200_3.5.0-1_amd64.deb   || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libyang_1.0.73_amd64.deb            || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libswsscommon_1.0.0_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/libyang-cpp_1.0.73_amd64.deb        || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/python3-yang_1.0.73_amd64.deb       || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/python3-swsscommon_1.0.0_amd64.deb  || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/sonic-db-cli_1.0.0_amd64.deb        || apt-get -y install -f  
+      dpkg -i  ${CRAFT_PROJECT_DIR}/debs/sonic-eventd_1.0.0-0_amd64.deb      || apt-get -y install -f  
+      apt-get -y install -f rsyslog python3
+
+      #python
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_py_common-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_yang_mgmt-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_yang_models-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_containercfgd-1.0-py3-none-any.whl 
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_config_engine-1.0-py3-none-any.whl
+    
+      # binaries
+      mkdir -p ${CRAFT_PRIME}/usr/local/bin
+      cp -r /usr/local/bin/* ${CRAFT_PRIME}/usr/local/bin/
+      mkdir -p ${CRAFT_PRIME}/usr/bin
+      cp -r /usr/bin/* ${CRAFT_PRIME}/usr/bin
+      mkdir -p ${CRAFT_PRIME}/usr/sbin/
+      cp /usr/sbin/rsyslogd ${CRAFT_PRIME}/usr/sbin/
+
+      # python
+      mkdir -p ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+      cp -r /usr/lib/python3/dist-packages/*  ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+
+      mkdir -p ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages
+      cp -r /usr/local/lib/python3.10/dist-packages/* ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages/
+
+      # dynamic libs
+      mkdir -p ${CRAFT_PRIME}/lib/x86_64-linux-gnu
+      cp -r /lib/x86_64-linux-gnu/* ${CRAFT_PRIME}/lib/x86_64-linux-gnu/
+      mkdir -p ${CRAFT_PRIME}/lib64
+      cp -r /lib64/* ${CRAFT_PRIME}/lib64
+      mkdir -p ${CRAFT_PRIME}/lib/python3.10
+      cp -r /lib/python3.10/* ${CRAFT_PRIME}/lib/python3.10/
+      #rm -rf  ${CRAFT_PRIME}/usr/lib
+
+  install-common-files:
+    plugin: nil
+    after: [install-common]
+    override-prime: |
+      mkdir -p usr/share/sonic/templates/
+      mkdir -p usr/share/sonic/scripts/
+      mkdir -p etc/rsyslog.d/
+
+      cp ${CRAFT_PROJECT_DIR}/files/swss_vars.j2         usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/files/readiness_probe.sh   usr/bin/
+      cp ${CRAFT_PROJECT_DIR}/files/container_startup.py usr/share/sonic/scripts/
+      cp ${CRAFT_PROJECT_DIR}/files/00-load-omprog.conf  etc/rsyslog.d/
+      cp ${CRAFT_PROJECT_DIR}/files/rsyslog.conf           etc/
+
+  install-lldp-runtime:
+    plugin: nil
+    source: . 
+    source-type: local
+    after: [install-common-files]
+
+    # locally built package dependencies
+    override-stage: |
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all.deb || apt-get -y install -f
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64.deb  || apt-get -y install -f
+      dpkg -i ${CRAFT_PROJECT_DIR}/debs/lldpd_1.0.16-1+deb12u1_amd64.deb           || apt-get -y install -f
+
+      #python
+      pip3 install ${CRAFT_PROJECT_DIR}/python-wheels/sonic_d-2.0.0-py3-none-any.whl 
+
+      # binaries
+      mkdir -p ${CRAFT_PRIME}/usr/local/bin
+      cp -r /usr/local/bin/* ${CRAFT_PRIME}/usr/local/bin/
+      mkdir -p ${CRAFT_PRIME}/usr/bin
+      cp -r /usr/bin/* ${CRAFT_PRIME}/usr/bin
+
+      # python
+      mkdir -p ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+      cp -r /usr/lib/python3/dist-packages/*  ${CRAFT_PRIME}/usr/lib/python3/dist-packages/
+
+      mkdir -p ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages
+      cp -r /usr/local/lib/python3.10/dist-packages/* ${CRAFT_PRIME}/usr/local/lib/python3.10/dist-packages/
+
+      # dynamic libs
+      mkdir -p ${CRAFT_PRIME}/lib/x86_64-linux-gnu
+      cp -r /lib/x86_64-linux-gnu/* ${CRAFT_PRIME}/lib/x86_64-linux-gnu/
+
+    override-prime: |
+      mkdir -p usr/bin
+      mkdir -p usr/share/sonic/templates
+      mkdir -p etc/default
+
+      #cp ${CRAFT_PROJECT_DIR}/docker-lldp-init.sh usr/bin
+      cp ${CRAFT_PROJECT_DIR}/start.sh usr/bin
+      cp ${CRAFT_PROJECT_DIR}/waitfor_lldp_ready.sh usr/bin
+      cp ${CRAFT_PROJECT_DIR}/lldpd.conf.j2 usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/lldpdSysDescr.conf.j2 usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/lldpd etc/default/
+      cp ${CRAFT_PROJECT_DIR}/lldpmgrd usr/bin/
+      #cp ${CRAFT_PROJECT_DIR}/files/supervisor-proc-exit-listener usr/bin
+      
+  add-user:
+    plugin: nil
+    after: [install-lldp-runtime]
+
+    overlay-script: |
+      groupadd -R $CRAFT_OVERLAY syslog
+      useradd -R $CRAFT_OVERLAY -M -r -g adm syslog
+
+    prime:
+      - etc/passwd
+      - etc/group
