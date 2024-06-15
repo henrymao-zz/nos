@@ -95,6 +95,16 @@ parts:
     source-type: deb
     source: ./debs/libprotobuf-lite32_3.21.12-3_amd64.deb
 
+  install-libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all:
+    plugin: dump
+    source-type: deb
+    source: ./debs/libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all.deb
+
+  install-libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64:
+    plugin: dump
+    source-type: deb
+    source: ./debs/libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64.deb
+
   install-lldpd_1.0.16-1+deb12u1_amd64.deb:
     plugin: dump
     source-type: deb
@@ -117,6 +127,10 @@ parts:
       - libxml2
       # lldpd
       - libevent-2.1-7
+      - libsensors5
+      - libpci3
+      - libperl5.34
+      - libwrap0
 
   install-python:
     plugin: python
@@ -174,8 +188,8 @@ parts:
       cp ${CRAFT_PROJECT_DIR}/files/supervisor-proc-exit-listener usr/bin/
 
       # common - redis config files
-      mkdir -p etc/redis/
-      cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf etc/redis/
+      #mkdir -p etc/redis/
+      #cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf etc/redis/
 
       # docker-lldp specifc
       mkdir -p usr/bin
@@ -198,6 +212,9 @@ parts:
       #syslog user
       groupadd -R $CRAFT_OVERLAY syslog
       useradd -R $CRAFT_OVERLAY -M -r --system -g adm syslog
+
+      groupadd -R $CRAFT_OVERLAY _lldpd
+      useradd -R $CRAFT_OVERLAY -M -r --system -g _lldpd _lldpd
 
     prime:
       - etc/passwd

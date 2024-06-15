@@ -21,7 +21,7 @@ services:
     startup: enabled
     override: replace
 
-# For meeting requirement R2, simply don't specify any entrypoint (aka "services")
+# FROM docker-swss-layer-jammy 
 
 parts:
   install-libnl-3-200_3.5.0-1_amd64:
@@ -84,6 +84,12 @@ parts:
     source-type: deb
     source: ./debs/sonic-eventd_1.0.0-0_amd64.deb
 
+  # docker-swss-layer-jammy packages
+  install-swss_1.0.0_amd64:
+    plugin: dump
+    source-type: deb
+    source: ./debs/swss_1.0.0_amd64.deb
+
   # docker-orchagent specific packages
   install-libprotobuf32_3.21.12-3_amd64:
     plugin: dump
@@ -125,11 +131,6 @@ parts:
     source-type: deb
     source: ./debs/libdashapi_1.0.0_amd64.deb
 
-  install-swss_1.0.0_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/swss_1.0.0_amd64.deb
-
   install-sonic-rsyslog-plugin_1.0.0-0_amd64:
     plugin: dump
     source-type: deb
@@ -146,6 +147,8 @@ parts:
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
+      # from docker-swss-layer-jammy
+      - iputils-ping
       # swss dependencies
       - ifupdown
       - arping
@@ -157,12 +160,9 @@ parts:
       - bridge-utils
       - conntrack
       - ndppd
-        #- python3-protobuf
       - pciutils
       - python3-netifaces
-      # for installing netifaces python packages
-      # - build-essential
-      # - python3-dev
+      - jq
 
   install-python:
     plugin: python
@@ -248,7 +248,6 @@ parts:
       cp ${CRAFT_PROJECT_DIR}/watchdog_processes.j2      usr/share/sonic/templates/ 
       cp ${CRAFT_PROJECT_DIR}/supervisord.conf.j2        usr/share/sonic/templates/ 
       cp ${CRAFT_PROJECT_DIR}/wait_for_link.sh.j2        usr/share/sonic/templates/  
-      cp ${CRAFT_PROJECT_DIR}/swss_events.conf           etc/rsyslog.d/
 
   add-user:
     plugin: nil
