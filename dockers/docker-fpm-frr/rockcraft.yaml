@@ -54,6 +54,11 @@ parts:
     source-type: deb
     source: ./debs/libyang_1.0.73_amd64.deb
 
+  install-libyang2_2.0.112-6_amd64:
+    plugin: dump
+    source-type: deb
+    source: ./debs/libyang2_2.0.112-6_amd64.deb
+
   install-libswsscommon_1.0.0_amd64:
     plugin: dump
     source-type: deb
@@ -141,6 +146,11 @@ parts:
     source-type: deb
     source: ./debs/libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64.deb
 
+  install-libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all:
+    plugin: dump
+    source-type: deb
+    source: ./debs/libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all.deb
+
   install-frr_8.5.4-sonic-0_amd64:
     plugin: dump
     source-type: deb
@@ -170,6 +180,10 @@ parts:
       - logrotate
       - libunwind8
       - jq
+      - libjson-c5
+      # zebra dependencies
+      - libwrap0
+      - libperl5.34
 
   install-python:
     plugin: python
@@ -255,7 +269,9 @@ parts:
 
       #frr
       groupadd -R $CRAFT_OVERLAY frr
-      useradd -R $CRAFT_OVERLAY -M -r --system -g  frr frr
+      useradd -R $CRAFT_OVERLAY -M -r  -g  frr frr
+      groupadd -R $CRAFT_OVERLAY frrvty
+      usermod -R $CRAFT_OVERLAY -a -G frrvty frr
 
     prime:
       - etc/passwd
