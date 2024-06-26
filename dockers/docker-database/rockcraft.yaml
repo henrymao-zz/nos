@@ -180,7 +180,7 @@ parts:
 
       # common - redis config files
       mkdir -p etc/redis/
-      cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf                etc/redis/
+      cp ${CRAFT_PROJECT_DIR}/redis.conf                 etc/redis/
 
       # docker-database specifc
       mkdir -p usr/local/bin
