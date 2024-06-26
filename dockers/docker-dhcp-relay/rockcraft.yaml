@@ -196,7 +196,7 @@ parts:
       cp -r ${CRAFT_PROJECT_DIR}/cli/*                    cli/
 
       # docker-dhcp-relay related conf
-      cp ${CRAFT_PROJECT_DIR}/etc/dhcp_relay_events.conf  etc/rsyslog.d/ 
+      cp ${CRAFT_PROJECT_DIR}/dhcp_relay_events.conf      etc/rsyslog.d/ 
 
   add-user:
     plugin: nil
