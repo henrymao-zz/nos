@@ -167,11 +167,11 @@ parts:
       mkdir -p etc/supervisor/conf.d
       mkdir -p var/log/supervisor
 
-      cp ${CRAFT_PROJECT_DIR}/etc/supervisor/supervisord.conf etc/supervisor/
+      cp ${CRAFT_PROJECT_DIR}/files/supervisord.conf     etc/supervisor/
       # common - supervisor related
       mkdir -p usr/share/sonic/templates
-      cp ${CRAFT_PROJECT_DIR}/supervisord.conf.j2     usr/share/sonic/templates/
-      cp ${CRAFT_PROJECT_DIR}/critical_processes.j2   usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/supervisord.conf.j2        usr/share/sonic/templates/
+      cp ${CRAFT_PROJECT_DIR}/critical_processes.j2      usr/share/sonic/templates/
 
       mkdir -p etc/sysctl.d/
       cp ${CRAFT_PROJECT_DIR}/files/sysctl-net.conf               etc/sysctl.d/
@@ -180,7 +180,7 @@ parts:
 
       # common - redis config files
       mkdir -p etc/redis/
-      cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf etc/redis/
+      cp ${CRAFT_PROJECT_DIR}/etc/redis/redis.conf                etc/redis/
 
       # docker-database specifc
       mkdir -p usr/local/bin

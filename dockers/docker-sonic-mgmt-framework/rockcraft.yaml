@@ -156,14 +156,14 @@ parts:
  
       # common - rsyslog
       mkdir -p etc/rsyslog.d/
-      cp ${CRAFT_PROJECT_DIR}/etc/rsyslog.d/00-load-omprog.conf  etc/rsyslog.d/
-      cp ${CRAFT_PROJECT_DIR}/etc/rsyslog.conf           etc/
+      cp ${CRAFT_PROJECT_DIR}/files/00-load-omprog.conf  etc/rsyslog.d/
+      cp ${CRAFT_PROJECT_DIR}/files/rsyslog.conf         etc/
 
       # common - supervisor config files
       mkdir -p etc/supervisor/conf.d
       mkdir -p var/log/supervisor
 
-      cp ${CRAFT_PROJECT_DIR}/etc/supervisor/supervisord.conf    etc/supervisor/
+      cp ${CRAFT_PROJECT_DIR}/files/supervisord.conf     etc/supervisor/
 
       # common - supervisor related
       #mkdir -p usr/share/sonic/templates
