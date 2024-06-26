@@ -229,7 +229,7 @@ parts:
       cp ${CRAFT_PROJECT_DIR}/files/00-load-omprog.conf  etc/rsyslog.d/
       cp ${CRAFT_PROJECT_DIR}/files/rsyslog.conf         etc/
       # orchagent specific rsyslog
-      cp ${CRAFT_PROJECT_DIR}/etc/bgp_events.conf        etc/rsyslog.d/
+      cp ${CRAFT_PROJECT_DIR}/bgp_events.conf            etc/rsyslog.d/
 
       # common - supervisor config files
       mkdir -p etc/supervisor/conf.d
