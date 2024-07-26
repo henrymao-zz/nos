@@ -21,7 +21,7 @@ services:
     startup: enabled
     override: replace
 
-# FROM docker-swss-layer-jammy 
+# FROM docker-swss-layer-noble 
 
 parts:
   install-libnl-3-200_3.5.0-1_amd64:
@@ -84,7 +84,7 @@ parts:
     source-type: deb
     source: ./debs/sonic-eventd_1.0.0-0_amd64.deb
 
-  # docker-swss-layer-jammy packages
+  # docker-swss-layer-noble packages
   install-swss_1.0.0_amd64:
     plugin: dump
     source-type: deb
@@ -142,7 +142,7 @@ parts:
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
-      # from docker-swss-layer-jammy
+      # from docker-swss-layer-noble
       - iputils-ping
       # tlm_teamd dependencies
       - libjansson4
@@ -152,7 +152,7 @@ parts:
     plugin: python
     source: .
     python-packages:
-      # inherited from docker-config-engine-jammy
+      # inherited from docker-config-engine-noble
       - ./python-wheels/sonic_py_common-1.0-py3-none-any.whl
       - ./python-wheels/sonic_yang_mgmt-1.0-py3-none-any.whl
       - ./python-wheels/sonic_yang_models-1.0-py3-none-any.whl
@@ -180,7 +180,7 @@ parts:
       # common - manifest.json
       cp ${CRAFT_PROJECT_DIR}/manifest.json              ./ 
  
-      # common - templates&scripts (from docker-config-engine-jammy
+      # common - templates&scripts (from docker-config-engine-noble
       mkdir -p usr/share/sonic/templates/
       mkdir -p usr/share/sonic/scripts/
       cp ${CRAFT_PROJECT_DIR}/files/swss_vars.j2         usr/share/sonic/templates/

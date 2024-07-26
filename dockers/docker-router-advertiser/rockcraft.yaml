@@ -109,7 +109,7 @@ parts:
     plugin: python
     source: .
     python-packages:
-      # inherited from docker-config-engine-jammy
+      # inherited from docker-config-engine-noble
       - ./python-wheels/sonic_py_common-1.0-py3-none-any.whl
       - ./python-wheels/sonic_yang_mgmt-1.0-py3-none-any.whl
       - ./python-wheels/sonic_yang_models-1.0-py3-none-any.whl
