@@ -4,10 +4,10 @@ description: A Chiselled rock for SONiC router-advertiser container
 version: "1.0.0"
 
 # Use a "bare" base for an even smaller rock
-base: ubuntu@22.04 
+base: ubuntu@24.04 
 
 # Meeting requirement R1 by making sure the rock builds on Jammy
-build-base: ubuntu@22.04
+build-base: ubuntu@24.04
 
 license: Apache-2.0
 
