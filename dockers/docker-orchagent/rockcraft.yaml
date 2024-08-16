@@ -24,31 +24,6 @@ services:
 # FROM docker-swss-layer-noble 
 
 parts:
-  install-libnl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-route-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-route-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-genl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-genl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-nf-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-nf-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-cli-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-cli-3-200_3.5.0-1_amd64.deb
-
   install-libyang_1.0.73_amd64:
     plugin: dump
     source-type: deb
@@ -91,20 +66,20 @@ parts:
     source: ./debs/swss_1.0.0_amd64.deb
 
   # docker-orchagent specific packages
-  install-libprotobuf32_3.21.12-3_amd64:
+  install-libprotobuf32t64_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/libprotobuf32_3.21.12-3_amd64.deb
+    source: ./debs/libprotobuf32t64_3.21.12-8.2build1_amd64.deb
 
-  install-libprotobuf-lite32_3.21.12-3_amd64:
+  install-libprotobuf-lite32t64_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/libprotobuf-lite32_3.21.12-3_amd64.deb
+    source: ./debs/libprotobuf-lite32t64_3.21.12-8.2build1_amd64.deb
 
-  install-python3-protobuf_3.21.12-3_amd64:
+  install-python3-protobuf_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/python3-protobuf_3.21.12-3_amd64.deb
+    source: ./debs/python3-protobuf_3.21.12-8.2build1_amd64.deb
 
   install-libsairedis_1.0.0_amd64:
     plugin: dump
@@ -140,10 +115,10 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.10
-      - libpython3.10
+      - python3.12
+      - libpython3.12
       # package dependencies
-      - libhiredis0.14
+      - libhiredis1.1.0
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
@@ -163,6 +138,13 @@ parts:
       - pciutils
       - python3-netifaces
       - jq
+      # libnl-3-200
+      - libnl-3-200
+      - libnl-route-3-200
+      - libnl-genl-3-200
+      - libnl-nf-3-200
+      - libnl-cli-3-200
+
 
   install-python:
     plugin: python
@@ -181,10 +163,10 @@ parts:
       - j2cli
       - pyroute2==0.5.14
         #- netifaces==0.10.9
-      - ./python-wheels/scapy-2.4.5-py2.py3-none-any.whl
+      - scapy==2.5.0
 
     stage-packages:
-      - python3.10-venv
+      - python3.12-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

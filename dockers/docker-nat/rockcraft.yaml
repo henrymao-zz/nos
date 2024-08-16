@@ -90,20 +90,20 @@ parts:
     source-type: deb
     source: ./debs/swss_1.0.0_amd64.deb
 
-  install-libprotobuf32_3.21.12-3_amd64:
+  install-libprotobuf32t64_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/libprotobuf32_3.21.12-3_amd64.deb
+    source: ./debs/libprotobuf32t64_3.21.12-8.2build1_amd64.deb
 
-  install-libprotobuf-lite32_3.21.12-3_amd64:
+  install-libprotobuf-lite32t64_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/libprotobuf-lite32_3.21.12-3_amd64.deb
+    source: ./debs/libprotobuf-lite32t64_3.21.12-8.2build1_amd64.deb
 
-  install-python3-protobuf_3.21.12-3_amd64:
+  install-python3-protobuf_3.21.12-8.2build1_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/python3-protobuf_3.21.12-3_amd64.deb
+    source: ./debs/python3-protobuf_3.21.12-8.2build1_amd64.deb
 
   install-libsairedis_1.0.0_amd64:
     plugin: dump
@@ -161,10 +161,10 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.10
-      - libpython3.10
+      - python3.12
+      - libpython3.12
       # package dependencies
-      - libhiredis0.14
+      - libhiredis1.1.0
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
@@ -195,7 +195,7 @@ parts:
       # - ./python-wheels/scapy-2.4.5-py2.py3-none-any.whl
 
     stage-packages:
-      - python3.10-venv
+      - python3.12-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

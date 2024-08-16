@@ -109,12 +109,12 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.10
-      - libpython3.10
+      - python3.12
+      - libpython3.12
       # docker-lldp specific packages
       - iproute2
       # package dependencies
-      - libhiredis0.14
+      - libhiredis1.1.0
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
@@ -151,7 +151,7 @@ parts:
         #- smbus
       # python3 -m sonic_ax_impl install
     stage-packages:
-      - python3.10-venv
+      - python3.12-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

@@ -114,10 +114,10 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.10
-      - libpython3.10
+      - python3.12
+      - libpython3.12
       # package dependencies
-      - libhiredis0.14
+      - libhiredis1.1.0
       - libzmq5
       - libboost-serialization1.74.0
       - libuuid1
@@ -165,14 +165,14 @@ parts:
       - supervisord-dependent-startup==1.4.0
       - hiredis
       - pyyaml
-      - grpcio==1.51.1
-      - grpcio-tools==1.51.1
+      - grpcio==1.65.1
+      - grpcio-tools==1.65.1
       - thrift==0.13.0
       - requests
       - libpci
       - psutil
     stage-packages:
-      - python3.10-venv
+      - python3.12-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 
