@@ -24,31 +24,6 @@ services:
 # For meeting requirement R2, simply don't specify any entrypoint (aka "services")
 
 parts:
-  install-libnl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-route-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-route-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-genl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-genl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-nf-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-nf-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-cli-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-cli-3-200_3.5.0-1_amd64.deb
-
   install-libyang_1.0.73_amd64:
     plugin: dump
     source-type: deb
@@ -85,25 +60,25 @@ parts:
     source: ./debs/sonic-eventd_1.0.0-0_amd64.deb
 
   # docker-snmp specific packages
-  install-libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all:
+  install-libsnmp40t64_5.9.4+dfsg-1.1ubuntu3_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/libsnmp-base_5.9.1+dfsg-1ubuntu2.6_all.deb
+    source: ./debs/libsnmp40t64_5.9.4+dfsg-1.1ubuntu3_amd64.deb
 
-  install-libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64:
+  install-libsnmp-base_5.9.4+dfsg-1.1ubuntu3_all:
     plugin: dump
     source-type: deb
-    source: ./debs/libsnmp40_5.9.1+dfsg-1ubuntu2.6_amd64.deb
+    source: ./debs/libsnmp-base_5.9.4+dfsg-1.1ubuntu3_all.deb
 
-  install-snmp_5.9.1+dfsg-1ubuntu2.6_amd64:
+  install-snmp_5.9.4+dfsg-1.1ubuntu3_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/snmp_5.9.1+dfsg-1ubuntu2.6_amd64.deb
+    source: ./debs/snmp_5.9.4+dfsg-1.1ubuntu3_amd64.deb
 
-  install-snmpd_5.9.1+dfsg-1ubuntu2.6_amd64:
+  install-snmpd_5.9.4+dfsg-1.1ubuntu3_amd64:
     plugin: dump
     source-type: deb
-    source: ./debs/snmpd_5.9.1+dfsg-1ubuntu2.6_amd64.deb
+    source: ./debs/snmpd_5.9.4+dfsg-1.1ubuntu3_amd64.deb
 
   install-packages:
     plugin: nil
@@ -124,9 +99,15 @@ parts:
       - ipmitool
       - python3-smbus
       - libwrap0
-      - libperl5.34
+      - libperl5.38t64
       - libpci3
       - libsensors5
+      # libnl-3-200
+      - libnl-3-200
+      - libnl-route-3-200
+      - libnl-genl-3-200
+      - libnl-nf-3-200
+      - libnl-cli-3-200
 
   install-python:
     plugin: python

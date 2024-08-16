@@ -24,31 +24,6 @@ services:
 # For meeting requirement R2, simply don't specify any entrypoint (aka "services")
 
 parts:
-  install-libnl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-route-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-route-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-genl-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-genl-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-nf-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-nf-3-200_3.5.0-1_amd64.deb
-
-  install-libnl-cli-3-200_3.5.0-1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libnl-cli-3-200_3.5.0-1_amd64.deb
-
   install-libyang_1.0.73_amd64:
     plugin: dump
     source-type: deb
@@ -104,6 +79,12 @@ parts:
       - libevent-2.1-7
       # router-advertiser
       - radvd
+      # libnl-3-200
+      - libnl-3-200
+      - libnl-route-3-200
+      - libnl-genl-3-200
+      - libnl-nf-3-200
+      - libnl-cli-3-200
 
   install-python:
     plugin: python
