@@ -84,14 +84,15 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.12
+      - python3
       - libpython3.12
       # package dependencies
       - libhiredis1.1.0
       - libzmq5
-      - libboost-serialization1.74.0
+      - libboost-serialization1.83.0
       - libuuid1
       - libxml2
+      - libpcre3
       # dhcp-relay
       - libevent-2.1-7
       - libjsoncpp25
@@ -114,14 +115,15 @@ parts:
       - ./python-wheels/sonic_config_engine-1.0-py3-none-any.whl
       # from docker-dhcp-relay
       - ./python-wheels/sonic_dhcp_utilities-1.0-py3-none-any.whl
-      - j2cli
+      - jinjanator
       # docker-dhcp-relay specific packages
       - click
       - supervisor==4.2.5
       - supervisord-dependent-startup==1.4.0
       - psutil
+      - lxml
     stage-packages:
-      - python3.12-venv
+      - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

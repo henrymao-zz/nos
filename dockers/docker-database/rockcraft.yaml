@@ -84,7 +84,7 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.12
+      - python3
       - libpython3.12
       # docker-database specific packages
       - redis-tools
@@ -93,8 +93,9 @@ parts:
       # package dependencies
       - libhiredis1.1.0
       - libzmq5
-      - libboost-serialization1.74.0
+      - libboost-serialization1.83.0
       - libuuid1
+      - libpcre3
       # libnl-3-200
       - libnl-3-200
       - libnl-route-3-200
@@ -112,13 +113,14 @@ parts:
       - ./python-wheels/sonic_yang_models-1.0-py3-none-any.whl
       - ./python-wheels/sonic_containercfgd-1.0-py3-none-any.whl
       - ./python-wheels/sonic_config_engine-1.0-py3-none-any.whl
-      - j2cli
+      - jinjanator
       # docker-database specific packages
       - click
       - supervisor==4.2.5
       - supervisord-dependent-startup==1.4.0
+      - lxml
     stage-packages:
-      - python3.12-venv
+      - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

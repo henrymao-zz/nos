@@ -115,12 +115,12 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.12
+      - python3
       - libpython3.12
       # package dependencies
       - libhiredis1.1.0
       - libzmq5
-      - libboost-serialization1.74.0
+      - libboost-serialization1.83.0
       - libuuid1
       # from docker-swss-layer-noble
       - iputils-ping
@@ -138,6 +138,7 @@ parts:
       - pciutils
       - python3-netifaces
       - jq
+      - libpcre3
       # libnl-3-200
       - libnl-3-200
       - libnl-route-3-200
@@ -160,13 +161,14 @@ parts:
       - supervisor==4.2.5
       - supervisord-dependent-startup==1.4.0
       # from docker-orchagent
-      - j2cli
+      - jinjanator
       - pyroute2==0.5.14
-        #- netifaces==0.10.9
+      - lxml
+      #- netifaces==0.10.9
       - scapy==2.5.0
 
     stage-packages:
-      - python3.12-venv
+      - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

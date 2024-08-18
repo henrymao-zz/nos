@@ -140,12 +140,12 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.12
+      - python3
       - libpython3.12
       # package dependencies
       - libhiredis1.1.0
       - libzmq5
-      - libboost-serialization1.74.0
+      - libboost-serialization1.83.0
       - libuuid1
       # from docker-swss-layer-noble
       - iputils-ping
@@ -156,6 +156,7 @@ parts:
       - libunwind8
       - jq
       - libjson-c5
+      - libpcre3
       # zebra dependencies
       - libwrap0
       - libperl5.38t64
@@ -180,12 +181,13 @@ parts:
       - supervisor==4.2.5
       - supervisord-dependent-startup==1.4.0
       # from docker-orchagent
-      - j2cli
+      - jinjanator
+      - lxml
       - ./python-wheels/sonic_bgpcfgd-1.0-py3-none-any.whl
       - ./python-wheels/sonic_frr_mgmt_framework-1.0-py3-none-any.whl
 
     stage-packages:
-      - python3.12-venv
+      - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 

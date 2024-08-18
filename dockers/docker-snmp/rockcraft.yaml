@@ -84,17 +84,18 @@ parts:
     plugin: nil
     stage-packages:
       - rsyslog
-      - python3.12
+      - python3
       - libpython3.12
       # docker-lldp specific packages
       - iproute2
       # package dependencies
       - libhiredis1.1.0
       - libzmq5
-      - libboost-serialization1.74.0
+      - libboost-serialization1.83.0
       - libuuid1
       - libxml2
       - libevent-2.1-7
+      - libpcre3
       # snmp
       - ipmitool
       - python3-smbus
@@ -122,17 +123,18 @@ parts:
       # from docker-snmp
       - ./python-wheels/sonic_platform_common-1.0-py3-none-any.whl
       - ./python-wheels/asyncsnmp-2.1.0-py3-none-any.whl
-      - j2cli
+      - jinjanator
       # docker-snmp specific packages
       - click
       - supervisor==4.2.5
       - supervisord-dependent-startup==1.4.0
       - hiredis
       - pyyaml
+      - lxml
         #- smbus
       # python3 -m sonic_ax_impl install
     stage-packages:
-      - python3.12-venv
+      - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
 
