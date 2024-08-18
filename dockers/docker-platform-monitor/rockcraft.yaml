@@ -158,6 +158,13 @@ parts:
       - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
+      bin/chassis_db_init: usr/local/bin/chassis_db_init
+      bin/psud: usr/local/bin/psud
+      bin/syseepromd: usr/local/bin/syseepromd
+      bin/stormond: usr/local/bin/stormond
+      bin/thermalctld: usr/local/bin/thermalctld
+      bin/pcied: usr/local/bin/pcied
+      bin/xcvrd: usr/local/bin/xcvrd
 
   install-common-files:
     plugin: nil
