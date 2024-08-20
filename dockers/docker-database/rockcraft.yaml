@@ -20,6 +20,7 @@ services:
      command: "/usr/local/bin/docker-database-init.sh"
      startup: enabled
      override: replace
+     on-failure: shutdown 
 
 # For meeting requirement R2, simply don't specify any entrypoint (aka "services")
 

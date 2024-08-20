@@ -20,6 +20,8 @@ services:
     command: "/usr/bin/docker-orchagent-init.sh"
     startup: enabled
     override: replace
+    on-failure: shutdown
+    on-success: shutdown
 
 # FROM docker-swss-layer-noble 
 

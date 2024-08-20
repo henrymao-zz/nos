@@ -20,6 +20,7 @@ services:
     command: "/usr/local/bin/supervisord"
     startup: enabled
     override: replace
+    on-failure: shutdown
 
 # FROM docker-swss-layer-noble 
 
