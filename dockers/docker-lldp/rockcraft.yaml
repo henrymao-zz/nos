@@ -60,17 +60,6 @@ parts:
     source-type: deb
     source: ./debs/sonic-eventd_1.0.0-0_amd64.deb
 
-  # docker-lldp specific packages
-  install-libprotobuf32t64_3.21.12-8.2build1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libprotobuf32t64_3.21.12-8.2build1_amd64.deb
-
-  install-libprotobuf-lite32t64_3.21.12-8.2build1_amd64:
-    plugin: dump
-    source-type: deb
-    source: ./debs/libprotobuf-lite32t64_3.21.12-8.2build1_amd64.deb
-
   install-libsnmp40t64_5.9.4+dfsg-1.1ubuntu3_amd64:
     plugin: dump
     source-type: deb
