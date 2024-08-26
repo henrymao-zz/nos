@@ -182,6 +182,9 @@ parts:
       - python3-venv
     organize:
       bin/supervisord: usr/local/bin/supervisord
+      bin/bgpcfgd: usr/local/bin/bgpcfgd
+      bin/bgpmon: usr/local/bin/bgpmon
+      bin/staticroutebfd: usr/local/bin/staticroutebfd
 
   install-common-files:
     plugin: nil
