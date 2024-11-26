@@ -10,7 +10,7 @@ export LIBNL3_VERSION
 
 LIBNL3 = libnl-3-200_$(LIBNL3_VERSION)_$(CONFIGURED_ARCH).deb
 $(LIBNL3)_SRC_PATH = $(SRC_PATH)/libnl3
-SONIC_MAKE_DEBS += $(LIBNL3)
+# SONIC_MAKE_DEBS += $(LIBNL3)
 
 LIBNL3_DEV = libnl-3-dev_$(LIBNL3_VERSION)_$(CONFIGURED_ARCH).deb
 $(eval $(call add_derived_package,$(LIBNL3),$(LIBNL3_DEV)))

@@ -13,7 +13,7 @@ $(LIBYANG)_SRC_PATH = $(SRC_PATH)/libyang
 # introduce artifical dependency between LIBYANG and FRR
 # make sure LIBYANG is compile after FRR
 $(LIBYANG)_AFTER = $(FRR)
-SONIC_MAKE_DEBS += $(LIBYANG)
+# SONIC_MAKE_DEBS += $(LIBYANG)
 
 LIBYANG_DEV = libyang-dev_$(LIBYANG_VERSION)_$(CONFIGURED_ARCH).deb
 $(eval $(call add_derived_package,$(LIBYANG),$(LIBYANG_DEV)))
