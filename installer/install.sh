@@ -155,8 +155,8 @@ demo_part_size=$ONIE_IMAGE_PART_SIZE
 image_version="%%IMAGE_VERSION%%"
 timestamp="$(date -u +%Y%m%d)"
 
-demo_volume_label="SONiC-${demo_type}"
-demo_volume_revision_label="SONiC-${demo_type}-${image_version}"
+demo_volume_label="Ubuntu-NOS-${demo_type}"
+demo_volume_revision_label="Ubuntu-NOS-${demo_type}-${image_version}"
 
 
 . ./default_platform.conf

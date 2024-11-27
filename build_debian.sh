@@ -39,7 +39,7 @@ LINUX_KERNEL_VERSION=6.8.0-1000
 FILESYSTEM_ROOT=./fsroot
 PLATFORM_DIR=platform
 ## Hostname for the linux image
-HOSTNAME=sonic
+HOSTNAME=ubuntu
 DEFAULT_USERINFO="Default admin user,,,"
 BUILD_TOOL_PATH=src/sonic-build-hooks/buildinfo
 TRUSTED_GPG_DIR=$BUILD_TOOL_PATH/trusted.gpg.d
