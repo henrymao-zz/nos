@@ -6952,6 +6952,11 @@ static const struct ethtool_ops bkn_ethtool_ops = {
 #endif
 };
 
+bool bkn_port_dev_check(const struct net_device *dev)
+{
+       return dev->netdev_ops == &bkn_netdev_ops;
+}
+
 static struct net_device *
 bkn_init_ndev(u8 *mac, char *name)
 {
@@ -9693,6 +9698,8 @@ bkn_knet_dev_init(int d)
     return 0;
 }
 
+extern int bcm_switch_init(void);
+
 static int
 _init(void)
 {
@@ -9756,6 +9763,9 @@ _init(void)
     }
     evt = &_bkn_evt[0];
     init_waitqueue_head(&evt->evt_wq);
+
+    /* TODO: switchdev related,  move to separate module*/
+    bcm_switch_init();
 
     module_initialized = 1;
 
