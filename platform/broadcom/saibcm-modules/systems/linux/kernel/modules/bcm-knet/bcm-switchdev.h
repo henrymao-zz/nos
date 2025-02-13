@@ -10,6 +10,8 @@
 #include <linux/net_namespace.h>
 #include <linux/auxiliary_bus.h>
 #include <net/devlink.h>
+#include <net/switchdev.h>
+#include <net/vxlan.h>
 
 
 struct bcmsw_switchdev_event_work {
@@ -21,21 +23,6 @@ struct bcmsw_switchdev_event_work {
 	};
 	struct net_device *dev;
 	unsigned long event;
-};
-
-
-struct bcmsw_switchdev {
-	struct bcmsw_switch *sw;
-	struct list_head bridge_list;
-	bool bridge_8021q_exists;
-	struct notifier_block swdev_nb_blk;
-	struct notifier_block swdev_nb;
-};
-
-
-struct bcmsw_switch {
-	struct net_device *dev; //bcm0
-	struct bcmsw_switchdev *swdev;
 };
 
 //#ifdef  BCM_56370_A0
@@ -75,15 +62,34 @@ typedef struct {
     int             port_m2p_mapping[SOC_MAX_NUM_MMU_PORTS];  /* mmu to phy */
     int             port_num_lanes[SOC_MAX_NUM_PORTS];        /* number of lanes */  
     int             port_speed_max[SOC_MAX_NUM_PORTS];        /* max port speed */
+    int             port_init_speed[SOC_MAX_NUM_PORTS];   /* ports initial speed */
     int             port_serdes[SOC_MAX_NUM_PORTS];           /* serdes number */
     int             port_num_subport[SOC_MAX_NUM_PORTS];      /* number of subport */    
     int             port_pipe[SOC_MAX_NUM_PORTS];             /* pipe number */
+    int             port_group[SOC_MAX_NUM_PORTS];        /* group number */
 
     int             cpu_hg_index;           /* table index for cpu port
                                              * higig packet where table indexed
                                              * by physical port*/
-    int             port_type[SOC_MAX_NUM_PP_PORTS];                                            
+    int             port_type[SOC_MAX_NUM_PORTS];                                            
 } soc_info_t;
+
+#define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
+
+struct bcmsw_switchdev {
+	struct bcmsw_switch *sw;
+	struct list_head bridge_list;
+	bool bridge_8021q_exists;
+	struct notifier_block swdev_nb_blk;
+	struct notifier_block swdev_nb;
+};
+
+
+struct bcmsw_switch {
+	struct net_device *dev; //bcm0
+	soc_info_t *si;
+	struct bcmsw_switchdev *swdev;
+};
 
 
 /* Add an entry to field-value array for multiple fields write */
@@ -95,5 +101,7 @@ typedef struct {
         } while (0);    \
 
 
+
+int bcmsw_switch_init(void);
 
 #endif

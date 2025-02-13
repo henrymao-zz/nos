@@ -58,8 +58,8 @@ export KBUILD_EXTRA_SYMBOLS
 # These are the objects which need to be compiled, in the kernel, to
 # created the module object file.
 #
-SRCS_COMPOSING = bcm-knet.c ../shared/gmodule.c
-OBJECTS_COMPOSING = "bcm-knet.o gmodule.o"
+SRCS_COMPOSING = bcm-knet.c bcm-switchdev.c ../shared/gmodule.c
+OBJECTS_COMPOSING = "bcm-knet.o bcm-switchdev.o gmodule.o"
 #
 # Note that for NO_PRECOMPILED_MODULE, the subdirectory  'systems/linux/kernel/modules/bcm-knet/kernel_module'
 # is not created and all action is done in systems/linux/kernel/modules/bcm-knet

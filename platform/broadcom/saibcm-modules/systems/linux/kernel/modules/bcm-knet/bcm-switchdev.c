@@ -1,27 +1,22 @@
+#include <gmodule.h>
+#include <linux-bde.h>
 #include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/export.h>
-#include <linux/err.h>
-#include <linux/if_link.h>
-#include <linux/netdevice.h>
-#include <linux/completion.h>
-#include <linux/skbuff.h>
-#include <linux/etherdevice.h>
 #include <linux/types.h>
-#include <linux/string.h>
-#include <linux/gfp.h>
-#include <linux/random.h>
-#include <linux/jiffies.h>
-#include <linux/mutex.h>
-#include <linux/rcupdate.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
 #include <linux/slab.h>
+#include <linux/device.h>
+#include <linux/skbuff.h>
+#include <linux/if_vlan.h>
+#include <linux/if_bridge.h>
 #include <linux/workqueue.h>
-#include <linux/firmware.h>
-#include <asm/byteorder.h>
-#include <net/devlink.h>
-#include <trace/events/devlink.h>
+#include <linux/jiffies.h>
+#include <linux/rtnetlink.h>
+#include <linux/netlink.h>
+#include <net/switchdev.h>
+#include <net/vxlan.h>
 
+#include "bcm-switchdev.h"
 
 static struct workqueue_struct *bcmsw_switchdev_wq;
 
@@ -29,7 +24,7 @@ static void bcmsw_fdb_event_work(struct work_struct *work)
 {
 	struct switchdev_notifier_fdb_info *fdb_info;
 	struct bcmsw_switchdev_event_work *switchdev_work;
-	struct prestera_port *port;
+	//struct prestera_port *port;
 	struct net_device *dev;
 	int err;
 
@@ -38,6 +33,7 @@ static void bcmsw_fdb_event_work(struct work_struct *work)
 
 	rtnl_lock();
 
+#if 0
 	port = prestera_port_dev_lower_find(dev);
 	if (!port)
 		goto out_unlock;
@@ -62,12 +58,16 @@ static void bcmsw_fdb_event_work(struct work_struct *work)
 	}
 
 out_unlock:
+#endif
 	rtnl_unlock();
 
 	kfree(switchdev_work->fdb_info.addr);
 	kfree(switchdev_work);
 	dev_put(dev);
 }
+
+extern bool bkn_port_dev_check(const struct net_device *dev);
+
 static int bcmsw_switchdev_event(struct notifier_block *unused,
 				    unsigned long event, void *ptr)
 {
@@ -79,10 +79,13 @@ static int bcmsw_switchdev_event(struct notifier_block *unused,
 	int err;
 
 	if (event == SWITCHDEV_PORT_ATTR_SET) {
+#if 0
 		err = switchdev_handle_port_attr_set(dev, ptr,
 						     bkn_port_dev_check,
 						     bcmsw_port_obj_attr_set);
 		return notifier_from_errno(err);
+#endif
+		return NOTIFY_DONE;
 	}
 
 	if (!bkn_port_dev_check(dev))
@@ -133,6 +136,25 @@ static int bcmsw_switchdev_event(struct notifier_block *unused,
 out_bad:
 	kfree(switchdev_work);
 	return NOTIFY_BAD;
+}
+
+
+int bcmsw_port_obj_add(struct net_device *dev, const void *ctx,
+				 const struct switchdev_obj *obj,
+				 struct netlink_ext_ack *extack)
+{
+	return 0;
+}
+int bcmsw_port_obj_del(struct net_device *dev, const void *ctx,
+				 const struct switchdev_obj *obj)
+{
+	return 0;
+}
+int bcmsw_port_obj_attr_set(struct net_device *dev, const void *ctx,
+				  const struct switchdev_attr *attr,
+				  struct netlink_ext_ack *extack)
+{
+	return 0;
 }
 
 
@@ -248,7 +270,7 @@ static const struct {
     { 1,   1,  1,   BCMSW_PORT_TYPE_GXPORT }, 
     { 2,   2,  1,   BCMSW_PORT_TYPE_GXPORT }, 
     { 3,   3,  1,   BCMSW_PORT_TYPE_GXPORT }, 
-    { 4    4,  1,   BCMSW_PORT_TYPE_GXPORT }, 
+    { 4,    4,  1,   BCMSW_PORT_TYPE_GXPORT }, 
     { 5,   5,  1,   BCMSW_PORT_TYPE_GXPORT }, 
     { 6,   6,  1,   BCMSW_PORT_TYPE_GXPORT }, 
     { 7,   7,  1,   BCMSW_PORT_TYPE_GXPORT }, 
@@ -303,10 +325,12 @@ static const struct {
 };
 
 
-static void bcmsw_soc_info_init(soc_info_t *si;)
+static void bcmsw_soc_info_init(soc_info_t *si)
 {
-    int index, phy_port, mmu_port;
-    int num_ports = HX5_NUM_PORT; 
+    int index, port, pipe, phy_port, mmu_port;
+    int num_port = HX5_NUM_PORT; 
+    int num_phy_port = HX5_NUM_PHY_PORT;
+    int num_mmu_port = HX5_NUM_MMU_PORT;
 
     si->bandwidth = 2048000;
 
@@ -452,7 +476,7 @@ static int bcmsw_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 //bcm_esw_port_init bcm_td3_port_cfg_init
 static int bcmsw_port_init(struct bcmsw_switch *bcmsw_sw)
 {
-    int num_ports = HX5_NUM_PORT, port, vid; 
+    int num_port = HX5_NUM_PORT, port, vid; 
     soc_info_t *si = bcmsw_sw->si;
 
     vid = BCMSW_VLAN_DEFAULT;
@@ -524,6 +548,7 @@ err_port_cfg_init:
 int bcmsw_switch_init(void)
 {
     struct bcmsw_switch *bcmsw_sw;
+    int err;
 
     bcmsw_sw = kzalloc(sizeof(*bcmsw_sw), GFP_KERNEL);
 	if (!bcmsw_sw)
@@ -547,4 +572,4 @@ err_ports_create:
 err_swdev_register:
     return err;    
 }
-EXPORT_SYMBOL(bcmsw_switch_init);
+

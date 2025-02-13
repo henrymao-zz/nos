@@ -9698,7 +9698,7 @@ bkn_knet_dev_init(int d)
     return 0;
 }
 
-extern int bcm_switch_init(void);
+extern int bcmsw_switch_init(void);
 
 static int
 _init(void)
@@ -9765,7 +9765,7 @@ _init(void)
     init_waitqueue_head(&evt->evt_wq);
 
     /* TODO: switchdev related,  move to separate module*/
-    bcm_switch_init();
+    bcmsw_switch_init();
 
     module_initialized = 1;
 
