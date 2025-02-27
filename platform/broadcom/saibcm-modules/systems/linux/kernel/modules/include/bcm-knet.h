@@ -182,6 +182,10 @@ bkn_netif_destroy_cb_register(knet_netif_cb_f netif_cb);
 
 extern int
 bkn_netif_destroy_cb_unregister(knet_netif_cb_f netif_cb);
+
+extern int
+bkn_handle_cmd_req(kcom_msg_t *kmsg, int len);
+
 #endif
 
 #endif /* __LINUX_BCM_KNET_H__ */

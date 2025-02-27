@@ -9300,7 +9300,7 @@ bkn_knet_pcie_link_status_set(kcom_msg_pcie_link_status_t*kmsg, int len)
     return sizeof(kcom_msg_hdr_t);
 }
 
-static int
+int
 bkn_handle_cmd_req(kcom_msg_t *kmsg, int len)
 {
     /* Silently drop events and unrecognized message types */
