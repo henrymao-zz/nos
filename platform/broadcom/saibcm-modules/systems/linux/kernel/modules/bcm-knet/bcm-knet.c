@@ -8722,6 +8722,7 @@ bkn_knet_netif_create(kcom_msg_netif_create_t *kmsg, int len)
         kmsg->hdr.status = KCOM_E_RESOURCE;
         return sizeof(kcom_msg_hdr_t);
     }
+
     priv = netdev_priv(dev);
     priv->dev = dev;
     priv->sinfo = sinfo;
@@ -8761,6 +8762,7 @@ bkn_knet_netif_create(kcom_msg_netif_create_t *kmsg, int len)
 
     /* Prevent (incorrect) compiler warning */
     lpriv = NULL;
+
 
     spin_lock_irqsave(&sinfo->lock, flags);
 
@@ -8810,8 +8812,8 @@ bkn_knet_netif_create(kcom_msg_netif_create_t *kmsg, int len)
     }
 
 
-    DBG_VERB(("Assigned ID %d to Ethernet device %s\n",
-              priv->id, dev->name));
+    gprintk("Assigned ID %d to Ethernet device %s\n",
+              priv->id, dev->name);
 
     kmsg->netif.id = priv->id;
     memcpy(kmsg->netif.macaddr, dev->dev_addr, 6);
@@ -9313,6 +9315,8 @@ bkn_handle_cmd_req(kcom_msg_t *kmsg, int len)
                   kmsg->hdr.type, kmsg->hdr.opcode));
         return 0;
     }
+    //DBG_WARN(("Handle message (type=%d, opcode=%d)\n",kmsg->hdr.type, kmsg->hdr.opcode)); 
+    //return 0;
 
     switch (kmsg->hdr.opcode) {
     case KCOM_M_DMA_INFO:

@@ -84,18 +84,10 @@ struct bcmsw_switchdev {
 	struct notifier_block swdev_nb;
 };
 
-struct bcmsw_port {
-	uint16_t id;
-    char     name[KCOM_NETIF_NAME_MAX];
-    uint8_t  macaddr[6];
-	struct   bcmsw_switch *bcmsw;
-}
-
 struct bcmsw_switch {
-	struct net_device *dev; //bcm0
-	soc_info_t *si;
-	struct bcmsw_switchdev *swdev;
-    struct bcmsw_port **ports;
+    struct net_device *dev; //bcm0
+    soc_info_t *si;
+    struct bcmsw_switchdev *swdev;
 };
 
 
