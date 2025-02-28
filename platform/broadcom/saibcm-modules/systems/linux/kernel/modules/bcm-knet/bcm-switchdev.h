@@ -14,6 +14,31 @@
 #include <net/vxlan.h>
 
 
+/* S-Channel Control Register */
+#define CMIC_SCHAN_CTRL                 0x00000050
+
+/*
+ * SCHAN_CONTROL: control bits
+ *
+ *  SC_xxx_SET and SC_xxx_CLR can be WRITTEN to CMIC_SCHAN_CTRL.
+ *  SC_xxx_TST can be masked against values READ from CMIC_SCHAN_CTRL.
+ */
+#define SC_MSG_START_SET                (0x80|0)
+#define SC_MSG_START_CLR                (0x00|0)
+#define SC_MSG_START_TST                0x00000001
+
+#define SC_MSG_DONE_SET                 (0x80|1)
+#define SC_MSG_DONE_CLR                 (0x00|1)
+#define SC_MSG_DONE_TST                 0x00000002
+
+/*
+ * S-Channel Message Buffer Registers (0x00 -> 0x4c, or 0x800 -> 0x854).
+ * Block where S-Channel messages are written to CMIC.
+ */
+#define CMIC_SCHAN_MESSAGE(unit, word)  (0x00000000 + 4 * (word))
+
+
+
 struct bcmsw_switchdev_event_work {
 	struct work_struct work;
 	netdevice_tracker dev_tracker;

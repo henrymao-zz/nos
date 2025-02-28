@@ -20,6 +20,200 @@
 #include <bcm-knet.h>
 #include "bcm-switchdev.h"
 
+
+/*****************************************************************************************/
+/*                            N3248TE hardware&ports info                                */
+/*****************************************************************************************/
+static const struct {
+    int port;
+    int phy_port;
+    int pipe;
+    int idb_port;
+    int mmu_port;
+    int port_type;
+} hx5_anc_ports[] = {
+    { 0,   0,   0, 70, 70, BCMSW_PORT_TYPE_CMIC      },  /* cpu port */
+    { 70,  77,  0, 71, 71, BCMSW_PORT_TYPE_LBPORT    },  /* loopback port */
+    { 71,  78,  0, 69, 69, BCMSW_PORT_TYPE_BROADSCAN },  /* FAE port */
+};
+
+
+static const struct {
+    int port;
+    int phy_port;
+    int bandwidth;
+    int port_type;
+    char name[KCOM_NETIF_NAME_MAX];
+    int lanes[4];
+} n3248te_ports[] = {
+    { 1,   1,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet0", {1, -1, -1, -1} }, 
+    { 2,   2,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet1", {2, -1, -1, -1} }, 
+    { 3,   3,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet2", {3, -1, -1, -1} }, 
+    { 4,   4,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet3", {4, -1, -1, -1} }, 
+    { 5,   5,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet4", {5, -1, -1, -1} }, 
+    { 6,   6,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet5", {6, -1, -1, -1} }, 
+    { 7,   7,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet6", {7, -1, -1, -1} }, 
+    { 8,   8,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet7", {8, -1, -1, -1} }, 
+    { 9,   0,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet8", {9, -1, -1, -1} }, 
+    { 10,  10, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet9", {10, -1, -1, -1} }, 
+    { 11,  11, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1} }, 
+    { 12,  12, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1} }, 
+    { 13,  13, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1} },         
+    { 14,  14, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1} }, 
+    { 15,  15, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1} }, 
+    { 16,  16, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1} }, 
+    { 17,  17, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1} }, 
+    { 18,  18, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1} }, 
+    { 19,  19, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1} }, 
+    { 20,  20, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1} }, 
+    { 21,  21, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1} }, 
+    { 22,  22, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1} }, 
+    { 23,  23, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1} }, 
+    { 24,  24, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1} }, 
+    { 25,  25, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1} }, 
+    { 26,  26, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1} }, 
+    { 27,  27, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1} }, 
+    { 28,  28, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1} }, 
+    { 29,  29, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1} }, 
+    { 30,  30, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1} }, 
+    { 31,  31, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1} }, 
+    { 32,  32, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1} }, 
+    { 33,  33, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1} },        
+    { 34,  34, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1} }, 
+    { 35,  35, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1} }, 
+    { 36,  36, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1} }, 
+    { 37,  37, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1} }, 
+    { 38,  38, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1} }, 
+    { 39,  39, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1} }, 
+    { 40,  40, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1} }, 
+    { 41,  41, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1} }, 
+    { 42,  42, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1} }, 
+    { 43,  43, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1} }, 
+    { 44,  44, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1} }, 
+    { 45,  45, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1} }, 
+    { 46,  46, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1} }, 
+    { 47,  47, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1} }, 
+    { 48,  48, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1} }, 
+    { 49,  64, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1} }, 
+    { 50,  63, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1} }, 
+    { 51,  62, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1} }, 
+    { 52,  61, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1} }, 
+    { 53,  69, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72} }, 
+    { 57,  73, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76} },   
+    { -1,  -1, -1  },                                      
+};
+
+/*****************************************************************************************/
+/*                              SCHAN                                                    */
+/*****************************************************************************************/
+
+
+static int
+bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
+{
+    int rv = 0;
+    uint32 schanCtrl;
+    int schan_timeout  = 0; 
+
+    while (((schanCtrl = bkn_dev_read32(dev, CMIC_SCHAN_CTRL)) &
+            SC_MSG_DONE_TST) == 0) {
+        udelay(1000);
+        schan_timeout++;
+        //300ms 
+        if (schan_timeout >= 300 ) { 
+            rv = -ETIME;
+            break;
+        }                
+    }
+
+    if (rv == 0) {
+        gprintk("  Done in %d polls\n"), schan_timeout);
+    }
+
+    if (schanCtrl & SC_MSG_NAK_TST) {
+        rv = -EFAULT;
+
+        gprintk("  NAK received from SCHAN.\n");
+
+        //SOC_IF_ERROR_RETURN(_soc_cmice_schan_tr2_check_ser_nack(unit, msg));
+    }
+
+    //SOC_IF_ERROR_RETURN(_soc_cmice_schan_check_ser_parity(unit, &schanCtrl, msg));
+
+    if (schanCtrl & SC_MSG_TIMEOUT_TST) {
+        rv = -ETIME;
+    }
+
+    bkn_dev_read32(dev, CMIC_SCHAN_CTRL, SC_MSG_DONE_CLR);
+
+    return rv;
+}
+
+static void
+bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
+{
+    char                buf[128];
+    int                 i, j;
+
+    for (i = 0; i < dwc; i += 4) {
+        buf[0] = 0;
+
+        for (j = i; j < i + 4 && j < dwc; j++) {
+            sprintf(buf + sal_strlen(buf),
+                    " DW[%2d]=0x%08x", j, msg->dwords[j]);
+        }
+
+       gprintk(" %s\n", buf);
+    }
+}
+
+static int
+bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
+{
+    int i, rv;
+
+    //SCHAN_LOCK(unit);
+
+    do {
+        rv = 0;
+
+        /* Write raw S-Channel Data: dwc_write words */
+        for (i = 0; i < dwc_write; i++) {
+            bkn_dev_read32(dev, CMIC_SCHAN_MESSAGE(unit, i), msg->dwords[i]);
+        }
+
+        bkn_dev_read32(dev, CMIC_SCHAN_CTRL, SC_MSG_START_SET);
+
+        /* Wait for completion using polling method */
+        rv = bcmsw_schan_poll_wait(dev, msg);
+
+        if (rv == -ETIME) {
+            break;
+        }
+
+        /* Read in data from S-Channel buffer space, if any */
+        for (i = 0; i < dwc_read; i++) {
+            msg->dwords[i] = bkn_dev_read32(dev, CMIC_SCHAN_MESSAGE(unit, i));
+        }
+
+        bcmsw_soc_schan_dump(dev, msg, dwc_read);
+
+    } while (0);
+
+    //SCHAN_UNLOCK(unit);
+
+    if (rv == -ETIME) {
+        gprintk("SchanTimeOut:soc_schan_op operation timed out\n");
+        bcmsw_soc_schan_dump(dev, msg, dwc_write);
+    }
+
+    return rv;
+}
+
+
+/*****************************************************************************************/
+/*                             switchdev                                                 */
+/*****************************************************************************************/
 static struct workqueue_struct *bcmsw_switchdev_wq;
 
 static void bcmsw_fdb_event_work(struct work_struct *work)
@@ -249,84 +443,7 @@ err_alloc_wq:
 
 	return err;
 }
-static const struct {
-    int port;
-    int phy_port;
-    int pipe;
-    int idb_port;
-    int mmu_port;
-    int port_type;
-} hx5_anc_ports[] = {
-    { 0,   0,   0, 70, 70, BCMSW_PORT_TYPE_CMIC      },  /* cpu port */
-    { 70,  77,  0, 71, 71, BCMSW_PORT_TYPE_LBPORT    },  /* loopback port */
-    { 71,  78,  0, 69, 69, BCMSW_PORT_TYPE_BROADSCAN },  /* FAE port */
-};
 
-
-static const struct {
-    int port;
-    int phy_port;
-    int bandwidth;
-    int port_type;
-    char name[KCOM_NETIF_NAME_MAX];
-    int lanes[4];
-} n3248te_ports[] = {
-    { 1,   1,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet0", {1, -1, -1, -1} }, 
-    { 2,   2,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet1", {2, -1, -1, -1} }, 
-    { 3,   3,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet2", {3, -1, -1, -1} }, 
-    { 4,   4,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet3", {4, -1, -1, -1} }, 
-    { 5,   5,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet4", {5, -1, -1, -1} }, 
-    { 6,   6,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet5", {6, -1, -1, -1} }, 
-    { 7,   7,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet6", {7, -1, -1, -1} }, 
-    { 8,   8,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet7", {8, -1, -1, -1} }, 
-    { 9,   0,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet8", {9, -1, -1, -1} }, 
-    { 10,  10, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet9", {10, -1, -1, -1} }, 
-    { 11,  11, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1} }, 
-    { 12,  12, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1} }, 
-    { 13,  13, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1} },         
-    { 14,  14, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1} }, 
-    { 15,  15, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1} }, 
-    { 16,  16, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1} }, 
-    { 17,  17, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1} }, 
-    { 18,  18, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1} }, 
-    { 19,  19, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1} }, 
-    { 20,  20, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1} }, 
-    { 21,  21, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1} }, 
-    { 22,  22, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1} }, 
-    { 23,  23, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1} }, 
-    { 24,  24, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1} }, 
-    { 25,  25, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1} }, 
-    { 26,  26, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1} }, 
-    { 27,  27, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1} }, 
-    { 28,  28, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1} }, 
-    { 29,  29, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1} }, 
-    { 30,  30, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1} }, 
-    { 31,  31, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1} }, 
-    { 32,  32, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1} }, 
-    { 33,  33, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1} },        
-    { 34,  34, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1} }, 
-    { 35,  35, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1} }, 
-    { 36,  36, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1} }, 
-    { 37,  37, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1} }, 
-    { 38,  38, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1} }, 
-    { 39,  39, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1} }, 
-    { 40,  40, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1} }, 
-    { 41,  41, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1} }, 
-    { 42,  42, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1} }, 
-    { 43,  43, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1} }, 
-    { 44,  44, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1} }, 
-    { 45,  45, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1} }, 
-    { 46,  46, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1} }, 
-    { 47,  47, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1} }, 
-    { 48,  48, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1} }, 
-    { 49,  64, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1} }, 
-    { 50,  63, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1} }, 
-    { 51,  62, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1} }, 
-    { 52,  61, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1} }, 
-    { 53,  69, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72} }, 
-    { 57,  73, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76} },   
-    { -1,  -1, -1  },                                      
-};
 
 
 static void bcmsw_soc_info_init(soc_info_t *si)
@@ -598,6 +715,7 @@ int bcmsw_switch_init(void)
     struct bcmsw_switch *bcmsw_sw;
     int err = 0;
 
+        
     bcmsw_sw = kzalloc(sizeof(*bcmsw_sw), GFP_KERNEL);
     if (!bcmsw_sw)
 		return -ENOMEM;
@@ -607,6 +725,7 @@ int bcmsw_switch_init(void)
 	goto err_swdev_register;
   
     //get bcm0 netdev
+    bcmsw_sw->dev = dev_get_by_name(&current->nsproxy->net_ns, "bcm0");
 
     //create ports
     err = bcmsw_ports_create(bcmsw_sw);
