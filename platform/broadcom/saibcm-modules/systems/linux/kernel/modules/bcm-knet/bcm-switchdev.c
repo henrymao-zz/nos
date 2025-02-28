@@ -725,7 +725,7 @@ int bcmsw_switch_init(void)
 	goto err_swdev_register;
   
     //get bcm0 netdev
-    bcmsw_sw->dev = dev_get_by_name(&current->nsproxy->net_ns, "bcm0");
+    bcmsw_sw->dev = dev_get_by_name(current->nsproxy->net_ns, "bcm0");
 
     //create ports
     err = bcmsw_ports_create(bcmsw_sw);

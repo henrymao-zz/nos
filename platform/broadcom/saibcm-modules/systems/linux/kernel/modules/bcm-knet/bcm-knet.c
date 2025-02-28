@@ -1205,7 +1205,7 @@ bkn_dev_read32(struct net_device *dev, uint32_t address, uint32_t *value)
 {
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  return dev_read32(sinfo, address, vlaue);
+  return dev_read32(sinfo, address, value);
 
 }
 
@@ -1214,7 +1214,7 @@ bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t *value)
 {
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  return dev_write32(sinfo, address, vlaue);
+  return dev_write32(sinfo, address, value);
 }
 
 /*

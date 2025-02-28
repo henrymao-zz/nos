@@ -13,7 +13,9 @@
 #include <net/switchdev.h>
 #include <net/vxlan.h>
 
-
+/*****************************************************************************************/
+/*                              SCHAN                                                    */
+/*****************************************************************************************/
 /* S-Channel Control Register */
 #define CMIC_SCHAN_CTRL                 0x00000050
 
@@ -37,19 +39,174 @@
  */
 #define CMIC_SCHAN_MESSAGE(unit, word)  (0x00000000 + 4 * (word))
 
+#define CMIC_SCHAN_WORDS                20
+
+/* number of words to use when allocating space */
+/** Iproc17 sbus data increased to 120 bytes */
+#define CMIC_SCHAN_WORDS_ALLOC 32
+
+/*
+ * The endianness of the host is taken into account by the routines
+ * which copy S-Channel messages into and out of PCI space as 32-bit
+ * words.  Unfortunately, the compiler also switches bit field packing
+ * order according to host endianness.  We must undo this "feature" by
+ * giving the fields in both orders.
+ */
+
+typedef union schan_header_s {
+    struct v2_s {
+#if defined(LE_HOST)
+        uint32 nack:1;
+        uint32 bank_ignore_mask:2;
+        uint32 dma:1;
+        uint32 ecode: 2;
+        uint32 err:1;
+        uint32 data_byte_len:7;
+        uint32 src_blk:6;
+        uint32 dst_blk:6;
+        uint32 opcode:6;
+#else
+        uint32 opcode:6;
+        uint32 dst_blk:6;
+        uint32 src_blk:6;
+        uint32 data_byte_len:7;
+        uint32 err:1;
+        uint32 ecode: 2;
+        uint32 dma:1;
+        uint32 bank_ignore_mask:2;
+        uint32 nack:1;
+#endif
+    } v2;
+    struct v3_s {
+#if defined(LE_HOST)
+        uint32 nack:1;
+        uint32 bank_ignore_mask:2;
+        uint32 dma:1;
+        uint32 ecode: 2;
+        uint32 err:1;
+        uint32 data_byte_len:7;
+        uint32 acc_type:3;
+        uint32 :3;
+        uint32 dst_blk:6;
+        uint32 opcode:6;
+#else
+        uint32 opcode:6;
+        uint32 dst_blk:6;
+        uint32 :3;
+        uint32 acc_type:3;
+        uint32 data_byte_len:7;
+        uint32 err:1;
+        uint32 ecode: 2;
+        uint32 dma:1;
+        uint32 bank_ignore_mask:2;
+        uint32 nack:1;
+#endif
+    } v3;
+    struct v4_s {
+#if defined(LE_HOST)
+        uint32 nack:1;
+        uint32 bank_ignore_mask:2;
+        uint32 dma:1;
+        uint32 ecode: 2;
+        uint32 err:1;
+        uint32 data_byte_len:7;
+        uint32 acc_type:5;
+        uint32 dst_blk:7;
+        uint32 opcode:6;
+#else
+        uint32 opcode:6;
+        uint32 dst_blk:7;
+        uint32 acc_type:5;
+        uint32 data_byte_len:7;
+        uint32 err:1;
+        uint32 ecode: 2;
+        uint32 dma:1;
+        uint32 bank_ignore_mask:2;
+        uint32 nack:1;
+#endif
+    } v4;
+    uint32 word;
+} schan_header_t;
+
+typedef struct schan_msg_plain_s {
+    /* GBP Full Notification */
+    /* GBP Available Notification */
+    /* Write Memory Ack */
+    /* Write Register Ack */
+    /* ARL Insert Complete */
+    /* ARL Delete Complete */
+    /* Memory Failed Notification */
+    /* Initialize CFAP (Cell FAP) */
+    /* Initialize SFAP (Slot FAP) */
+    /* Enter Debug Mode */
+    /* Exit Debug Mode */
+    schan_header_t header;
+} schan_msg_plain_t;
+
+typedef struct schan_msg_bitmap_s {
+    /* Back Pressure Warning Status */
+    /* Back Pressure Discard Status */
+    /* Link Status Notification (except 5695) */
+    /* COS Queue Status Notification */
+    /* HOL Status Notification */
+    schan_header_t header;
+    uint32 bitmap;
+    uint32 bitmap_word1;  /* 5665 only, so far */
+} schan_msg_bitmap_t;
+
+typedef struct schan_msg_readcmd_s {
+    /* Read Memory Command */
+    /* Read Register Command */
+    schan_header_t header;
+    uint32 address;
+} schan_msg_readcmd_t;
+
+typedef struct schan_msg_readresp_s {
+    /* Read Memory Ack */
+    /* Read Register Ack */
+    schan_header_t header;
+    uint32 data[CMIC_SCHAN_WORDS_ALLOC - 1];
+} schan_msg_readresp_t;
+
+typedef struct schan_msg_writecmd_s {
+    /* Write Memory Command */
+    /* Write Register Command */
+    schan_header_t header;
+    uint32 address;
+    uint32 data[CMIC_SCHAN_WORDS_ALLOC - 2];
+} schan_msg_writecmd_t;
+
+typedef union schan_msg_u {
+    schan_header_t header;
+    uint32 header_dword;
+    schan_msg_plain_t plain;
+    schan_msg_bitmap_t bitmap;
+    schan_msg_readcmd_t readcmd;
+    schan_msg_readresp_t readresp;
+    schan_msg_writecmd_t writecmd;
+    //schan_msg_arlins_t arlins;
+    //schan_msg_arldel_t arldel;
+    //schan_msg_arllkup_t arllkup;
+    //schan_msg_l3ins_t l3ins;
+    //schan_msg_l3del_t l3del;
+    //schan_msg_l3lkup_t l3lkup;
+    //schan_msg_l2x2_t    l2x2;
+    //schan_msg_l3x2_t    l3x2;
+    //schan_msg_gencmd_t  gencmd;
+    //schan_msg_genresp_t genresp;
+    //schan_msg_genresp_v2_t genresp_v2;
+    //schan_msg_popcmd_t  popcmd;
+    //schan_msg_popresp_t popresp;
+    //schan_msg_pushcmd_t  pushcmd;
+    schan_msg_pushresp_t pushresp;
+    uint32 dwords[CMIC_SCHAN_WORDS_ALLOC];
+    uint8 bytes[sizeof(uint32) * CMIC_SCHAN_WORDS_ALLOC];
+} schan_msg_t;
 
 
-struct bcmsw_switchdev_event_work {
-	struct work_struct work;
-	netdevice_tracker dev_tracker;
-	union {
-		struct switchdev_notifier_fdb_info fdb_info;
-		struct switchdev_notifier_vxlan_fdb_info vxlan_fdb_info;
-	};
-	struct net_device *dev;
-	unsigned long event;
-};
-
+/*****************************************************************************************/
+/*                            N3248TE hardware&ports info                                */
+/*****************************************************************************************/
 //#ifdef  BCM_56370_A0
 #define SOC_MAX_NUM_PIPES               2
 #define SOC_MAX_NUM_BLKS                35
@@ -100,6 +257,21 @@ typedef struct {
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
+
+/*****************************************************************************************/
+/*                              switchdev                                                */
+/*****************************************************************************************/
+
+struct bcmsw_switchdev_event_work {
+	struct work_struct work;
+	netdevice_tracker dev_tracker;
+	union {
+		struct switchdev_notifier_fdb_info fdb_info;
+		struct switchdev_notifier_vxlan_fdb_info vxlan_fdb_info;
+	};
+	struct net_device *dev;
+	unsigned long event;
+};
 
 struct bcmsw_switchdev {
 	struct bcmsw_switch *sw;
