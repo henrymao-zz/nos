@@ -186,8 +186,8 @@ bkn_netif_destroy_cb_unregister(knet_netif_cb_f netif_cb);
 extern int
 bkn_handle_cmd_req(kcom_msg_t *kmsg, int len);
 
-extern void
-bkn_dev_read32(struct net_device *dev, uint32_t address, uint32_t *value);
+extern uint32_t
+bkn_dev_read32(struct net_device *dev, uint32_t address);
 
 extern void
 bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t *value);

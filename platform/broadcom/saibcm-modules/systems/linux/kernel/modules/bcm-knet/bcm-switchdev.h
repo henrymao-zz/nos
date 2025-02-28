@@ -33,6 +33,16 @@
 #define SC_MSG_DONE_CLR                 (0x00|1)
 #define SC_MSG_DONE_TST                 0x00000002
 
+
+#define SC_MSG_NAK_SET                  (0x80|21)
+#define SC_MSG_NAK_CLR                  (0x00|21)
+#define SC_MSG_NAK_TST                  0x00200000
+
+#define SC_MSG_TIMEOUT_SET              (0x80|22)
+#define SC_MSG_TIMEOUT_CLR              (0x00|22)
+#define SC_MSG_TIMEOUT_TST              0x00400000
+
+
 /*
  * S-Channel Message Buffer Registers (0x00 -> 0x4c, or 0x800 -> 0x854).
  * Block where S-Channel messages are written to CMIC.
@@ -198,7 +208,7 @@ typedef union schan_msg_u {
     //schan_msg_popcmd_t  popcmd;
     //schan_msg_popresp_t popresp;
     //schan_msg_pushcmd_t  pushcmd;
-    schan_msg_pushresp_t pushresp;
+    //schan_msg_pushresp_t pushresp;
     uint32 dwords[CMIC_SCHAN_WORDS_ALLOC];
     uint8 bytes[sizeof(uint32) * CMIC_SCHAN_WORDS_ALLOC];
 } schan_msg_t;

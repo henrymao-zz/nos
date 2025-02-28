@@ -127,7 +127,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
     }
 
     if (rv == 0) {
-        gprintk("  Done in %d polls\n"), schan_timeout);
+        gprintk("  Done in %d polls\n", schan_timeout);
     }
 
     if (schanCtrl & SC_MSG_NAK_TST) {
@@ -144,7 +144,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
         rv = -ETIME;
     }
 
-    bkn_dev_read32(dev, CMIC_SCHAN_CTRL, SC_MSG_DONE_CLR);
+    bkn_dev_write32(dev, CMIC_SCHAN_CTRL, SC_MSG_DONE_CLR);
 
     return rv;
 }
@@ -159,7 +159,7 @@ bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
         buf[0] = 0;
 
         for (j = i; j < i + 4 && j < dwc; j++) {
-            sprintf(buf + sal_strlen(buf),
+            sprintf(buf + strlen(buf),
                     " DW[%2d]=0x%08x", j, msg->dwords[j]);
         }
 
@@ -179,10 +179,10 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
 
         /* Write raw S-Channel Data: dwc_write words */
         for (i = 0; i < dwc_write; i++) {
-            bkn_dev_read32(dev, CMIC_SCHAN_MESSAGE(unit, i), msg->dwords[i]);
+            bkn_dev_write32(dev, CMIC_SCHAN_MESSAGE(unit, i), msg->dwords[i]);
         }
 
-        bkn_dev_read32(dev, CMIC_SCHAN_CTRL, SC_MSG_START_SET);
+        bkn_dev_write32(dev, CMIC_SCHAN_CTRL, SC_MSG_START_SET);
 
         /* Wait for completion using polling method */
         rv = bcmsw_schan_poll_wait(dev, msg);

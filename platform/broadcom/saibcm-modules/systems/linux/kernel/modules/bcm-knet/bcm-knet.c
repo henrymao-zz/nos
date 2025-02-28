@@ -1200,13 +1200,14 @@ dev_write32(bkn_switch_info_t *sinfo, uint32_t address, uint32_t value)
     DEV_WRITE32(sinfo, address, value);
 }
 
-void
-bkn_dev_read32(struct net_device *dev, uint32_t address, uint32_t *value)
+uint32_t
+bkn_dev_read32(struct net_device *dev, uint32_t address)
 {
+  uint32_t val;
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  return dev_read32(sinfo, address, value);
-
+  dev_read32(sinfo, address, &val);
+  return val;
 }
 
 void
