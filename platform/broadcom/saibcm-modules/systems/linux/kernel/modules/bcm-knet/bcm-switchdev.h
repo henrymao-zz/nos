@@ -42,7 +42,57 @@
 #define SC_MSG_TIMEOUT_CLR              (0x00|22)
 #define SC_MSG_TIMEOUT_TST              0x00400000
 
+/*
+ * S-Channel Message Types
+ */
 
+ #define BP_WARN_STATUS_MSG            0x01
+ #define BP_DISCARD_STATUS_MSG         0x02
+ #define COS_QSTAT_NOTIFY_MSG          0x03      /* Not on XGS */
+ #define IPIC_HOL_STAT_MSG             0x03      /* 5665 (alias) */
+ #define HOL_STAT_NOTIFY_MSG           0x04
+ #define READ_MEMORY_CMD_MSG           0x07
+ #define READ_MEMORY_ACK_MSG           0x08
+ #define WRITE_MEMORY_CMD_MSG          0x09
+ #define WRITE_MEMORY_ACK_MSG          0x0a
+ #define READ_REGISTER_CMD_MSG         0x0b
+ #define READ_REGISTER_ACK_MSG         0x0c
+ #define WRITE_REGISTER_CMD_MSG        0x0d
+ #define WRITE_REGISTER_ACK_MSG        0x0e
+ #define ARL_INSERT_CMD_MSG            0x0f
+ #define ARL_INSERT_DONE_MSG           0x10
+ #define ARL_DELETE_CMD_MSG            0x11
+ #define ARL_DELETE_DONE_MSG           0x12
+ #define LINKSTAT_NOTIFY_MSG           0x13      /* Strata I/II only */
+ #define MEMORY_FAIL_NOTIFY            0x14
+ #define INIT_CFAP_MSG                 0x15      /* 5690 only */
+ #define IPIC_GBP_FULL_MSG             0x15      /* 5665 (alias) */
+ #define IPIC_GBP_AVAIL_MSG            0x16      /* 5665 (alias) */
+ #define ENTER_DEBUG_MODE_MSG          0x17
+ #define EXIT_DEBUG_MODE_MSG           0x18
+ #define ARL_LOOKUP_CMD_MSG            0x19
+ #define L3_INSERT_CMD_MSG             0x1a
+ #define L3_INSERT_DONE_MSG            0x1b
+ #define L3_DELETE_CMD_MSG             0x1c
+ #define L3_DELETE_DONE_MSG            0x1d
+ #define L3_LOOKUP_CMD_MSG             0x1e      /* 5695 */
+ #define L2_LOOKUP_CMD_MSG             0x20      /* 56504 / 5630x / 5610x */
+ #define L2_LOOKUP_ACK_MSG             0x21      /* 56504 / 5630x / 5610x */
+ #define L3X2_LOOKUP_CMD_MSG           0x22      /* 56504 / 5630x / 5610x */
+ #define L3X2_LOOKUP_ACK_MSG           0x23      /* 56504 / 5630x / 5610x */
+ /* New for 5662x (see soc_feature_generic_table_ops) */
+ #define TABLE_INSERT_CMD_MSG          0x24      /* 5662x */
+ #define TABLE_INSERT_DONE_MSG         0x25      /* 5662x */
+ #define TABLE_DELETE_CMD_MSG          0x26      /* 5662x */
+ #define TABLE_DELETE_DONE_MSG         0x27      /* 5662x */
+ #define TABLE_LOOKUP_CMD_MSG          0x28      /* 5662x */
+ #define TABLE_LOOKUP_DONE_MSG         0x29      /* 5662x */
+ #define FIFO_POP_CMD_MSG              0x2a      /* 5662x */
+ #define FIFO_POP_DONE_MSG             0x2b      /* 5662x */
+ #define FIFO_PUSH_CMD_MSG             0x2c      /* 5662x */
+ #define FIFO_PUSH_DONE_MSG            0x2d      /* 5662x */
+
+ 
 /*
  * S-Channel Message Buffer Registers (0x00 -> 0x4c, or 0x800 -> 0x854).
  * Block where S-Channel messages are written to CMIC.

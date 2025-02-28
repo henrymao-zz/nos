@@ -211,6 +211,126 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
 }
 
 
+/*
+ * Function: _soc_mem_read_schan_msg_send
+ *
+ * Purpose:  Called within _soc_mem_read.  Construct and send a schan message
+ *           holding the read requests, and parse the response.  If an error
+ *           happens, try to correct with SER.
+ *
+ * Returns:  Standard BCM_E_* code
+ *
+ */
+static int
+bcmsw_soc_mem_read(struct net_device *dev, soc_mem_t mem, int index, void *entry_data)
+{
+    int array_index = 0;
+    schan_msg_t schan_msg, schan_msg_cpy;
+    int opcode, err;
+    int resp_word = 0;
+    int entry_dw = soc_mem_entry_words(unit, mem);
+    int rv = SOC_E_NONE;
+    uint32 allow_intr = 0;
+    // int src_blk, dst_blk, data_byte_len; /acc_type
+    uint32 maddr;
+    uint8 at;
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+#define SOC_MEM_FLAG_ACC_TYPE_MASK      0x1f
+#define SOC_MEM_FLAG_ACC_TYPE_SHIFT     22    
+    src_blk = 6; // cmic_block is 6
+    //TODO flags are different for each memory
+    //acc_type = (flags>>SOC_MEM_FLAG_ACC_TYPE_SHIFT)&SOC_MEM_FLAG_ACC_TYPE_MASK;
+    data_byte_len = 4;
+
+    //maddr = soc_mem_addr_get(unit, mem, array_index, copyno, remapped_index,
+    //                         &at);
+    // soc_memories_bcm56370_a0
+    //maddr = mip->base + (index * mip->gran);                
+    schan_msg.readcmd.address = index;
+
+    //_soc_mem_read_td_tt_byte_len_update(unit, mem, entry_dw, &data_byte_len);
+    //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
+
+    //setup command header
+    header->v2.opcode = READ_MEMORY_CMD_MSG;
+    header->v2.dst_blk = dst_blk;
+    header->v2.src_blk = src_blk;
+    header->v2.data_byte_len = data_byte_len;
+    header->v2.bank_ignore_mask = 0;
+
+    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + entry_dw + resp_word, allow_intr);
+    if (SOC_FAILURE(rv)) {
+        /*
+        int all_done = FALSE;
+
+        LOG_WARN(BSL_LS_SOC_SCHAN,
+            (BSL_META_U(unit,
+                "soc_schan_op: operation failed: %s(%d)\n"), soc_errmsg(rv), rv));
+
+        if (rv == SOC_E_TIMEOUT) {
+            _soc_mem_sbus_ring_map_dump(unit);
+        }
+
+        _soc_mem_read_ser_correct(unit, flags, mem, copyno, index, entry_data,
+                                  &schan_msg, &schan_msg_cpy, resp_word, &rv,
+                                  &all_done);
+        if (SOC_FAILURE(rv) || all_done) {
+            return rv;
+        }
+        */
+       return rv;
+    }
+
+    //soc_schan_header_status_get(unit, &schan_msg.header, &opcode, NULL, NULL,
+    //                            &err, NULL, NULL);
+    opcode = header->v2.opcode;
+    err = header->v2.err;
+    if (opcode != READ_MEMORY_ACK_MSG || (err != 0 )) {
+        /*
+        {
+            int dwc;
+
+            LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                      (BSL_META_U(unit,
+                                  "soc_mem_read: "
+                                  "Mem(%s) "
+                                  "invalid S-Channel reply, expected READ_MEMORY_ACK:, opcode %d\n"),SOC_MEM_NAME(unit,mem), opcode));
+
+            if (soc_feature(unit, soc_feature_two_ingress_pipes)) {
+                dwc = 2;
+                LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                          (BSL_META_U(unit,
+                                      "SEND SCHAN MSG:\n")));
+
+                _soc_mem_schan_dump(unit, &schan_msg_cpy, dwc);
+            }
+
+            dwc = 1 + entry_dw + resp_word;
+            LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                      (BSL_META_U(unit,
+                                  "RECV SCHAN MSG:\n")));
+
+            _soc_mem_schan_dump(unit, &schan_msg, dwc);
+
+            soc_schan_dump(unit, &schan_msg, 1 + entry_dw + resp_word, BSL_VERBOSE);
+
+            rv = SOC_E_INTERNAL;
+            return rv;
+        }
+       */
+    }
+    memcpy(entry_data,
+           resp_word ? schan_msg.genresp.data : schan_msg.readresp.data,
+           entry_dw * sizeof (uint32));
+
+    return rv;
+}
+
+
+
 /*****************************************************************************************/
 /*                             switchdev                                                 */
 /*****************************************************************************************/
@@ -733,6 +853,8 @@ int bcmsw_switch_init(void)
     	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
     	goto err_ports_create;
     }    
+
+    //test schan
 
 err_ports_create:
 err_swdev_register:
