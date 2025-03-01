@@ -190,7 +190,7 @@ extern uint32_t
 bkn_dev_read32(struct net_device *dev, uint32_t address);
 
 extern void
-bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t *value);
+bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t value);
 
 #endif
 

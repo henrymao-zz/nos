@@ -236,6 +236,54 @@ typedef struct schan_msg_writecmd_s {
     uint32 data[CMIC_SCHAN_WORDS_ALLOC - 2];
 } schan_msg_writecmd_t;
 
+#define SCHAN_GEN_RESP_TYPE_FOUND           0
+#define SCHAN_GEN_RESP_TYPE_NOT_FOUND       1
+#define SCHAN_GEN_RESP_TYPE_FULL            2
+#define SCHAN_GEN_RESP_TYPE_INSERTED        3
+#define SCHAN_GEN_RESP_TYPE_REPLACED        4
+#define SCHAN_GEN_RESP_TYPE_DELETED         5
+#define SCHAN_GEN_RESP_TYPE_ENTRY_IS_OLD    6
+#define SCHAN_GEN_RESP_TYPE_CLEARED_VALID   7
+#define SCHAN_GEN_RESP_TYPE_L2_FIFO_FULL    8
+#define SCHAN_GEN_RESP_TYPE_MAC_LIMIT_THRE  9
+#define SCHAN_GEN_RESP_TYPE_MAC_LIMIT_DEL   10
+#define SCHAN_GEN_RESP_TYPE_L2_STATIC       11
+
+#define SCHAN_GEN_RESP_L2_MOD_FIFO_FULL     6
+#define SCHAN_GEN_RESP_TYPE_ERROR           15
+
+#define SCHAN_GEN_RESP_ERR_INFO_ERROR_IN_HASH_TABLE 0
+#define SCHAN_GEN_RESP_ERR_INFO_ERROR_IN_LP_TABLE 1
+
+
+#define SCHAN_GEN_RESP_ERROR_BUSY           -1
+#define SCHAN_GEN_RESP_ERROR_PARITY         -1
+
+typedef struct schan_genresp_s {
+#if defined(LE_HOST)
+    uint32 index:20,
+           r0:1,            /* Reserved */
+           err_info:4,      /* SCHAN_GEN_RESP_ERROR_* */
+           r1:1,            /* Reserved */
+           type:4,          /* SCHAN_GEN_RESP_TYPE_* */
+           src:2;
+#else
+    uint32 src:2,
+           type:4,          /* SCHAN_GEN_RESP_TYPE_* */
+           r0:1,              /* Reserved */
+           err_info:4,      /* SCHAN_GEN_RESP_ERROR_* */
+           r1:1,              /* Reserved */
+           index:20;
+#endif
+} schan_genresp_t;
+
+typedef struct schan_msg_genresp_s {
+    /* Generic table Insert/Delete/Lookup Command 5662x */
+    schan_header_t header;
+    schan_genresp_t response;
+    uint32 data[CMIC_SCHAN_WORDS_ALLOC - 2];
+} schan_msg_genresp_t;
+
 typedef union schan_msg_u {
     schan_header_t header;
     uint32 header_dword;
@@ -253,7 +301,7 @@ typedef union schan_msg_u {
     //schan_msg_l2x2_t    l2x2;
     //schan_msg_l3x2_t    l3x2;
     //schan_msg_gencmd_t  gencmd;
-    //schan_msg_genresp_t genresp;
+    schan_msg_genresp_t genresp;
     //schan_msg_genresp_v2_t genresp_v2;
     //schan_msg_popcmd_t  popcmd;
     //schan_msg_popresp_t popresp;

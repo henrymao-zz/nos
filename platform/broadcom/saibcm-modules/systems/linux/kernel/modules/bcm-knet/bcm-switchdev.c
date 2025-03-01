@@ -221,19 +221,15 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
  * Returns:  Standard BCM_E_* code
  *
  */
+// size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 static int
-bcmsw_soc_mem_read(struct net_device *dev, soc_mem_t mem, int index, void *entry_data)
+bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
 {
-    int array_index = 0;
-    schan_msg_t schan_msg, schan_msg_cpy;
+    schan_msg_t schan_msg;
     int opcode, err;
-    int resp_word = 0;
-    int entry_dw = soc_mem_entry_words(unit, mem);
-    int rv = SOC_E_NONE;
+    int rv = 0;
     uint32 allow_intr = 0;
-    // int src_blk, dst_blk, data_byte_len; /acc_type
-    uint32 maddr;
-    uint8 at;
+    int src_blk, dst_blk, data_byte_len; //acc_type
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
@@ -249,20 +245,20 @@ bcmsw_soc_mem_read(struct net_device *dev, soc_mem_t mem, int index, void *entry
     //                         &at);
     // soc_memories_bcm56370_a0
     //maddr = mip->base + (index * mip->gran);                
-    schan_msg.readcmd.address = index;
+    schan_msg.readcmd.address = address;
 
     //_soc_mem_read_td_tt_byte_len_update(unit, mem, entry_dw, &data_byte_len);
     //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
 
     //setup command header
-    header->v2.opcode = READ_MEMORY_CMD_MSG;
-    header->v2.dst_blk = dst_blk;
-    header->v2.src_blk = src_blk;
-    header->v2.data_byte_len = data_byte_len;
-    header->v2.bank_ignore_mask = 0;
+    schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
+    schan_msg.header.v2.dst_blk = dst_blk;
+    schan_msg.header.v2.src_blk = src_blk;
+    schan_msg.header.v2.data_byte_len = data_byte_len;
+    schan_msg.header.v2.bank_ignore_mask = 0;
 
-    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + entry_dw + resp_word, allow_intr);
-    if (SOC_FAILURE(rv)) {
+    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
+    if (rv) {
         /*
         int all_done = FALSE;
 
@@ -286,8 +282,8 @@ bcmsw_soc_mem_read(struct net_device *dev, soc_mem_t mem, int index, void *entry
 
     //soc_schan_header_status_get(unit, &schan_msg.header, &opcode, NULL, NULL,
     //                            &err, NULL, NULL);
-    opcode = header->v2.opcode;
-    err = header->v2.err;
+    opcode = schan_msg.header.v2.opcode;
+    err = schan_msg.header.v2.err;
     if (opcode != READ_MEMORY_ACK_MSG || (err != 0 )) {
         /*
         {
@@ -323,8 +319,8 @@ bcmsw_soc_mem_read(struct net_device *dev, soc_mem_t mem, int index, void *entry
        */
     }
     memcpy(entry_data,
-           resp_word ? schan_msg.genresp.data : schan_msg.readresp.data,
-           entry_dw * sizeof (uint32));
+           schan_msg.readresp.data,
+           size * sizeof (uint32));
 
     return rv;
 }
@@ -338,11 +334,10 @@ static struct workqueue_struct *bcmsw_switchdev_wq;
 
 static void bcmsw_fdb_event_work(struct work_struct *work)
 {
-	struct switchdev_notifier_fdb_info *fdb_info;
+	//struct switchdev_notifier_fdb_info *fdb_info;
 	struct bcmsw_switchdev_event_work *switchdev_work;
 	//struct prestera_port *port;
 	struct net_device *dev;
-	int err;
 
 	switchdev_work = container_of(work, struct bcmsw_switchdev_event_work, work);
 	dev = switchdev_work->dev;
@@ -392,7 +387,7 @@ static int bcmsw_switchdev_event(struct notifier_block *unused,
 	struct switchdev_notifier_info *info = ptr;
 	struct bcmsw_switchdev_event_work *switchdev_work;
 	struct net_device *upper;
-	int err;
+	//int err;
 
 	if (event == SWITCHDEV_PORT_ATTR_SET) {
 #if 0
@@ -555,7 +550,7 @@ int bcmsw_switchdev_init(struct bcmsw_switch *sw)
 
 	return 0;
 
-err_fdb_init:
+//err_fdb_init:
 err_swdev_init:
 	destroy_workqueue(bcmsw_switchdev_wq);
 err_alloc_wq:
