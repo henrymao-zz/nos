@@ -121,6 +121,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
         schan_timeout++;
         //300ms 
         if (schan_timeout >= 300 ) { 
+	    gprintk(" failed after 300 polls\n");
             rv = -ETIME;
             break;
         }                
@@ -143,6 +144,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
     if (schanCtrl & SC_MSG_TIMEOUT_TST) {
         rv = -ETIME;
     }
+    gprintk("schanCtrl is 0x %x\n", schanCtrl);
 
     bkn_dev_write32(dev, CMIC_SCHAN_CTRL, SC_MSG_DONE_CLR);
 
@@ -170,9 +172,13 @@ bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
 static int
 bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
 {
-    int i, rv;
+    int i, rv, val;
 
     //SCHAN_LOCK(unit);
+    gprintk("bcmsw_schan_op entry.\n");
+
+    val = bkn_dev_read32(dev, CMIC_SCHAN_CTRL);
+    gprintk("bcmsw_schan_op schanCtrl = 0x%x\n", val);
 
     do {
         rv = 0;
@@ -190,6 +196,8 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
         if (rv == -ETIME) {
             break;
         }
+
+        //memset(msg, 0, dwc_read);
 
         /* Read in data from S-Channel buffer space, if any */
         for (i = 0; i < dwc_read; i++) {
@@ -229,7 +237,7 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     int opcode, err;
     int rv = 0;
     uint32 allow_intr = 0;
-    int src_blk, dst_blk, data_byte_len; //acc_type
+    int src_blk, dst_blk = 0, data_byte_len; //acc_type
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
@@ -825,10 +833,80 @@ err_port_create:
 	return err;
 }
 
+/*****************************************************************************************/
+/*                             switch                                                    */
+/*****************************************************************************************/
+//soc_do_init(int unit, int reset)
+int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
+{
+    struct net_device *dev = bcmsw_sw->dev;
+    int val;
+    /***********************************************************************/
+    /* Always be sure device has correct endian configuration before       */
+    /* touching registers - device may not have been configured yet.       */
+    /***********************************************************************/
+    //soc_endian_config(unit);
+    // val = ES_BIG_ENDIAN_PIO | ES_BIG_ENDIAN_DMA_PACKET | ES_BIG_ENDIAN_DMA_OTHER;
+    val = 0;
+    bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, val); 
+
+    //enable PCIe bursting soc_pci_burst_enable(unit);
+    udelay(1000);
+    val = bkn_dev_read32(dev, CMIC_CONFIG);
+    val |= (CC_RD_BRST_EN | CC_WR_BRST_EN);
+    bkn_dev_write32(dev, CMIC_CONFIG, val);
+    udelay(1000);
+
+    /************* soc_phyctrl_software_init   *****************************/
+
+    /******************************* soc_reset *****************************/
+    val = bkn_dev_read32(dev, CMIC_CONFIG);
+    bkn_dev_write32(dev, CMIC_CONFIG, val | CC_RESET_CPS);
+    udelay(1000);
+
+    gprintk("do_init CMIC_CONFIG = 0x%x", val);
+
+    //sleep extra time to allow switch chip to finish
+    //usleep(10000)
+
+
+    /* Configure CMIC PCI registers correctly for driver operation.        */
+#if 0
+  val = bkn_dev_read32(dev, CMIC_CONFIG);
+
+  /*
+   * Enable enhanced DMA modes:
+   *  Scatter/gather, reload, and unaligned transfers
+   *
+   * Enable read and write bursts.
+   *  Note: very fast CPUs (above ~500 MHz) may combine multiple
+   *  memory operations into bursts.  The CMIC will hang if burst
+   *  operations are not enabled.
+   */
+  
+  reg |= (CC_SG_OPN_EN | CC_RLD_OPN_EN | CC_ALN_OPN_EN |
+          CC_RD_BRST_EN | CC_WR_BRST_EN);
+  
+  if (SAL_BOOT_PLISIM) {
+      /* Set interrupt polarity to active high */
+      reg &= ~CC_ACT_LOW_INT;
+  }
+
+  soc_pci_write(unit, CMIC_CONFIG, reg);
+
+ //configure DMA channels
+  //soc_dma_attach
+
+#endif
+  
+    return 0;
+}
+
 int bcmsw_switch_init(void)
 {
     struct bcmsw_switch *bcmsw_sw;
     int err = 0;
+    lport_tab_entry_t lport_entry;
 
         
     bcmsw_sw = kzalloc(sizeof(*bcmsw_sw), GFP_KERNEL);
@@ -842,6 +920,9 @@ int bcmsw_switch_init(void)
     //get bcm0 netdev
     bcmsw_sw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
 
+    //switch initialization
+    bcmsw_switch_do_init(bcmsw_sw);
+
     //create ports
     err = bcmsw_ports_create(bcmsw_sw);
     if (err) {
@@ -850,6 +931,7 @@ int bcmsw_switch_init(void)
     }    
 
     //test schan
+    err = bcmsw_soc_mem_read(bcmsw_sw->dev, 0x501c0000, 14, &lport_entry); 
 
 err_ports_create:
 err_swdev_register:
