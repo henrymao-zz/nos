@@ -106,8 +106,7 @@ static const struct {
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
-
-
+#if 0
 static int
 bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
 {
@@ -150,6 +149,50 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
 
     return rv;
 }
+#endif
+
+static int
+bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
+{
+    int rv = 0;
+    uint32 schanCtrl;
+    int schan_timeout  = 0; 
+
+    while (((schanCtrl = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch))) &
+            SC_CHx_MSG_DONE) == 0) {
+        udelay(1000);
+        schan_timeout++;
+        //300ms 
+        if (schan_timeout >= 300 ) { 
+	    gprintk(" failed after 300 polls\n");
+            rv = -ETIME;
+            break;
+        }                
+    }
+
+    if (rv == 0) {
+        gprintk("  Done in %d polls\n", schan_timeout);
+    }
+
+    if (schanCtrl & SC_CHx_MSG_NAK) {
+        rv = -EFAULT;
+
+        gprintk("  NAK received from SCHAN.\n");
+
+        //SOC_IF_ERROR_RETURN(_soc_cmice_schan_tr2_check_ser_nack(unit, msg));
+    }
+
+    //SOC_IF_ERROR_RETURN(_soc_cmice_schan_check_ser_parity(unit, &schanCtrl, msg));
+
+    if (schanCtrl & SC_CHx_MSG_TIMEOUT_TST) {
+        rv = -ETIME;
+    }
+    gprintk("schanCtrl is 0x %x\n", schanCtrl);
+
+    bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
+
+    return rv;
+}
 
 static void
 bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
@@ -169,6 +212,8 @@ bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
     }
 }
 
+
+#if 0 
 static int
 bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
 {
@@ -217,8 +262,62 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
 
     return rv;
 }
+#endif
 
 
+//CMICX SCHAN OP
+static int
+bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
+{
+    int i, rv, val, ch;
+
+    //SCHAN_LOCK(unit);
+    gprintk("bcmsw_schan_op entry.\n");
+
+    //TODO - get free channel
+    ch = 0;
+
+    val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch));
+    gprintk("bcmsw_schan_op schanCtrl = 0x%x\n", val);
+
+    do {
+        rv = 0;
+
+        /* Write raw S-Channel Data: dwc_write words */
+        for (i = 0; i < dwc_write; i++) {
+            bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(ch, i), msg->dwords[i]);
+        }
+
+        /* Tell CMIC to start */
+        bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_START);
+
+        /* Wait for completion using polling method */
+        rv = bcmsw_schan_poll_wait(dev, msg);
+
+        if (rv == -ETIME) {
+            break;
+        }
+
+        //memset(msg, 0, dwc_read);
+
+        /* Read in data from S-Channel buffer space, if any */
+        for (i = 0; i < dwc_read; i++) {
+            msg->dwords[i] = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(ch, i));
+        }
+
+        bcmsw_soc_schan_dump(dev, msg, dwc_read);
+
+    } while (0);
+
+    //SCHAN_UNLOCK(unit);
+
+    if (rv == -ETIME) {
+        gprintk("SchanTimeOut:soc_schan_op operation timed out\n");
+        bcmsw_soc_schan_dump(dev, msg, dwc_write);
+    }
+
+    return rv;
+}
 /*
  * Function: _soc_mem_read_schan_msg_send
  *
