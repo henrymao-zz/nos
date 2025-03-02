@@ -193,9 +193,46 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
     }
 
     if (schanCtrl & SC_CHx_MSG_SCHAN_ERR) {
+        schan_err_t schan_err = 0;
+        
+        gprintk("CMIC_SCHAN_ERR.\n");
+        schan_err = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_ERR(ch));
+
+        gprintk("CMIC_SCHAN_ERR. 0x%x\n", schan_err);
+
+        if (schan_err.errbit) {
+            switch(schan_err.err_code)
+            {
+                case 0:
+                    gprintk("  block timeout: ERRBIT received in CMIC_SCHAN_ERR.\n");
+                    break;
+                case 1:
+                    gprintk("  allowed block timeout: Continue.\n");
+                    break;
+                case 2:
+                    gprintk("  ECC error.\n");
+                    break;
+                default:
+                    gprintk("Unexpected error.\n");
+                    break;
+            }
+        }
+
+        if (schan_err.nack) {
+            gprintk("  NACK received in CMIC_SCHAN_ERR.\n");
+        }
+
+
+        /* dump error data */
+        gprintk("CMIC_SCHAN_ERR data dump: "
+                        "err_code=%u, data_len=%u, src_port=%u, dst_port=%u,"
+                        "op_code=%u Full reg value=0x%x\n",
+                        schan_err.err_code, schan_err.data_len, schan_err.src_port, schan_err.dst_port, schan_err.op_code, schan_err.schan_err);
+        }
+
         bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
-	rv = -EFAULT;
-	gprintk("CMIC_SCHAN_ERR.\n");
+	    rv = -EFAULT;
+	    
     }
 
     return rv;
@@ -1000,15 +1037,22 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //soc_helix5_sbus_ring_map_config
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET,0x52222100);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET,0x30053005);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET,0x43333333);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_24_31_OFFSET,0x64444444);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_32_39_OFFSET,0x76666666);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_40_47_OFFSET,0x07777777);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET,0x33333333);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_24_31_OFFSET,0x64444333);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_32_39_OFFSET,0x07500066);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_40_47_OFFSET,0x00000000);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_48_55_OFFSET,0x00000000);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_56_63_OFFSET,0x00005000);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_56_63_OFFSET,0x00000000);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_TIMEOUT_OFFSET,0x5000);
+    
+    mdelay(250);
 
     /* Reset IP, EP, MMU and port macros */
+    //SOC_IF_ERROR_RETURN(WRITE_TOP_SOFT_RESET_REGr(unit, 0x0));
+    //   soc_reg32_set(unit, TOP_SOFT_RESET_REGr, REG_PORT_ANY, 0, rv) 
+    //      Write an internal SOC register through S-Channel messaging buffer.
+
+
 
     /* Bring PLLs out of reset */
     //...
