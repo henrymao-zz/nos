@@ -1206,7 +1206,6 @@ bkn_dev_read32(struct net_device *dev, uint32_t address)
   uint32_t val;
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  gprintk("bkn_dev_read32 base_addr = 0x%p", sinfo->base_addr);
   dev_read32(sinfo, address, &val);
   return val;
 }
@@ -1216,7 +1215,6 @@ bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t value)
 {
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  gprintk("bkn_dev_write32 base_addr = 0x%p", sinfo->base_addr);
   return dev_write32(sinfo, address, value);
 }
 

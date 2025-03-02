@@ -174,22 +174,29 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
         gprintk("  Done in %d polls\n", schan_timeout);
     }
 
-    if (schanCtrl & SC_CHx_MSG_NAK) {
-        rv = -EFAULT;
-
-        gprintk("  NAK received from SCHAN.\n");
-
-        //SOC_IF_ERROR_RETURN(_soc_cmice_schan_tr2_check_ser_nack(unit, msg));
-    }
-
-    //SOC_IF_ERROR_RETURN(_soc_cmice_schan_check_ser_parity(unit, &schanCtrl, msg));
-
-    if (schanCtrl & SC_CHx_MSG_TIMEOUT_TST) {
-        rv = -ETIME;
-    }
     gprintk("schanCtrl is 0x %x\n", schanCtrl);
 
-    bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
+    if (schanCtrl & SC_CHx_MSG_NAK) {
+        rv = -EFAULT;
+        gprintk("  NAK received from SCHAN.\n");
+    }
+
+    if (schanCtrl & SC_CHx_MSG_SER_CHECK_FAIL) {
+        gprintk("SER Parity Check Error.\n");
+        rv = -EFAULT;
+    }    
+
+
+    if (schanCtrl & SC_CHx_MSG_TIMEOUT_TST) {
+	gprintk("Hardware Timeout Error.\n");
+        rv = -EFAULT;
+    }
+
+    if (schanCtrl & SC_CHx_MSG_SCHAN_ERR) {
+        bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
+	rv = -EFAULT;
+	gprintk("CMIC_SCHAN_ERR.\n");
+    }
 
     return rv;
 }
@@ -275,7 +282,7 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
     gprintk("bcmsw_schan_op entry.\n");
 
     //TODO - get free channel
-    ch = 0;
+    ch = 1;
 
     val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch));
     gprintk("bcmsw_schan_op schanCtrl = 0x%x\n", val);
@@ -292,9 +299,9 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
         bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_START);
 
         /* Wait for completion using polling method */
-        rv = bcmsw_schan_poll_wait(dev, msg);
+        rv = bcmsw_schan_poll_wait(dev, msg, ch);
 
-        if (rv == -ETIME) {
+        if (rv) {
             break;
         }
 
@@ -311,8 +318,8 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
 
     //SCHAN_UNLOCK(unit);
 
-    if (rv == -ETIME) {
-        gprintk("SchanTimeOut:soc_schan_op operation timed out\n");
+    if (rv) {
+        gprintk("soc_schan_op operation failed\n");
         bcmsw_soc_schan_dump(dev, msg, dwc_write);
     }
 
@@ -358,11 +365,17 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
 
     //setup command header
-    schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
-    schan_msg.header.v2.dst_blk = dst_blk;
-    schan_msg.header.v2.src_blk = src_blk;
-    schan_msg.header.v2.data_byte_len = data_byte_len;
-    schan_msg.header.v2.bank_ignore_mask = 0;
+    //schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
+    //schan_msg.header.v2.dst_blk = dst_blk;
+    //schan_msg.header.v2.src_blk = src_blk;
+    //schan_msg.header.v2.data_byte_len = data_byte_len;
+    //schan_msg.header.v2.bank_ignore_mask = 0;
+    schan_msg.header.v4.opcode = READ_MEMORY_CMD_MSG;
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
 
     rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
@@ -967,6 +980,38 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     //sleep extra time to allow switch chip to finish
     //usleep(10000)
+    //
+    /* Restore endian mode since the reset cleared it. */
+    //...
+
+
+    //soc_cmic_intr_all_disable
+    //soc_cmic_intr_all_disable();
+
+    //soc_esw_schan_fifo_init
+
+
+    /* Initialize bulk mem API */
+    //soc_mem_bulk_init
+    //
+
+
+    /************* soc_helix5_chip_reset       *****************************/
+    //soc_helix5_sbus_ring_map_config
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET,0x52222100);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET,0x30053005);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET,0x43333333);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_24_31_OFFSET,0x64444444);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_32_39_OFFSET,0x76666666);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_40_47_OFFSET,0x07777777);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_48_55_OFFSET,0x00000000);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_56_63_OFFSET,0x00005000);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_TIMEOUT_OFFSET,0x5000);
+
+    /* Reset IP, EP, MMU and port macros */
+
+    /* Bring PLLs out of reset */
+    //...
 
 
     /* Configure CMIC PCI registers correctly for driver operation.        */

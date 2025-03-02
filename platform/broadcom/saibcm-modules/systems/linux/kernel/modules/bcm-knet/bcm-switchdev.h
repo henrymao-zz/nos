@@ -87,6 +87,24 @@
 /*
  * SCHAN_CONTROL: CMICX 
  */
+#define CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET             (0xc)
+#define CMIC_TOP_SBUS_RING_MAP_104_111_OFFSET         (0x40)
+#define CMIC_TOP_SBUS_RING_MAP_112_119_OFFSET         (0x44)
+#define CMIC_TOP_SBUS_RING_MAP_120_127_OFFSET         (0x48)
+#define CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET           (0x14)
+#define CMIC_TOP_SBUS_RING_MAP_24_31_OFFSET           (0x18)
+#define CMIC_TOP_SBUS_RING_MAP_32_39_OFFSET           (0x1c)
+#define CMIC_TOP_SBUS_RING_MAP_40_47_OFFSET           (0x20)
+#define CMIC_TOP_SBUS_RING_MAP_48_55_OFFSET           (0x24)
+#define CMIC_TOP_SBUS_RING_MAP_56_63_OFFSET           (0x28)
+#define CMIC_TOP_SBUS_RING_MAP_64_71_OFFSET           (0x2c)
+#define CMIC_TOP_SBUS_RING_MAP_72_79_OFFSET           (0x30)
+#define CMIC_TOP_SBUS_RING_MAP_80_87_OFFSET           (0x34)
+#define CMIC_TOP_SBUS_RING_MAP_88_95_OFFSET           (0x38)
+#define CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET            (0x10)
+#define CMIC_TOP_SBUS_RING_MAP_96_103_OFFSET          (0x3c)
+#define CMIC_TOP_SBUS_TIMEOUT_OFFSET                  (0x0)
+
 #define CMIC_COMMON_POOL_SCHAN_CH0_CTRL_OFFSET        (0x10000)
 #define CMIC_COMMON_POOL_SCHAN_CH0_ERR_OFFSET         (0x10008)
 #define CMIC_COMMON_POOL_SCHAN_CH0_MESSAGE_OFFSET     (0x1000c)
@@ -128,6 +146,8 @@
 /* CMIC_COMMON_POOL_SCHAN_CHx_ERR(x) */
 #define SC_CHx_SCHAN_ERR_NACK_BIT        (0x00000001)
 #define SC_CHx_SCHAN_ERR_ERR_BIT         (0x00000040)
+
+
 
 /*
  * S-Channel Message Types
