@@ -147,17 +147,6 @@
 #define SC_CHx_SCHAN_ERR_NACK_BIT        (0x00000001)
 #define SC_CHx_SCHAN_ERR_ERR_BIT         (0x00000040)
 
-/* CMIC_COMMON_POOL_SCHAN_CH0_ERRr_fields */
-soc_field_info_t soc_CMIC_COMMON_POOL_SCHAN_CH0_ERRr_fields[] = {
-    { DATA_LENf, 7, 7, SOCF_LE|SOCF_RO|SOCF_SIG },
-    { DST_PORTf, 6, 20, SOCF_LE|SOCF_RO|SOCF_SIG },
-    { ERRBITf, 1, 6, SOCF_RO|SOCF_SIG },
-    { ERR_CODEf, 2, 4, SOCF_LE|SOCF_RO|SOCF_SIG },
-    { NACKf, 1, 0, SOCF_RO|SOCF_SIG },
-    { OP_CODEf, 6, 26, SOCF_LE|SOCF_RO|SOCF_SIG },
-    { SRC_PORTf, 6, 14, SOCF_LE|SOCF_RO|SOCF_SIG }
-};
-
 typedef struct schan_err_s {
     #if defined(LE_HOST)
         uint32 nack:1,          /* NACKf      */
