@@ -193,16 +193,15 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
     }
 
     if (schanCtrl & SC_CHx_MSG_SCHAN_ERR) {
-        schan_err_t schan_err = 0;
+        schan_err_t schan_err = {0};
         
         gprintk("CMIC_SCHAN_ERR.\n");
-        schan_err = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_ERR(ch));
+        schan_err.word = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_ERR(ch));
 
-        gprintk("CMIC_SCHAN_ERR. 0x%x\n", schan_err);
+        gprintk("CMIC_SCHAN_ERR. 0x%x\n", schan_err.word);
 
-        if (schan_err.errbit) {
-            switch(schan_err.err_code)
-            {
+        if (schan_err.reg.errbit) {
+            switch(schan_err.reg.err_code) {
                 case 0:
                     gprintk("  block timeout: ERRBIT received in CMIC_SCHAN_ERR.\n");
                     break;
@@ -218,7 +217,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
             }
         }
 
-        if (schan_err.nack) {
+        if (schan_err.reg.nack) {
             gprintk("  NACK received in CMIC_SCHAN_ERR.\n");
         }
 
@@ -227,12 +226,11 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
         gprintk("CMIC_SCHAN_ERR data dump: "
                         "err_code=%u, data_len=%u, src_port=%u, dst_port=%u,"
                         "op_code=%u Full reg value=0x%x\n",
-                        schan_err.err_code, schan_err.data_len, schan_err.src_port, schan_err.dst_port, schan_err.op_code, schan_err.schan_err);
-        }
+                        schan_err.reg.err_code, schan_err.reg.data_len, schan_err.reg.src_port, 
+			schan_err.reg.dst_port, schan_err.reg.op_code, schan_err.word);
 
         bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
-	    rv = -EFAULT;
-	    
+        rv = -EFAULT;
     }
 
     return rv;
@@ -985,6 +983,92 @@ err_port_create:
 /*****************************************************************************************/
 /*                             switch                                                    */
 /*****************************************************************************************/
+//soc_cmicx_dma_abort
+#if 0
+static int bcmsw_cmicx_dma_abort(struct bcmsw_switch *bcmsw_sw)
+{
+
+	    /* abort s-bus DMA in all channels */
+    chans_group_init(&sbus_channels);
+    if ((flags & SOC_DMA_ABORT_SKIP_SBUS) == 0) {
+        /* For  CMCs x=0-1  and channels y=0-3 and [channel used by this CPU] */
+        for (cmc = 0; cmc < cmc_num_max; ++cmc) {
+            for (chan = 0; chan < sbusdma_chan_max; ++chan) {
+                cmic_address = CMIC_CMCx_SBUSDMA_CHy_CONTROL(cmc, chan);
+                /* if CMIC_CMCx_SBUSDMA_CHy_CONTROL.START == 1 */
+                val = soc_pci_read(unit, cmic_address);
+                if (val & CMIC_CMCx_SBUSDMA_CHy_CONTROL_START) {
+                    /* set CMIC_CMCx_SBUSDMA_CHy_CONTROL.ABORT=1 to abort */
+                    soc_pci_write(unit, cmic_address, val | CMIC_CMCx_SBUSDMA_CHy_CONTROL_ABORT);
+                    chans_group_insert(&sbus_channels, cmc, chan); /* mark the channel to be waited on */
+                    LOG_DEBUG(BSL_LS_SOC_DMA, (BSL_META_U(unit, "Aborting s-bus DMA CMC %d channel %d\n"), cmc, chan));
+                }
+            }
+        }
+    }
+
+
+    /* abort s-chan FIFO in all channels, s-chan FIFO is not per CMC */
+    chans_group_init(&schan_fifo_channels);
+    if ((flags & SOC_DMA_ABORT_SKIP_SCHAN_FIFO) == 0) {
+        /* For channels y=0-1 and [channels used by this CPU] */
+        for (chan = 0; chan < CMIC_SCHAN_FIFO_NUM_MAX; ++chan) {
+            cmic_address = CMIC_SCHAN_FIFO_CHx_CTRL(chan);
+            /* if CMIC_COMMON_POOL_SCHAN_FIFO_0_CHy_CTRL.START == 1 */
+            val = soc_pci_read(unit, cmic_address);
+            if (val & SCHAN_FIFO_CTRL_START) {
+                /* set CMIC_COMMON_POOL_SCHAN_FIFO_0_CHy_CTRL.ABORT=1 to abort */
+                soc_pci_write(unit, cmic_address, val | SCHAN_FIFO_CTRL_ABORT);
+                chans_group_insert(&schan_fifo_channels, 0, chan); /* mark the channel to be waited on */
+                LOG_DEBUG(BSL_LS_SOC_DMA, (BSL_META_U(unit, "Aborting s-chan FIFO channel %d\n"), chan));
+            }
+        }
+    }
+
+
+    /* loop and check that each abort finished. When it finished or after time out, clear the operation and disable the DMA */
+            /* for all s-bus DMA channels still not done */
+        for (chans_group_iter_start(&sbus_channels, &channel_iter); !chans_group_is_end(&sbus_channels, channel_iter); ++channel_iter) {
+            chans_group_iter_t_get(channel_iter, &cmc, &chan); /* get the channel to work on */
+            /* If the abort is done (CMIC_CMCx_SBUSDMA_CHy_STAT.DONE==1), then clear the operation */
+            done = soc_pci_read(unit, CMIC_CMCx_SBUSDMA_CHy_STATUS(cmc, chan)) & CMIC_CMCx_SBUSDMA_CHy_STATUS_DONE;
+            if (done || timeout_state == abort_timeout_passed) {
+                /* clear CMIC_CMCx_SBUSDMA_CHy_CONTROL.ABORT|START in the same write disables the original operation and abort, and clears statuses */
+                cmic_address = CMIC_CMCx_SBUSDMA_CHy_CONTROL(cmc, chan);
+                val = soc_pci_read(unit, cmic_address);
+                soc_pci_write(unit, cmic_address, val & ~(CMIC_CMCx_SBUSDMA_CHy_CONTROL_ABORT |CMIC_CMCx_SBUSDMA_CHy_CONTROL_START ));
+                if (done) { /* remove the channel from the channels waited on */
+                    chans_group_delete(&sbus_channels, channel_iter--);
+                } else {
+                    LOG_ERROR(BSL_LS_SOC_DMA, (BSL_META_U(unit, "Failed to abort s-bus DMA in CMC %d channel %d, check with the design team\n"), cmc, chan));
+                    ++nof_failures;
+                }
+            }
+        }
+        /* for all s-chan FIFO channels still not done */
+        for (chans_group_iter_start(&schan_fifo_channels, &channel_iter); !chans_group_is_end(&schan_fifo_channels, channel_iter); ++channel_iter) {
+            chans_group_iter_t_get(channel_iter, &cmc, &chan); /* get the channel to work on */
+            /* If the abort is done (CMIC_COMMON_POOL_SCHAN_FIFO_0_CHy_STATUS.DONE==1), then clear the operation */
+            done = soc_pci_read(unit, CMIC_SCHAN_FIFO_CHx_STATUS(chan)) & SCHAN_FIFO_STATUS_DONE;
+            if (done || timeout_state == abort_timeout_passed) {
+                /* clear CMIC_COMMON_POOL_SCHAN_FIFO_0_CHy_CTRL.ABORT|START in the same write: disables and clears statuses*/
+                cmic_address = CMIC_SCHAN_FIFO_CHx_CTRL(chan);
+                val = soc_pci_read(unit, cmic_address);
+                soc_pci_write(unit, cmic_address, val & ~(SCHAN_FIFO_CTRL_ABORT | SCHAN_FIFO_CTRL_START));
+                if (done) { /* remove the channel from the channels waited on */
+                    chans_group_delete(&schan_fifo_channels, channel_iter--);
+                } else {
+                    LOG_ERROR(BSL_LS_SOC_DMA, (BSL_META_U(unit, "Failed to abort s-chan FIFO in channel %d, check with the design team\n"), chan));
+                    ++nof_failures;
+                }
+            }
+        }
+
+}
+
+#endif
+
+
 //soc_do_init(int unit, int reset)
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
@@ -999,28 +1083,36 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     val = 0;
     bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, val); 
 
-    //enable PCIe bursting soc_pci_burst_enable(unit);
-    udelay(1000);
-    val = bkn_dev_read32(dev, CMIC_CONFIG);
-    val |= (CC_RD_BRST_EN | CC_WR_BRST_EN);
-    bkn_dev_write32(dev, CMIC_CONFIG, val);
-    udelay(1000);
+    //enable PCIe bursting soc_pci_burst_enable(unit);  not for CMICX
+    //udelay(1000);
+    //val = bkn_dev_read32(dev, CMIC_CONFIG);
+    //val |= (CC_RD_BRST_EN | CC_WR_BRST_EN);
+    //bkn_dev_write32(dev, CMIC_CONFIG, val);
+    //udelay(1000);
 
     /************* soc_phyctrl_software_init   *****************************/
 
     /******************************* soc_reset *****************************/
+    // soc_endian_config
+    // soc_pci_ep_config  - CMICM only
+    // soc_pci_burst_enable
+
+    /* CMICx DMA channels need to be released/aborted properly */
+    //soc_cmicx_dma_abort
+
     val = bkn_dev_read32(dev, CMIC_CONFIG);
     bkn_dev_write32(dev, CMIC_CONFIG, val | CC_RESET_CPS);
-    udelay(1000);
-
-    gprintk("do_init CMIC_CONFIG = 0x%x", val);
 
     //sleep extra time to allow switch chip to finish
-    //usleep(10000)
+    mdelay(100);
+    val = bkn_dev_read32(dev, CMIC_CONFIG);
+    gprintk("do_init CMIC_CONFIG = 0x%x", val);
+
     //
     /* Restore endian mode since the reset cleared it. */
     //...
-
+    val = 0;
+    bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, val); 
 
     //soc_cmic_intr_all_disable
     //soc_cmic_intr_all_disable();
@@ -1036,7 +1128,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     /************* soc_helix5_chip_reset       *****************************/
     //soc_helix5_sbus_ring_map_config
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET,0x52222100);
-    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET,0x30053005);
+    bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET,0x30050005);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET,0x33333333);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_24_31_OFFSET,0x64444333);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_32_39_OFFSET,0x07500066);

@@ -147,26 +147,30 @@
 #define SC_CHx_SCHAN_ERR_NACK_BIT        (0x00000001)
 #define SC_CHx_SCHAN_ERR_ERR_BIT         (0x00000040)
 
-typedef struct schan_err_s {
+//CMIC_COMMON_POOL_SCHAN_CHx_ERR
+typedef union schan_err_s {
+    struct reg_ {
     #if defined(LE_HOST)
-        uint32 nack:1,          /* NACKf      */
-               r0:3,            /* Reserved   */
-               err_code:2,      /* ERR_CODEf  */
-               errbit:1,        /* ERRBITf    */
-               datalen:7,       /* DATA_LENf  */
-               src_port:6,      /* SRC_PORTf  */
-               dst_port:6,      /* DST_PORTf  */
-               opcode:6;        /* OP_CODEf  */
+        uint32_t nack:1;          /* NACKf      */
+        uint32_t r0:3;            /* Reserved   */
+        uint32_t err_code:2;      /* ERR_CODEf  */
+        uint32_t errbit:1;        /* ERRBITf    */
+        uint32_t data_len:7;      /* DATA_LENf  */
+        uint32_t src_port:6;      /* SRC_PORTf  */
+        uint32_t dst_port:6;      /* DST_PORTf  */
+        uint32_t op_code:6;       /* OP_CODEf   */
     #else
-        uint32 opcode:6,        /* OP_CODEf  */
-               dst_port:6,      /* DST_PORTf  */
-               src_port:6,      /* SRC_PORTf  */
-               datalen:7,       /* DATA_LENf  */
-               errbit:1,        /* ERRBITf    */
-               err_code:2,      /* ERR_CODEf  */
-               r0:3,            /* Reserved   */
-               nack:1;          /* NACKf      */
+        uint32_t op_code:6;       /* OP_CODEf   */
+        uint32_t dst_port:6;      /* DST_PORTf  */
+        uint32_t src_port:6;      /* SRC_PORTf  */
+        uint32_t data_len:7;      /* DATA_LENf  */
+        uint32_t errbit:1;        /* ERRBITf    */
+        uint32_t err_code:2;      /* ERR_CODEf  */
+        uint32_t r0:3;            /* Reserved   */
+        uint32_t nack:1;          /* NACKf      */
     #endif
+    } reg;
+    uint32_t word;
 } schan_err_t;
 
 /*
