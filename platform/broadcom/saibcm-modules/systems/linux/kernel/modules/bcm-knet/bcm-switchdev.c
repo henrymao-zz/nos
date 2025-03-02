@@ -480,6 +480,128 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     return rv;
 }
 
+/*
+ * Function: _soc_mem_read_schan_msg_send
+ *
+ * Purpose:  Called within _soc_mem_read.  Construct and send a schan message
+ *           holding the read requests, and parse the response.  If an error
+ *           happens, try to correct with SER.
+ *
+ * Returns:  Standard BCM_E_* code
+ *
+ */
+// size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
+static int
+bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_data)
+{
+    schan_msg_t schan_msg;
+    int opcode, err;
+    int rv = 0;
+    uint32 allow_intr = 0;
+    int src_blk, dst_blk = 0, data_byte_len; //acc_type
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+#define SOC_MEM_FLAG_ACC_TYPE_MASK      0x1f
+#define SOC_MEM_FLAG_ACC_TYPE_SHIFT     22    
+    src_blk = 6; // cmic_block is 6
+    //TODO flags are different for each memory
+    //acc_type = (flags>>SOC_MEM_FLAG_ACC_TYPE_SHIFT)&SOC_MEM_FLAG_ACC_TYPE_MASK;
+    data_byte_len = 4;
+
+    //maddr = soc_mem_addr_get(unit, mem, array_index, copyno, remapped_index,
+    //                         &at);
+    // soc_memories_bcm56370_a0
+    //maddr = mip->base + (index * mip->gran);                
+    memcpy(schan_msg.writecmd.data, entry_data, size * sizeof(uint32));
+    schan_msg.writecmd.address = address;
+
+    //_soc_mem_read_td_tt_byte_len_update(unit, mem, entry_dw, &data_byte_len);
+    //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
+
+    //setup command header
+    //schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
+    //schan_msg.header.v2.dst_blk = dst_blk;
+    //schan_msg.header.v2.src_blk = src_blk;
+    //schan_msg.header.v2.data_byte_len = data_byte_len;
+    //schan_msg.header.v2.bank_ignore_mask = 0;
+    schan_msg.header.v4.opcode = WRITE_MEMORY_CMD_MSG;
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
+
+
+
+    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
+    if (rv) {
+        /*
+        int all_done = FALSE;
+
+        LOG_WARN(BSL_LS_SOC_SCHAN,
+            (BSL_META_U(unit,
+                "soc_schan_op: operation failed: %s(%d)\n"), soc_errmsg(rv), rv));
+
+        if (rv == SOC_E_TIMEOUT) {
+            _soc_mem_sbus_ring_map_dump(unit);
+        }
+
+        _soc_mem_read_ser_correct(unit, flags, mem, copyno, index, entry_data,
+                                  &schan_msg, &schan_msg_cpy, resp_word, &rv,
+                                  &all_done);
+        if (SOC_FAILURE(rv) || all_done) {
+            return rv;
+        }
+        */
+       return rv;
+    }
+
+    //soc_schan_header_status_get(unit, &schan_msg.header, &opcode, NULL, NULL,
+    //                            &err, NULL, NULL);
+    opcode = schan_msg.header.v4.opcode;
+    err = schan_msg.header.v4.err;
+    if (opcode != READ_MEMORY_ACK_MSG || (err != 0 )) {
+        /*
+        {
+            int dwc;
+
+            LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                      (BSL_META_U(unit,
+                                  "soc_mem_read: "
+                                  "Mem(%s) "
+                                  "invalid S-Channel reply, expected READ_MEMORY_ACK:, opcode %d\n"),SOC_MEM_NAME(unit,mem), opcode));
+
+            if (soc_feature(unit, soc_feature_two_ingress_pipes)) {
+                dwc = 2;
+                LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                          (BSL_META_U(unit,
+                                      "SEND SCHAN MSG:\n")));
+
+                _soc_mem_schan_dump(unit, &schan_msg_cpy, dwc);
+            }
+
+            dwc = 1 + entry_dw + resp_word;
+            LOG_ERROR(BSL_LS_SOC_SOCMEM,
+                      (BSL_META_U(unit,
+                                  "RECV SCHAN MSG:\n")));
+
+            _soc_mem_schan_dump(unit, &schan_msg, dwc);
+
+            soc_schan_dump(unit, &schan_msg, 1 + entry_dw + resp_word, BSL_VERBOSE);
+
+            rv = SOC_E_INTERNAL;
+            return rv;
+        }
+       */
+    }
+    memcpy(entry_data,
+           schan_msg.readresp.data,
+           size * sizeof (uint32));
+
+    return rv;
+}
 
 
 /*****************************************************************************************/
@@ -1143,8 +1265,11 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //SOC_IF_ERROR_RETURN(WRITE_TOP_SOFT_RESET_REGr(unit, 0x0));
     //   soc_reg32_set(unit, TOP_SOFT_RESET_REGr, REG_PORT_ANY, 0, rv) 
     //      Write an internal SOC register through S-Channel messaging buffer.
+    //do a read
+    bcmsw_soc_mem_read(dev, TOP_SOFT_RESET_REGr, 1, &val); 
 
-
+    val = 0;
+    bcmsw_soc_mem_write(dev, TOP_SOFT_RESET_REGr, 1, &val);
 
     /* Bring PLLs out of reset */
     //...
