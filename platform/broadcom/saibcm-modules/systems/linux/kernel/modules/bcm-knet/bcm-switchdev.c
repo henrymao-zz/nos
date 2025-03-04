@@ -106,53 +106,9 @@ static const struct {
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
-#if 0
-static int
-bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg)
-{
-    int rv = 0;
-    uint32 schanCtrl;
-    int schan_timeout  = 0; 
-
-    while (((schanCtrl = bkn_dev_read32(dev, CMIC_SCHAN_CTRL)) &
-            SC_MSG_DONE_TST) == 0) {
-        udelay(1000);
-        schan_timeout++;
-        //300ms 
-        if (schan_timeout >= 300 ) { 
-	    gprintk(" failed after 300 polls\n");
-            rv = -ETIME;
-            break;
-        }                
-    }
-
-    if (rv == 0) {
-        gprintk("  Done in %d polls\n", schan_timeout);
-    }
-
-    if (schanCtrl & SC_MSG_NAK_TST) {
-        rv = -EFAULT;
-
-        gprintk("  NAK received from SCHAN.\n");
-
-        //SOC_IF_ERROR_RETURN(_soc_cmice_schan_tr2_check_ser_nack(unit, msg));
-    }
-
-    //SOC_IF_ERROR_RETURN(_soc_cmice_schan_check_ser_parity(unit, &schanCtrl, msg));
-
-    if (schanCtrl & SC_MSG_TIMEOUT_TST) {
-        rv = -ETIME;
-    }
-    gprintk("schanCtrl is 0x %x\n", schanCtrl);
-
-    bkn_dev_write32(dev, CMIC_SCHAN_CTRL, SC_MSG_DONE_CLR);
-
-    return rv;
-}
-#endif
 
 static int
-bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
+_cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
 {
     int rv = 0;
     uint32 schanCtrl;
@@ -237,7 +193,7 @@ bcmsw_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
 }
 
 static void
-bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
+_cmicx_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
 {
     char                buf[128];
     int                 i, j;
@@ -255,72 +211,20 @@ bcmsw_soc_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
 }
 
 
-#if 0 
-static int
-bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
-{
-    int i, rv, val;
-
-    //SCHAN_LOCK(unit);
-    gprintk("bcmsw_schan_op entry.\n");
-
-    val = bkn_dev_read32(dev, CMIC_SCHAN_CTRL);
-    gprintk("bcmsw_schan_op schanCtrl = 0x%x\n", val);
-
-    do {
-        rv = 0;
-
-        /* Write raw S-Channel Data: dwc_write words */
-        for (i = 0; i < dwc_write; i++) {
-            bkn_dev_write32(dev, CMIC_SCHAN_MESSAGE(unit, i), msg->dwords[i]);
-        }
-
-        bkn_dev_write32(dev, CMIC_SCHAN_CTRL, SC_MSG_START_SET);
-
-        /* Wait for completion using polling method */
-        rv = bcmsw_schan_poll_wait(dev, msg);
-
-        if (rv == -ETIME) {
-            break;
-        }
-
-        //memset(msg, 0, dwc_read);
-
-        /* Read in data from S-Channel buffer space, if any */
-        for (i = 0; i < dwc_read; i++) {
-            msg->dwords[i] = bkn_dev_read32(dev, CMIC_SCHAN_MESSAGE(unit, i));
-        }
-
-        bcmsw_soc_schan_dump(dev, msg, dwc_read);
-
-    } while (0);
-
-    //SCHAN_UNLOCK(unit);
-
-    if (rv == -ETIME) {
-        gprintk("SchanTimeOut:soc_schan_op operation timed out\n");
-        bcmsw_soc_schan_dump(dev, msg, dwc_write);
-    }
-
-    return rv;
-}
-#endif
-
-
 //CMICX SCHAN OP
 static int
-bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
+_cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
 {
     int i, rv, val, ch;
 
     //SCHAN_LOCK(unit);
-    gprintk("bcmsw_schan_op entry.\n");
+    gprintk("_cmicx_schan_op entry.\n");
 
     //TODO - get free channel
     ch = 1;
 
     val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch));
-    gprintk("bcmsw_schan_op schanCtrl = 0x%x\n", val);
+    gprintk("_cmicx_schan_op schanCtrl = 0x%x\n", val);
 
     do {
         rv = 0;
@@ -334,7 +238,7 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
         bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_START);
 
         /* Wait for completion using polling method */
-        rv = bcmsw_schan_poll_wait(dev, msg, ch);
+        rv = _cmicx_schan_poll_wait(dev, msg, ch);
 
         if (rv) {
             break;
@@ -347,7 +251,7 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
             msg->dwords[i] = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(ch, i));
         }
 
-        bcmsw_soc_schan_dump(dev, msg, dwc_read);
+        _cmicx_schan_dump(dev, msg, dwc_read);
 
     } while (0);
 
@@ -355,11 +259,13 @@ bcmsw_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_
 
     if (rv) {
         gprintk("soc_schan_op operation failed\n");
-        bcmsw_soc_schan_dump(dev, msg, dwc_write);
+        _cmicx_schan_dump(dev, msg, dwc_write);
     }
 
     return rv;
 }
+
+
 /*
  * Function: _soc_mem_read_schan_msg_send
  *
@@ -400,11 +306,6 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
 
     //setup command header
-    //schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
-    //schan_msg.header.v2.dst_blk = dst_blk;
-    //schan_msg.header.v2.src_blk = src_blk;
-    //schan_msg.header.v2.data_byte_len = data_byte_len;
-    //schan_msg.header.v2.bank_ignore_mask = 0;
     schan_msg.header.v4.opcode = READ_MEMORY_CMD_MSG;
     schan_msg.header.v4.dst_blk = dst_blk;
     schan_msg.header.v4.acc_type = 0;
@@ -412,7 +313,7 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
 
-    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
+    rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
         /*
         int all_done = FALSE;
@@ -437,8 +338,8 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
 
     //soc_schan_header_status_get(unit, &schan_msg.header, &opcode, NULL, NULL,
     //                            &err, NULL, NULL);
-    opcode = schan_msg.header.v2.opcode;
-    err = schan_msg.header.v2.err;
+    opcode = schan_msg.header.v4.opcode;
+    err = schan_msg.header.v4.err;
     if (opcode != READ_MEMORY_ACK_MSG || (err != 0 )) {
         /*
         {
@@ -535,7 +436,7 @@ bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_d
 
 
 
-    rv = bcmsw_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
+    rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
         /*
         int all_done = FALSE;
@@ -599,6 +500,93 @@ bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_d
     memcpy(entry_data,
            schan_msg.readresp.data,
            size * sizeof (uint32));
+
+    return rv;
+}
+
+
+
+/*****************************************************************************************/
+/*                             SCHAN Reg Read/Write                                      */
+/*****************************************************************************************/
+static int
+_reg32_read(struct net_device *dev, int address, void *entry_data)
+{
+    schan_msg_t schan_msg;
+    int opcode, err;
+    int rv = 0;
+    uint32 allow_intr = 0;
+    int dst_blk = 0, data_byte_len; 
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+    data_byte_len = 4;
+         
+    schan_msg.readcmd.address = address;
+
+    //setup command header
+    schan_msg.header.v4.opcode = READ_REGISTER_CMD_MSG;
+    dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
+              (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
+
+    rv = _cmicx_schan_op(dev, &schan_msg, 2, 2, allow_intr);
+    if (rv) {
+       return rv;
+    }
+
+    /* Check result */
+    opcode = schan_msg.header.v4.opcode;
+    err = schan_msg.header.v4.err;
+    if (!rv &&  (opcode != READ_REGISTER_ACK_MSG || err != 0)) {
+        gprintk("_cmicx_schan_op: operation failed: %s(%d)\n", 
+                (opcode != READ_REGISTER_ACK_MSG)?"invalid S-Channel reply, expected READ_REG_ACK:\n":"OTHER", rv);
+
+      return rv;
+    }
+
+    *data = schan_msg.readresp.data[0];
+
+    return rv;
+}
+/*
+ * Write an internal SOC register through S-Channel messaging buffer.
+ */
+static int
+_reg32_write(struct net_device *dev, int address, void *entry_data)
+{
+    schan_msg_t schan_msg;
+    int opcode, err;
+    int rv = 0;
+    uint32 allow_intr = 0;
+    int dst_blk = 0, data_byte_len; 
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+    data_byte_len = 4;
+            
+    //setup command header
+    schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG;
+    dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
+              (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);    
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
+
+    schan_msg.writecmd.address = address;
+    schan_msg.writecmd.data[0] = data;
+
+    /* Write header word + address + data DWORD */
+    /* Note: The hardware does not send WRITE_REGISTER_ACK_MSG. */
+    rv = _cmicx_schan_op(dev, &schan_msg, 3, 0, allow_intr);
 
     return rv;
 }
@@ -1196,22 +1184,6 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
     struct net_device *dev = bcmsw_sw->dev;
     int val;
-    /***********************************************************************/
-    /* Always be sure device has correct endian configuration before       */
-    /* touching registers - device may not have been configured yet.       */
-    /***********************************************************************/
-    //soc_endian_config(unit);
-    // val = ES_BIG_ENDIAN_PIO | ES_BIG_ENDIAN_DMA_PACKET | ES_BIG_ENDIAN_DMA_OTHER;
-    val = 0;
-    bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, val); 
-
-    //enable PCIe bursting soc_pci_burst_enable(unit);  not for CMICX
-    //udelay(1000);
-    //val = bkn_dev_read32(dev, CMIC_CONFIG);
-    //val |= (CC_RD_BRST_EN | CC_WR_BRST_EN);
-    //bkn_dev_write32(dev, CMIC_CONFIG, val);
-    //udelay(1000);
-
     /************* soc_phyctrl_software_init   *****************************/
 
     /******************************* soc_reset *****************************/
@@ -1221,20 +1193,6 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     /* CMICx DMA channels need to be released/aborted properly */
     //soc_cmicx_dma_abort
-
-    val = bkn_dev_read32(dev, CMIC_CONFIG);
-    bkn_dev_write32(dev, CMIC_CONFIG, val | CC_RESET_CPS);
-
-    //sleep extra time to allow switch chip to finish
-    mdelay(100);
-    val = bkn_dev_read32(dev, CMIC_CONFIG);
-    gprintk("do_init CMIC_CONFIG = 0x%x", val);
-
-    //
-    /* Restore endian mode since the reset cleared it. */
-    //...
-    val = 0;
-    bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, val); 
 
     //soc_cmic_intr_all_disable
     //soc_cmic_intr_all_disable();
@@ -1261,15 +1219,16 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     
     mdelay(250);
 
+
+    //do a read
+    _reg32_read(dev, TOP_SOFT_RESET_REGr, &val); 
+
     /* Reset IP, EP, MMU and port macros */
     //SOC_IF_ERROR_RETURN(WRITE_TOP_SOFT_RESET_REGr(unit, 0x0));
     //   soc_reg32_set(unit, TOP_SOFT_RESET_REGr, REG_PORT_ANY, 0, rv) 
     //      Write an internal SOC register through S-Channel messaging buffer.
-    //do a read
-    bcmsw_soc_mem_read(dev, TOP_SOFT_RESET_REGr, 1, &val); 
-
     val = 0;
-    bcmsw_soc_mem_write(dev, TOP_SOFT_RESET_REGr, 1, &val);
+    _reg32_write(dev, TOP_SOFT_RESET_REGr, &val);
 
     /* Bring PLLs out of reset */
     //...
@@ -1277,27 +1236,6 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     /* Configure CMIC PCI registers correctly for driver operation.        */
 #if 0
-  val = bkn_dev_read32(dev, CMIC_CONFIG);
-
-  /*
-   * Enable enhanced DMA modes:
-   *  Scatter/gather, reload, and unaligned transfers
-   *
-   * Enable read and write bursts.
-   *  Note: very fast CPUs (above ~500 MHz) may combine multiple
-   *  memory operations into bursts.  The CMIC will hang if burst
-   *  operations are not enabled.
-   */
-  
-  reg |= (CC_SG_OPN_EN | CC_RLD_OPN_EN | CC_ALN_OPN_EN |
-          CC_RD_BRST_EN | CC_WR_BRST_EN);
-  
-  if (SAL_BOOT_PLISIM) {
-      /* Set interrupt polarity to active high */
-      reg &= ~CC_ACT_LOW_INT;
-  }
-
-  soc_pci_write(unit, CMIC_CONFIG, reg);
 
  //configure DMA channels
   //soc_dma_attach

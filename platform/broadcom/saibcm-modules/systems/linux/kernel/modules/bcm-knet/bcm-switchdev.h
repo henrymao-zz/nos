@@ -16,50 +16,9 @@
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
-/* CMIC Configuration Register */
-#define CMIC_CONFIG                     0x0000010C
-
-#define CC_RD_BRST_EN                   0x00000001 /* enb PCI read bursts */
-#define CC_WR_BRST_EN                   0x00000002 /* enb PCI write bursts */
-#define CC_BE_CHECK_EN                  0x00000004 /* Big endian chk PCI Wr */
-#define CC_MSTR_Q_MAX_EN                0x00000008 /* Queue 4 PCI mastr reqs */
-#define CC_LINK_STAT_EN                 0x00000010 /* enb linkstat autoupd */
-#define CC_RESET_CPS                    0x00000020 /* Drive CPS bus reset */
-#define CC_ACT_LOW_INT                  0x00000040 /* INTA# is active low */
-#define CC_SCHAN_ABORT                  0x00000080 /* abort S-Channel opern */
-#define CC_STACK_ARCH_EN                0x00000100 /* (see databook) */
-#define CC_UNTAG_EN                     0x00000200 /* (see databook) */
-#define CC_LE_DMA_EN                    0x00000400 /* Little endian DMA fmt */
-#define CC_I2C_EN                       0x00000800 /* enb CPU access to I2C */
-#define CC_LINK_SCAN_GIG                0x00001000 /* Also scan gig ports */
-#define CC_DMA_GARBAGE_COLL_EN          0x00008000 /* Collect 'purge' pkts */
-
-#define CC_ALN_OPN_EN                   0x00002000 /* Unaligned DMA enable */
-#define CC_PCI_RST_ON_INIT_EN           0x00010000
-#define CC_DIS_TIME_STAMP_CTR           0x00020000
-#define CC_SG_OPN_EN                    0x00040000 /* DMA S/G enable */
-#define CC_RLD_OPN_EN                   0x00080000 /* DMA RLD enable */
-#define CC_DIS_RLD_STAT_UPDATE          0x00100000
-#define CC_STOP_AUTO_SCAN_ON_LCHG       0x00200000 /* LS stop in intr */
-#define CC_ABORT_STAT_DMA               0x00400000
-#define CC_ATO_SCAN_FROM_ID_ZERO        0x00800000 /* Scan from PHYID=0 */
-#define CC_COS_QUALIFIED_DMA_RX_EN      0x01000000
-#define CC_ABORT_TBL_DMA                0x02000000 /* Abort Table DMA op */
-#define CC_EXT_MDIO_MSTR_DIS            0x04000000 /* Disable MDIO on ATE */
-#define CC_EXTENDED_DCB_ENABLE          0x08000000 /* type7 dcb (5695) */
-#define CC_INT_PHY_CLAUSE_45            0x08000000 /* MIIM 45 vs. 22 (5673) */
-
-/* Endian selection register */
-#define CMIC_ENDIAN_SELECT              0x00000174
-
-#define ES_BIG_ENDIAN_PIO               0x01000001
-#define ES_BIG_ENDIAN_DMA_PACKET        0x02000002
-#define ES_BIG_ENDIAN_DMA_OTHER         0x04000004
-#define ES_BIG_ENDIAN_CTR64_WORDS       0x08000008      /* Lynx only */
-#define EN_BIG_ENDIAN_EB2_2B_SEL        0x20000020      /* Raptor/Raven EB slave only */
-
 /* S-Channel Control Register */
-#define CMIC_SCHAN_CTRL                 0x00000050
+//Register CMIC_SCHAN_CTRL 16181 is not valid for chips using driver BCM56370_A0
+#define CMIC_SCHAN_CTRL                 0x00000050 
 
 /*
  * SCHAN_CONTROL: control bits
@@ -87,6 +46,7 @@
 /*
  * SCHAN_CONTROL: CMICX 
  */
+
 #define CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET             (0xc)
 #define CMIC_TOP_SBUS_RING_MAP_104_111_OFFSET         (0x40)
 #define CMIC_TOP_SBUS_RING_MAP_112_119_OFFSET         (0x44)
@@ -235,6 +195,13 @@ typedef union schan_err_s {
 /* number of words to use when allocating space */
 /** Iproc17 sbus data increased to 120 bytes */
 #define CMIC_SCHAN_WORDS_ALLOC 32
+
+/* Some basic definitions */
+#define SOC_BLOCK_MSB_BP                30
+#define SOC_BLOCK_BP                    20
+#define SOC_MEMOFS_BP                   16
+#define SOC_REGIDX_BP                   12
+#define SOC_RT_BP                       25
 
 /*
  * The endianness of the host is taken into account by the routines
@@ -445,7 +412,7 @@ typedef union schan_msg_u {
 /*****************************************************************************************/
 /*                           Registers (read through SCHAN)                              */
 /*****************************************************************************************/
-#define TOP_SOFT_RESET_REGr 96047
+#define TOP_SOFT_RESET_REGr 0x02000100
 
 
 /*****************************************************************************************/
