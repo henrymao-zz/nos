@@ -130,7 +130,7 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
         gprintk("  Done in %d polls\n", schan_timeout);
     }
 
-    gprintk("schanCtrl is 0x %x\n", schanCtrl);
+    gprintk("  schanCtrl is 0x %x\n", schanCtrl);
 
     if (schanCtrl & SC_CHx_MSG_NAK) {
         rv = -EFAULT;
@@ -144,17 +144,16 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
 
 
     if (schanCtrl & SC_CHx_MSG_TIMEOUT_TST) {
-	gprintk("Hardware Timeout Error.\n");
+	gprintk("  Hardware Timeout Error.\n");
         rv = -EFAULT;
     }
 
     if (schanCtrl & SC_CHx_MSG_SCHAN_ERR) {
         schan_err_t schan_err = {0};
         
-        gprintk("CMIC_SCHAN_ERR.\n");
         schan_err.word = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_ERR(ch));
 
-        gprintk("CMIC_SCHAN_ERR. 0x%x\n", schan_err.word);
+        gprintk("  CMIC_SCHAN_ERR. 0x%x\n", schan_err.word);
 
         if (schan_err.reg.errbit) {
             switch(schan_err.reg.err_code) {
@@ -179,7 +178,7 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
 
 
         /* dump error data */
-        gprintk("CMIC_SCHAN_ERR data dump: "
+        gprintk("  CMIC_SCHAN_ERR data dump: "
                         "err_code=%u, data_len=%u, src_port=%u, dst_port=%u,"
                         "op_code=%u Full reg value=0x%x\n",
                         schan_err.reg.err_code, schan_err.reg.data_len, schan_err.reg.src_port, 
@@ -218,7 +217,6 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
     int i, rv, val, ch;
 
     //SCHAN_LOCK(unit);
-    gprintk("_cmicx_schan_op entry.\n");
 
     //TODO - get free channel
     ch = 1;
@@ -258,7 +256,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
     //SCHAN_UNLOCK(unit);
 
     if (rv) {
-        gprintk("soc_schan_op operation failed\n");
+        gprintk("_cmicx_schan_op operation failed\n");
         _cmicx_schan_dump(dev, msg, dwc_write);
     }
 
@@ -422,11 +420,6 @@ bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_d
     //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
 
     //setup command header
-    //schan_msg.header.v2.opcode = READ_MEMORY_CMD_MSG;
-    //schan_msg.header.v2.dst_blk = dst_blk;
-    //schan_msg.header.v2.src_blk = src_blk;
-    //schan_msg.header.v2.data_byte_len = data_byte_len;
-    //schan_msg.header.v2.bank_ignore_mask = 0;
     schan_msg.header.v4.opcode = WRITE_MEMORY_CMD_MSG;
     schan_msg.header.v4.dst_blk = dst_blk;
     schan_msg.header.v4.acc_type = 0;
@@ -510,7 +503,7 @@ bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_d
 /*                             SCHAN Reg Read/Write                                      */
 /*****************************************************************************************/
 static int
-_reg32_read(struct net_device *dev, int address, void *entry_data)
+_reg32_read(struct net_device *dev, uint32_t address, uint32_t *data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -554,14 +547,14 @@ _reg32_read(struct net_device *dev, int address, void *entry_data)
 
     return rv;
 }
+
 /*
  * Write an internal SOC register through S-Channel messaging buffer.
  */
 static int
-_reg32_write(struct net_device *dev, int address, void *entry_data)
+_reg32_write(struct net_device *dev, uint32_t address, uint32_t data)
 {
     schan_msg_t schan_msg;
-    int opcode, err;
     int rv = 0;
     uint32 allow_intr = 0;
     int dst_blk = 0, data_byte_len; 
@@ -1179,11 +1172,79 @@ static int bcmsw_cmicx_dma_abort(struct bcmsw_switch *bcmsw_sw)
 #endif
 
 
+// purpose API to test PCI access to cmicx registers
+static int _cmicx_pci_test(struct net_device *dev)
+{
+    int i;
+    uint32 tmp, reread;
+    uint32 pat;
+
+    //SCHAN_LOCK(unit);
+
+    /* Check for address uniqueness */
+
+    for (i = 0; i < CMIC_SCHAN_WORDS; i++) {
+        pat = 0x55555555 ^ (i << 24 | i << 16 | i << 8 | i);
+        bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i), pat);
+    }
+
+    for (i = 0; i < CMIC_SCHAN_WORDS; i++) {
+        pat = 0x55555555 ^ (i << 24 | i << 16 | i << 8 | i);
+        tmp = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i));
+        if (tmp != pat) {
+            goto error;
+        }
+    }
+
+    //if (!SAL_BOOT_QUICKTURN) {  /* Takes too long */
+        /* Rotate walking zero/one pattern through each register */
+
+        pat = 0xff7f0080;       /* Simultaneous walking 0 and 1 */
+
+        for (i = 0; i < CMIC_SCHAN_WORDS; i++) {
+            int j;
+
+            for (j = 0; j < 32; j++) {
+                    bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i), pat);
+                    tmp = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i));
+                if (tmp != pat) {
+                    goto error;
+                }
+                pat = (pat << 1) | ((pat >> 31) & 1);	/* Rotate left */
+            }
+        }
+    //}
+
+    /* Clear to zeroes when done */
+
+    for (i = 0; i < CMIC_SCHAN_WORDS; i++) {
+            bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i), 0);
+    }
+    //SCHAN_UNLOCK(unit);
+    gprintk("PCI test PASSED.\n");
+    return 0;
+
+ error:
+    reread = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(0, i));
+
+    gprintk("FATAL PCI error testing PCIM[0x%x]:\n"
+            "Wrote 0x%x, read 0x%x, re-read 0x%x\n",
+             i, pat, tmp, reread);
+
+    //SCHAN_UNLOCK(unit);
+    return -EFAULT;
+}
+
 //soc_do_init(int unit, int reset)
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
     struct net_device *dev = bcmsw_sw->dev;
     int val;
+
+    /* Initialize PCI Host interface */
+    //soc_pcie_host_intf_init(unit));
+    //
+    
     /************* soc_phyctrl_software_init   *****************************/
 
     /******************************* soc_reset *****************************/
@@ -1220,6 +1281,22 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     mdelay(250);
 
 
+    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET);
+    gprintk("CMIC_TOP_SBUS_RING_MAP_0_7 0x%x\n", val);
+    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET);
+    gprintk("CMIC_TOP_SBUS_RING_MAP_8_15 0x%x\n", val);
+    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET);
+    gprintk("CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET 0x%x\n", val);
+    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_TIMEOUT_OFFSET);
+    gprintk("CMIC_TOP_SBUS_TIMEOUT_OFFSET 0x%x\n", val);
+
+
+    /*
+     * Check that PCI memory space is mapped correctly by running a
+     * quick diagnostic on the S-Channel message buffer.
+     */
+    _cmicx_pci_test(dev);
+
     //do a read
     _reg32_read(dev, TOP_SOFT_RESET_REGr, &val); 
 
@@ -1228,7 +1305,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //   soc_reg32_set(unit, TOP_SOFT_RESET_REGr, REG_PORT_ANY, 0, rv) 
     //      Write an internal SOC register through S-Channel messaging buffer.
     val = 0;
-    _reg32_write(dev, TOP_SOFT_RESET_REGr, &val);
+    //_reg32_write(dev, TOP_SOFT_RESET_REGr, &val);
 
     /* Bring PLLs out of reset */
     //...
@@ -1274,7 +1351,7 @@ int bcmsw_switch_init(void)
     }    
 
     //test schan
-    err = bcmsw_soc_mem_read(bcmsw_sw->dev, 0x501c0000, 14, &lport_entry); 
+    //err = bcmsw_soc_mem_read(bcmsw_sw->dev, 0x501c0000, 14, &lport_entry); 
 
 err_ports_create:
 err_swdev_register:
