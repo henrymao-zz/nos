@@ -1171,6 +1171,69 @@ static int bcmsw_cmicx_dma_abort(struct bcmsw_switch *bcmsw_sw)
 
 #endif
 
+static int _cmicx_schan_fifo_init(struct net_device *dev)
+{
+    uint32 val;
+    uint16 *summary_buff[CMIC_SCHAN_FIFO_NUM_MAX];
+
+    /* Set CMIC_COMMON_POOL_SHARED_CONFIG Register,
+     * SCHAN FIFO are sent through AXI master port of CMC0
+     */
+    val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SHARED_CONFIG_OFFSET);
+    //soc_reg_field_set(dev, CMIC_COMMON_POOL_SHARED_CONFIGr,
+    //                  &val, MAP_SCHAN_FIFO_MEMWR_REQf,
+    //                  MAP_SCHAN_FIFO_MEMWR_REQ_CMC0);
+    val = 0;
+    bkn_dev_write32(dev, CMIC_COMMON_POOL_SHARED_CONFIG_OFFSET, val);   
+
+
+    /* Programming WRR (Arbitration) within CMC. Configure WRR weight
+     * for FIFO DMA channels
+     */
+    bkn_dev_write32(dev,
+                    CMIC_COMMON_POOL_SHARED_SCHAN_FIFO_WRITE_ARB_CTRL_OFFSET,
+                    SCHAN_FIFO_MEMWR_WRR_WEIGHT);    
+
+
+    /* perform hardware initialization */
+
+   for (ch = 0 ; ch < CMIC_SCHAN_FIFO_NUM_MAX; ch++) {
+       /* Configure AXI ID for SCHAN FIFO */
+       val = soc_pci_read(unit, CMIC_SCHAN_FIFO_CHx_CTRL(ch));
+       //soc_reg_field_set(unit, CMIC_COMMON_POOL_SCHAN_FIFO_0_CH0_CTRLr,
+       //                &val, AXI_IDf, SCHAN_FIFO_AXI_ID);
+       //_cmicx_schan_fifo_endian_config(unit, &val);
+       bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_CTRL(ch), val);
+
+       /* Set up summary Register */
+       summary_buff[ch] = _salloc(dev,
+            (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * 2), "schan_fifo_summary");
+       //if (schan_fifo->summary_buff[ch] == NULL) {
+       //   rv = SOC_E_MEMORY;
+       //   break;
+       //}
+
+       /* write summary Lo address */
+       bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_SUMMARY_ADDR_LOWER(ch),
+                    PTR_TO_INT(schan_fifo->summary_buff[ch]));
+       /* write summary Hi address */
+       bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_SUMMARY_ADDR_UPPER(ch),
+                   (PTR_HI_TO_INT(schan_fifo->summary_buff[ch]) |
+                    CMIC_PCIE_SO_OFFSET));
+
+    }
+
+
+    /* Initialize the SCHAN FIFO command memories */
+    for (ch = 0; ch < CMIC_SCHAN_FIFO_NUM_MAX; ch++) {
+        for (idx = 0;
+             idx < (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * (CMIC_SCHAN_WORDS(unit)));
+             idx++) {
+            bkn_dev_write32(unit, CMIC_SCHAN_FIFO_CHx_COMMAND(ch, idx), 0);
+        }
+    }
+
+}
 
 // purpose API to test PCI access to cmicx registers
 static int _cmicx_pci_test(struct net_device *dev)
@@ -1235,6 +1298,7 @@ static int _cmicx_pci_test(struct net_device *dev)
     return -EFAULT;
 }
 
+
 //soc_do_init(int unit, int reset)
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
@@ -1259,6 +1323,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //soc_cmic_intr_all_disable();
 
     //soc_esw_schan_fifo_init
+    _cmicx_schan_fifo_init(dev);
 
 
     /* Initialize bulk mem API */

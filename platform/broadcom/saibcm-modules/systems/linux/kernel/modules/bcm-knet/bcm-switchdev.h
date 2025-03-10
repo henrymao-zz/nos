@@ -196,12 +196,29 @@ typedef union schan_err_s {
 /** Iproc17 sbus data increased to 120 bytes */
 #define CMIC_SCHAN_WORDS_ALLOC 32
 
+/* SCHAN FIFO */
+#define CMIC_SCHAN_FIFO_NUM_MAX      (2)
+/* Number of commands SCHAN FIFO can accomodate in one channel */
+#define CMIC_SCHAN_FIFO_CMD_SIZE_MAX   (16)
+#define MAP_SCHAN_FIFO_MEMWR_REQ_CMC0        (0x00)
+#define MAP_SCHAN_FIFO_MEMWR_REQ_CMC1        (0x01)
+#define SCHAN_FIFO_MEMWR_WRR_WEIGHT          (0x0E)
+#define SCHAN_FIFO_AXI_ID                    (0x05)
+#define SCHAN_FIFO_RESPONSE_WORD_SIZE        (32) /*128 bytes aligned */
+#define SCHAN_FIFO_SUMMARY_ACKDATA_MASK      (0xFF)
+#define SCHAN_FIFO_SUMMARY_STAT_SHIFT         (8)
+
+
 /* Some basic definitions */
 #define SOC_BLOCK_MSB_BP                30
 #define SOC_BLOCK_BP                    20
 #define SOC_MEMOFS_BP                   16
 #define SOC_REGIDX_BP                   12
 #define SOC_RT_BP                       25
+
+
+/* PCI SLAVE OFFSET */
+#define CMIC_PCIE_SO_OFFSET                  (0x10000000)
 
 /*
  * The endianness of the host is taken into account by the routines
