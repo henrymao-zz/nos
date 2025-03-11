@@ -219,7 +219,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
     //SCHAN_LOCK(unit);
 
     //TODO - get free channel
-    ch = 1;
+    ch = 0;
 
     val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch));
     gprintk("_cmicx_schan_op schanCtrl = 0x%x\n", val);
@@ -503,13 +503,13 @@ bcmsw_soc_mem_write(struct net_device *dev, int address, int size, void *entry_d
 /*                             SCHAN Reg Read/Write                                      */
 /*****************************************************************************************/
 static int
-_reg32_read(struct net_device *dev, uint32_t address, uint32_t *data)
+_reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
     int rv = 0;
     uint32 allow_intr = 0;
-    int dst_blk = 0, data_byte_len; 
+    int data_byte_len; 
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
@@ -520,8 +520,8 @@ _reg32_read(struct net_device *dev, uint32_t address, uint32_t *data)
 
     //setup command header
     schan_msg.header.v4.opcode = READ_REGISTER_CMD_MSG;
-    dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
-              (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);
+    //dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
+    //          (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);
     schan_msg.header.v4.dst_blk = dst_blk;
     schan_msg.header.v4.acc_type = 0;
     schan_msg.header.v4.data_byte_len = data_byte_len;
@@ -1171,9 +1171,31 @@ static int bcmsw_cmicx_dma_abort(struct bcmsw_switch *bcmsw_sw)
 
 #endif
 
+
+static int _cmicx_fifodma_init(struct net_device *dev)
+{
+    uint32 val;
+
+    val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_ARB_CTRL_OFFSET);
+
+    bkn_dev_write32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_ARB_CTRL_OFFSET, 0xeee);
+
+
+    val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_AXI_MAP_CTRL_OFFSET);
+    val = 0x36db6db6;
+    bkn_dev_write32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_AXI_MAP_CTRL_OFFSET, val);
+
+
+    val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_AXI_MAP_CTRL_1_OFFSET);
+    val = 0x36;
+    bkn_dev_write32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_AXI_MAP_CTRL_1_OFFSET, val);
+
+}
+
 static int _cmicx_schan_fifo_init(struct net_device *dev)
 {
     uint32 val;
+    uint32 ch, idx;
     uint16 *summary_buff[CMIC_SCHAN_FIFO_NUM_MAX];
 
     /* Set CMIC_COMMON_POOL_SHARED_CONFIG Register,
@@ -1196,29 +1218,32 @@ static int _cmicx_schan_fifo_init(struct net_device *dev)
 
 
     /* perform hardware initialization */
-
+   summary_buff[0] = 0x33c00000;
+   summary_buff[1] = 0x33c00080;
    for (ch = 0 ; ch < CMIC_SCHAN_FIFO_NUM_MAX; ch++) {
        /* Configure AXI ID for SCHAN FIFO */
-       val = soc_pci_read(unit, CMIC_SCHAN_FIFO_CHx_CTRL(ch));
+       val = bkn_dev_read32(dev, CMIC_SCHAN_FIFO_CHx_CTRL(ch));
        //soc_reg_field_set(unit, CMIC_COMMON_POOL_SCHAN_FIFO_0_CH0_CTRLr,
        //                &val, AXI_IDf, SCHAN_FIFO_AXI_ID);
        //_cmicx_schan_fifo_endian_config(unit, &val);
        bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_CTRL(ch), val);
 
        /* Set up summary Register */
-       summary_buff[ch] = _salloc(dev,
-            (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * 2), "schan_fifo_summary");
+       //GFP_ATOMIC | GFP_DMA;
+       //summary_buff[ch] = kmalloc (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * 2, GFP_ATOMIC | GFP_DMA);
+        
        //if (schan_fifo->summary_buff[ch] == NULL) {
        //   rv = SOC_E_MEMORY;
        //   break;
        //}
 
+       gprintk("schan buff addr ch[%d], 0x%x\n", ch, summary_buff[ch]);
        /* write summary Lo address */
        bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_SUMMARY_ADDR_LOWER(ch),
-                    PTR_TO_INT(schan_fifo->summary_buff[ch]));
+                    PTR_TO_INT(summary_buff[ch]));
        /* write summary Hi address */
        bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_SUMMARY_ADDR_UPPER(ch),
-                   (PTR_HI_TO_INT(schan_fifo->summary_buff[ch]) |
+                   (PTR_HI_TO_INT(summary_buff[ch]) |
                     CMIC_PCIE_SO_OFFSET));
 
     }
@@ -1227,9 +1252,9 @@ static int _cmicx_schan_fifo_init(struct net_device *dev)
     /* Initialize the SCHAN FIFO command memories */
     for (ch = 0; ch < CMIC_SCHAN_FIFO_NUM_MAX; ch++) {
         for (idx = 0;
-             idx < (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * (CMIC_SCHAN_WORDS(unit)));
+             idx < (CMIC_SCHAN_FIFO_CMD_SIZE_MAX * (CMIC_SCHAN_WORDS));
              idx++) {
-            bkn_dev_write32(unit, CMIC_SCHAN_FIFO_CHx_COMMAND(ch, idx), 0);
+            bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_COMMAND(ch, idx), 0);
         }
     }
 
@@ -1313,6 +1338,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     /******************************* soc_reset *****************************/
     // soc_endian_config
+    bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, 0);
     // soc_pci_ep_config  - CMICM only
     // soc_pci_burst_enable
 
@@ -1322,8 +1348,13 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //soc_cmic_intr_all_disable
     //soc_cmic_intr_all_disable();
 
-    //soc_esw_schan_fifo_init
-    _cmicx_schan_fifo_init(dev);
+     //cmicx_fifodma_init
+     _cmicx_fifodma_init(dev);
+
+     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_ARB_CTRL_SBUSDMA, 0xeeeeeeee);
+
+     //soc_esw_schan_fifo_init
+     _cmicx_schan_fifo_init(dev);
 
 
     /* Initialize bulk mem API */
@@ -1346,24 +1377,14 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     mdelay(250);
 
 
-    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET);
-    gprintk("CMIC_TOP_SBUS_RING_MAP_0_7 0x%x\n", val);
-    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET);
-    gprintk("CMIC_TOP_SBUS_RING_MAP_8_15 0x%x\n", val);
-    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET);
-    gprintk("CMIC_TOP_SBUS_RING_MAP_16_23_OFFSET 0x%x\n", val);
-    val = bkn_dev_read32(dev, CMIC_TOP_SBUS_TIMEOUT_OFFSET);
-    gprintk("CMIC_TOP_SBUS_TIMEOUT_OFFSET 0x%x\n", val);
-
-
     /*
      * Check that PCI memory space is mapped correctly by running a
      * quick diagnostic on the S-Channel message buffer.
      */
-    _cmicx_pci_test(dev);
+    //_cmicx_pci_test(dev);
 
     //do a read
-    _reg32_read(dev, TOP_SOFT_RESET_REGr, &val); 
+    _reg32_read(dev, 7, TOP_SOFT_RESET_REGr, &val); 
 
     /* Reset IP, EP, MMU and port macros */
     //SOC_IF_ERROR_RETURN(WRITE_TOP_SOFT_RESET_REGr(unit, 0x0));
