@@ -40,6 +40,63 @@ typedef enum {
     SOC_E_LIMIT                 = -19
 } soc_error_t;
 
+#define _SHR_ERRMSG_INIT        { \
+        "Ok",                           /* E_NONE */ \
+        "Internal error",               /* E_INTERNAL */ \
+        "Out of memory",                /* E_MEMORY */ \
+        "Invalid unit",                 /* E_UNIT */ \
+        "Invalid parameter",            /* E_PARAM */ \
+        "Table empty",                  /* E_EMPTY */ \
+        "Table full",                   /* E_FULL */ \
+        "Entry not found",              /* E_NOT_FOUND */ \
+        "Entry exists",                 /* E_EXISTS */ \
+        "Operation timed out",          /* E_TIMEOUT */ \
+        "Operation still running",      /* E_BUSY */ \
+        "Operation failed",             /* E_FAIL */ \
+        "Operation disabled",           /* E_DISABLED */ \
+        "Invalid identifier",           /* E_BADID */ \
+        "No resources for operation",   /* E_RESOURCE */ \
+        "Invalid configuration",        /* E_CONFIG */ \
+        "Feature unavailable",          /* E_UNAVAIL */ \
+        "Feature not initialized",      /* E_INIT */ \
+        "Invalid port",                 /* E_PORT */ \
+        "Unknown error"                 /* E_LIMIT */ \
+        }
+
+//extern char *_shr_errmsg[];
+
+#define soc_errmsg(r)          \
+        _shr_errmsg[(((int)r) <= 0 && ((int)r) > SOC_E_LIMIT) ? -(r) : -SOC_E_LIMIT]
+
+typedef int soc_mem_t;
+
+#if defined(LE_HOST)
+
+#define soc_letohl(_l)  (_l)
+#define soc_letohs(_s)  (_s)
+
+#else /* BE_HOST */
+
+#define soc_letohl(_l)  _shr_swap32(_l)
+#define soc_letohs(_s)  _shr_swap16(_s)
+
+#endif /* BE_HOST */
+
+#define _SHR_ERROR_TRACE(rv) 
+#define SOC_IF_ERROR_RETURN(op) \
+    do { int __rv__; if ((__rv__ = (op)) < 0) { _SHR_ERROR_TRACE(__rv__);  return(__rv__); } } while(0)
+
+
+#define BYTES2WORDS(x)        (((x) + 3) / 4)
+
+#define SOC_MAX_MEM_BYTES               78
+#define SOC_MAX_MEM_WORDS               BYTES2WORDS(SOC_MAX_MEM_BYTES)
+
+
+#define    MEM_BLOCK_ALL                -1
+
+#define SOC_WARM_BOOT(unit)             0 
+
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
@@ -609,6 +666,52 @@ typedef struct {
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
+
+/*****************************************************************************************/
+/*                              FLOWDB                                                   */
+/*****************************************************************************************/
+/* Format of Table for indexed table
+ * | START_OF TABLE_CHUNK |
+ * | tbl header |
+ * | tbl entry records |
+ * | END OF Table CHUNK |
+ */
+typedef struct soc_flow_db_tbl_map_s {
+   uint32 tbl_start;
+   uint32 block_size; /* block size */
+   uint32 crc;  /* block crc */
+   uint32 pa;   /* hash parameters */
+   uint32 pb;   /* hash parameters */
+   uint32 pc;   /* hash parameters */
+   uint32 pd;   /* hash parameters */
+   uint32 pe;   /* hash parameters */
+   uint32 num_entries;
+   uint32 hash_tbl_size;
+   uint32 tbl_entry;
+} soc_flow_db_tbl_map_t;
+
+typedef struct soc_flow_db_view_ffo_tuple_s {
+    uint32 view_id;
+    uint32 nffos;
+    uint32 *ffo_tuple;
+} soc_flow_db_view_ffo_tuple_t;
+
+typedef struct soc_flow_db_flow_map_s {
+    /* pointer to the flow table chunk */
+    soc_flow_db_tbl_map_t *flow_tbl_lyt;
+    /* pointer to the flow option table chunk */
+    soc_flow_db_tbl_map_t *flow_option_tbl_lyt;
+    /* pointer to the ffo tuple to view id map table chunk */
+    soc_flow_db_tbl_map_t *ffo_tuple_tbl_lyt;
+    /* pointer to the view table chunk */
+    soc_flow_db_tbl_map_t *view_tbl_lyt;
+    /* pointer to the logical field map table chunk*/
+    soc_flow_db_tbl_map_t *lg_field_tbl_lyt;
+    /* view to ffo tuple list*/
+    soc_flow_db_view_ffo_tuple_t *view_ffo_list;
+    /* string table */
+    char *str_tbl;
+} soc_flow_db_flow_map_t;
 
 /*****************************************************************************************/
 /*                              CANCUN                                                   */
