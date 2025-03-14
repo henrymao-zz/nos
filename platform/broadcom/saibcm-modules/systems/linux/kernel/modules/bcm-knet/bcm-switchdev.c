@@ -552,12 +552,12 @@ _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *dat
  * Write an internal SOC register through S-Channel messaging buffer.
  */
 static int
-_reg32_write(struct net_device *dev, uint32_t address, uint32_t data)
+_reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t data)
 {
     schan_msg_t schan_msg;
     int rv = 0;
     uint32 allow_intr = 0;
-    int dst_blk = 0, data_byte_len; 
+    int data_byte_len; 
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
@@ -584,6 +584,693 @@ _reg32_write(struct net_device *dev, uint32_t address, uint32_t data)
     return rv;
 }
 
+/*****************************************************************************************/
+/*                            BCM56371 CANCUN                                            */
+/*****************************************************************************************/
+
+/* ZLIB CRC-32 routine */
+uint32 soc_cancun_crc32(uint32 crc, uint8 *buf, int len_bytes) {
+
+    #define DO1(buf) crc = soc_crc32_tab[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8);
+    #define DO2(buf)  DO1(buf); DO1(buf);
+    #define DO4(buf)  DO2(buf); DO2(buf);
+    #define DO8(buf)  DO4(buf); DO4(buf);
+    
+        if (buf == NULL) return 0L;
+        crc = crc ^ 0xffffffffL;
+    
+        while (len_bytes >= 8)
+        {
+            DO8(buf);
+            len_bytes -= 8;
+        }
+    
+        if (len_bytes) do {
+            DO1(buf);
+        } while (--len_bytes);
+    
+        return crc ^ 0xffffffffL;
+}
+    
+void soc_cancun_buf_swap32(uint8 *buf, long buf_size)
+{
+    long i;
+    uint32 *fword = (uint32 *)buf;
+    for (i = 0; i < ((buf_size + 3) / 4); i++) {
+        *fword = soc_letohl(*fword);
+        fword ++;
+    }
+    return ;
+}
+
+
+static int _soc_cancun_memcpy_letohl(uint32 *des, uint32 *src, uint32 word_len) {
+    uint32 i;
+
+    if (des == NULL || src == NULL) {
+        return SOC_E_INTERNAL;
+    }
+
+    for (i = 0; i < word_len; i++) {
+        *des++ = *src++;
+    }
+
+    return SOC_E_NONE;
+}
+
+
+int soc_cancun_file_info_get(struct bcmsw_switch *sw, soc_cancun_file_t* ccf, char *filename,
+        uint8 *buf, long buf_bytes) {
+
+    soc_cancun_t *cc = sw->soc_cancun_info;
+    soc_cancun_file_header_t *ccfh = (soc_cancun_file_header_t *) buf;
+    uint16 dev_id;
+    uint8 rev_id;
+    uint32 crc, *file_crc;
+    uint8 *cur_buf;
+    long cur_buf_size;
+
+    if (ccf == NULL) {
+        return SOC_E_INTERNAL;
+    }
+
+    crc = soc_cancun_crc32(0, buf, buf_bytes - 4);
+
+    /* convert file header into correct endianness */
+    cur_buf = buf;
+    cur_buf_size = SOC_CANCUN_FILE_HEADER_OFFSET;
+    soc_cancun_buf_swap32(cur_buf, cur_buf_size);
+    memcpy(&ccf->header, ccfh, sizeof(soc_cancun_file_header_t));
+
+    cur_buf += cur_buf_size;
+    cur_buf_size = buf_bytes - cur_buf_size;
+    /* check if CEH or CFH, don't swap rest of file */
+    if ((ccfh->file_type != SOC_CANCUN_FILE_ID_CEH) &&
+        (ccfh->file_type != SOC_CANCUN_FILE_ID_CFH)) { 
+        soc_cancun_buf_swap32(cur_buf, cur_buf_size);
+    } else {
+        /* swap the checksum */
+        soc_cancun_buf_swap32(buf + buf_bytes - 4, 4);
+    }
+
+    if (filename) {
+        strncpy(ccf->filename, filename, sal_strlen(filename)+1);
+    }
+
+    ccf->valid = 0;
+    /* 1. File identifier */
+    if(ccfh->file_identifier != SOC_CANCUN_FILE_ID) {
+        if (filename) {
+            printk("ERROR: %s is not a CANCUN file\n", filename);
+        } else {
+            printk("ERROR: Not a CANCUN file: 0x%08x. Abort\n", ccfh->file_identifier);
+        }
+        return SOC_E_INTERNAL;
+    }
+    /* 2. File type */
+    switch(ccfh->file_type) {
+        case SOC_CANCUN_FILE_ID_CIH:
+            ccf->type = CANCUN_SOC_FILE_TYPE_CIH;
+            break;
+        case SOC_CANCUN_FILE_ID_CMH:
+            ccf->type = CANCUN_SOC_FILE_TYPE_CMH;
+            break;
+        case SOC_CANCUN_FILE_ID_CCH:
+            ccf->type = CANCUN_SOC_FILE_TYPE_CCH;
+            break;
+        case SOC_CANCUN_FILE_ID_CFH:
+            ccf->type = CANCUN_SOC_FILE_TYPE_CFH;
+            break;
+        case SOC_CANCUN_FILE_ID_CEH:
+            ccf->type = CANCUN_SOC_FILE_TYPE_CEH;
+            break;
+
+        default:
+            printk("ERROR: Invalid file type. Abort\n");
+            return SOC_E_INTERNAL;
+    }
+
+    /* CANCUN file validation */
+    if((cc->flags & SOC_CANCUN_FLAG_SKIP_VALIDITY) == 0) {
+        /* 3. File length */
+        if(ccfh->file_length != BYTES2WORDS(buf_bytes)) {
+            printk("ERROR: File length mismatch. Abort\n");
+            return SOC_E_INTERNAL;
+        }
+        /* 4. HW version */
+        //soc_cm_get_id(unit, &dev_id, &rev_id);
+        //if(!soc_cancun_chip_rev_validate(ccfh->chip_rev_id, dev_id, rev_id)) {
+        //    printk("ERROR: HW version mismatch. Abort\n");
+        //    return SOC_E_INTERNAL;
+        //}
+        /* 5. CRC */
+        file_crc = (uint32 *) (buf + buf_bytes - 4);
+        if (crc != *file_crc) {
+            printk("ERROR: CRC check fails crc 0x%08x, file_crc 0x%08x. Abort\n", crc, *file_crc);
+            return SOC_E_INTERNAL;
+        }
+    }
+
+    ccf->valid = 1;
+    ccf->format = CANCUN_SOC_FILE_FORMAT_PACK;
+    ccf->status = CANCUN_SOC_FILE_LOAD_NONE;
+
+    return SOC_E_NONE;
+}
+
+static int _soc_cancun_file_pio_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) 
+{
+    long schan_msg_len_words, msg_num, i;
+    schan_msg_t* msg;
+    int index;
+
+    schan_msg_len_words = CMIC_SCHAN_WORDS(unit);
+    msg_num = buf_words / schan_msg_len_words;
+    msg = (schan_msg_t*) buf;
+
+    for(i = 0; i < msg_num; i++) {
+#if _PCID_TEST
+        {
+            int j;
+            for(j = 0; j< schan_msg_len_words; j++) {
+                msg->dwords[j] = soc_htonl(msg->dwords[j]);
+                cli_out("0x%x ", msg->dwords[j]);
+            }
+            cli_out("\n");
+            index = 0;
+        }
+#else
+        index = _cmicx_schan_op(sw->dev, msg, schan_msg_len_words,
+                             schan_msg_len_words, 0);
+#endif
+        if (index < 0) {
+            printk("S-Channel operation failed: %s\n", soc_errmsg(index);
+            return SOC_E_FAIL;
+        }
+        msg++;
+    }
+
+    return SOC_E_NONE;
+}
+
+
+static int _soc_cancun_cih_pio_load(struct bcmsw_switch *sw, uint8* buf, int length,
+                                    uint32 flags) 
+{
+    schan_msg_t msg;
+    int i, index;
+    uint32 *p = (uint32 *) buf;
+    int rv;
+
+    memset(&msg, 0, sizeof(schan_msg_t));
+
+    if (flags & SOC_CANCUN_BLOB_FLAG_MEM_ID_PRESENT) {
+        return _soc_cancun_cih_mem_load(dev, buf);
+    }
+
+    /* Special case of TCAM memory loading */
+    if (flags & SOC_CANCUN_BLOB_FLAG_TCAM) {
+        rv = _soc_cancun_cih_tcam_write(dev, buf);
+        return rv;
+    }
+
+    /* Copy destination address to schan msg structure */
+    msg.dwords[1] = *p++;
+
+    /* Copy opcode to schan msg structure */
+    msg.dwords[0] = *p++;
+
+    /* Copy data to schan msg structure */
+    p += 2; /* skip length and flag */
+    for(i = 0; i < length ; i++) {
+        msg.dwords[2+i] = *p++;
+    }
+
+    for(i = 0; i < length + 2; i++) {
+        printk("0x%x ", msg.dwords[i]));
+    }
+    printk("\n");
+
+#if _PCID_TEST
+    {
+        int j;
+        for(j = 0; j < length+2; j++) {
+            msg.dwords[j] = soc_htonl(msg.dwords[j]);
+            cli_out("0x%x ", msg.dwords[j]);
+        }
+        cli_out("\n");
+        index = 0;
+    }
+#else
+    index = _cmicx_schan_op(sw->dev, &msg, length+2, length+2, 0);
+#endif
+
+    if (index < 0) {
+        printk("S-Channel operation failed: %s\n", soc_errmsg(index));
+        return SOC_E_FAIL;
+    }
+
+    return SOC_E_NONE;
+
+}
+
+static int _soc_cancun_cih_load(struct bcmsw_switch *sw, uint8* buf, int num_data_blobs) {
+    int i;
+    uint32 length, flags;
+
+    for (i = 0; i < num_data_blobs; i++) {
+        /* Length and flags fields are offset by 8 and 12 bytes from start of
+         * each data blob */
+        length = *(uint32 *)(buf + SOC_CANCUN_CIH_LENGTH_OFFSET);
+        flags = *(uint32 *)(buf + SOC_CANCUN_CIH_FLAG_OFFSET);
+
+        /* Blob data format */
+        switch (flags & SOC_CANCUN_BLOB_FORMAT_MASK) {
+            case SOC_CANCUN_BLOB_FORMAT_PIO:
+                SOC_IF_ERROR_RETURN
+                    (_soc_cancun_cih_pio_load(sw, buf, length, flags));
+                buf += (sizeof(uint32) * SOC_CANCUN_CIH_PIO_DATA_BLOB_SIZE);
+                break;
+            case SOC_CANCUN_BLOB_FORMAT_DMA:
+                break;
+            case SOC_CANCUN_BLOB_FORMAT_FIFO:
+                break;
+            case SOC_CANCUN_BLOB_FORMAT_RSVD:
+                break;
+            default:
+                return SOC_E_PARAM;
+        }
+    }
+    return SOC_E_NONE;
+}
+
+
+static int _soc_cancun_cmh_list_update(soc_cancun_cmh_t *cmh) {
+    soc_cancun_hash_table_t *hash_table;
+    soc_cancun_cmh_map_t *cmh_map_entry;
+    uint32 *p_hask_key, *p_entry, *p_list;
+    uint32 entry_num, list_element_count = 0;
+    int i;
+
+    hash_table = (soc_cancun_hash_table_t*) cmh->cmh_table;
+
+    if(cmh->cmh_list) {
+        kfree(cmh->cmh_list);
+    }
+    cmh->cmh_list = kmalloc((BYTES_PER_UINT32 *
+                              (hash_table->entry_num * 3 + 1)), GFP_KERNEL); //"soc_cancun_cmh_list");
+    if(cmh->cmh_list == NULL) {
+        return SOC_E_MEMORY;
+    }
+
+    p_hask_key = &hash_table->table_entry;
+    p_list = cmh->cmh_list + 1;
+    for(i = 0; i < hash_table->pd; i++) {
+        if(p_hask_key[i] != 0) {
+            p_entry = p_hask_key + p_hask_key[i];
+            entry_num = *p_entry++;
+            cmh_map_entry = (soc_cancun_cmh_map_t*) p_entry;
+            while(entry_num-- > 0) {
+                *p_list++ = cmh_map_entry->src_mem;
+                *p_list++ = cmh_map_entry->src_field;
+                *p_list++ = cmh_map_entry->src_app;
+                list_element_count++;
+                if(entry_num > 0) {
+                    p_entry += cmh_map_entry->entry_size;
+                    cmh_map_entry = (soc_cancun_cmh_map_t*) p_entry;
+                }
+            }
+        }
+    }
+    *cmh->cmh_list = list_element_count;
+
+    return SOC_E_NONE;
+}
+
+static int _soc_cancun_file_cmh_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) {
+    soc_cancun_cmh_t *cmh = sw->soc_cancun_info->cmh;
+
+    if(cmh == NULL) {
+        return SOC_E_INIT;
+    } else if (buf_words <= 0) {
+        return SOC_E_PARAM;
+    }
+
+    /* NOTE: We do not have sal_realloc in our libc so need to free and then
+     *       re-alloc here for a new CMH load*/
+    if(cmh->cmh_table) {
+        sal_free(cmh->cmh_table);
+    }
+    cmh->cmh_table = kmalloc((BYTES_PER_UINT32 * buf_words), GFP_KERNEL); // "soc_cancun_cmh_table");
+    if(cmh->cmh_table == NULL) {
+        return SOC_E_MEMORY;
+    }
+
+    _soc_cancun_memcpy_letohl((uint32 *)cmh->cmh_table, (uint32 *)buf, buf_words);
+
+    return _soc_cancun_cmh_list_update(cmh);
+
+}
+
+
+static int _soc_cancun_file_cch_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) {
+    soc_cancun_cch_t *cch = sw->soc_cancun_info->cch;
+
+    if(cch == NULL) {
+        return SOC_E_INIT;
+    } else if (buf_words <= 0) {
+        return SOC_E_PARAM;
+    }
+
+    /* NOTE: We do not have sal_realloc in our libc so need to free and then
+     *       re-alloc here for a new CCH load*/
+    if(cch->cch_table) {
+        kfree(cch->cch_table);
+    }
+    cch->cch_table = kmalloc((BYTES_PER_UINT32 * buf_words), GFP_KERNEL); //"soc_cancun_cch_table");
+    if(cch->cch_table == NULL) {
+        return SOC_E_MEMORY;
+    }
+
+    if(cch->pseudo_regs) {
+        kfree(cch->pseudo_regs);
+    }
+    cch->pseudo_regs = (uint64*) kmalloc(SOC_CANCUN_PSEUDO_REGS_BLOCK_BYTE_SIZE, GFP_KERNEL); // "soc_cancun_cch_pseudo_regs");
+    if(cch->pseudo_regs == NULL) {
+        return SOC_E_MEMORY;
+    }
+    memset(cch->pseudo_regs, 0, SOC_CANCUN_PSEUDO_REGS_BLOCK_BYTE_SIZE);
+
+#ifdef BCM_WARM_BOOT_SUPPORT
+    if (SOC_WARM_BOOT(unit)) {
+        (void)soc_cancun_scache_recovery(unit);
+    }
+#endif /* BCM_WARM_BOOT_SUPPORT */
+
+    _soc_cancun_memcpy_letohl((uint32 *)cch->cch_table, (uint32 *)buf, buf_words);
+
+    return SOC_E_NONE;
+
+}
+
+static int _soc_cancun_file_ceh_load(struct bcmsw_switch *sw, uint8* buf, int buf_words)
+{
+    uint8 *cur_dst;
+    uint8 *cur_src;
+    int cur_len;
+    int str_tbl_len;
+    int rem_len;
+    soc_cancun_ceh_t *ceh = sw->soc_cancun_info->ceh;
+
+    if(ceh == NULL) {
+        return SOC_E_INIT;
+    } else if (buf_words <= 0) {
+        return SOC_E_PARAM;
+    }
+
+    /* NOTE: We do not have sal_realloc in our libc so need to free and then
+     *       re-alloc here for a new CEH load*/
+    if(ceh->ceh_table) {
+        kfree(ceh->ceh_table);
+    }
+    ceh->ceh_table = kmalloc((BYTES_PER_UINT32 * buf_words), GFP_KERNEL); // "soc_cancun_ceh_table");
+    if(ceh->ceh_table == NULL) {
+        return SOC_E_MEMORY;
+    }
+
+    cur_dst = (uint8 *)ceh->ceh_table;
+    cur_src = buf;
+    cur_len = SOC_CANCUN_CEH_BLOCK_HASH_HEADER_LEN * BYTES_PER_UINT32;
+    rem_len = buf_words * BYTES_PER_UINT32;
+    
+    /* load block and hash header */
+    memcpy(cur_dst, cur_src,cur_len);
+    soc_cancun_buf_swap32(cur_dst, cur_len);
+
+    /* next, string table len */
+    cur_dst += cur_len;
+    cur_src += cur_len; 
+    rem_len -= cur_len;
+    cur_len = BYTES_PER_UINT32;
+    memcpy(cur_dst, cur_src,cur_len);
+    soc_cancun_buf_swap32(cur_dst, cur_len);
+
+    /* no endianness to convert for string table. Just copy */
+    str_tbl_len = *(uint32 *)cur_dst; 
+    cur_dst += cur_len;
+    cur_src += cur_len; 
+    rem_len -= cur_len;
+    cur_len = str_tbl_len - BYTES_PER_UINT32;
+    memcpy(cur_dst,cur_src, cur_len);
+
+    /* convert rest of buffer */   
+    cur_dst += cur_len;
+    cur_src += cur_len; 
+    rem_len -= cur_len;
+    memcpy(cur_dst, cur_src,rem_len);
+    soc_cancun_buf_swap32(cur_dst, rem_len);
+
+    return SOC_E_NONE;
+}
+
+int soc_cancun_file_load(struct bcmsw_switch *sw, uint8* buf, long buf_bytes, uint32* type,
+                          uint32* format) {
+    soc_cancun_t *cc;
+    soc_cancun_file_t ccf_file, *ccf;
+    uint32 status = SOC_CANCUN_LOAD_STATUS_NOT_LOADED;
+    int rv = SOC_E_NONE;
+
+    cc = sw->soc_cancun_info;
+    if(cc == NULL) {
+        return SOC_E_UNIT;
+    } else if (!(cc->flags & SOC_CANCUN_FLAG_INITIALIZED)) {
+        return SOC_E_INIT;
+    } else if (buf == NULL) {
+        return SOC_E_PARAM;
+    }
+
+    /* Get file information if input PACK or UNKNOWN format */
+    memset(&ccf_file, 0, sizeof(soc_cancun_file_t));
+    if (*format == CANCUN_SOC_FILE_FORMAT_PACK ||
+        *format == CANCUN_SOC_FILE_FORMAT_UNKNOWN) {
+        rv = soc_cancun_file_info_get(unit, &ccf_file, NULL, buf, buf_bytes);
+        if(rv == SOC_E_NONE) {
+            *type = ccf_file.type;
+            *format = ccf_file.format;
+
+            if(*format == CANCUN_SOC_FILE_FORMAT_PACK) {
+                buf += SOC_CANCUN_FILE_HEADER_OFFSET;
+                buf_bytes -= (SOC_CANCUN_FILE_HEADER_OFFSET + 1);
+            } else {
+                return SOC_E_BADID;
+            }
+        } else {
+            return rv;
+        }
+    }
+
+    if(*type == CANCUN_SOC_FILE_TYPE_CIH) {
+        soc_cancun_file_branch_id_e branch_id = 0;
+        ccf = &cc->cih->file;
+        status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
+        if(*format == CANCUN_SOC_FILE_FORMAT_PIO) {
+            cc->cih->status = status;
+            rv = _soc_cancun_file_pio_load(unit, buf,
+                                           (buf_bytes/BYTES_PER_UINT32));
+
+        } else if(*format == CANCUN_SOC_FILE_FORMAT_PACK) {
+	        if(SOC_WARM_BOOT(unit)) {
+                rv = SOC_E_NONE;
+            } else {
+                cc->cih->status = status;
+                rv = _soc_cancun_cih_load(unit, buf,
+                                      ccf_file.header.num_data_blobs);
+            }
+
+        } else {
+            return SOC_E_PARAM;
+        }
+
+        if(rv == SOC_E_NONE) {
+            status = SOC_CANCUN_LOAD_STATUS_LOADED;
+            cc->cih->version = ccf_file.header.version;
+            cc->flags |= SOC_CANCUN_FLAG_CIH_LOADED;
+
+        } else {
+            status = SOC_CANCUN_LOAD_STATUS_FAILED;
+            cc->flags &= ~SOC_CANCUN_FLAG_CIH_LOADED;
+        }
+        cc->cih->status = status;
+        //rv = soc_cancun_branch_id_get(unit,
+        //               CANCUN_SOC_FILE_TYPE_CIH, &branch_id);
+        //if (branch_id == CANCUN_FILE_BRANCH_ID_HGoE) {
+        //    SOC_FEATURE_SET(unit, soc_feature_higig_over_ethernet);
+        //}
+
+
+    } else if (*type == CANCUN_SOC_FILE_TYPE_CMH) {
+        ccf = &cc->cmh->file;
+        status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
+        cc->cmh->status = status;
+        rv = _soc_cancun_file_cmh_load(unit, buf, (buf_bytes/BYTES_PER_UINT32));
+
+        if(rv == SOC_E_NONE) {
+            status = SOC_CANCUN_LOAD_STATUS_LOADED;
+            cc->cmh->version = ccf_file.header.version;
+            cc->cmh->sdk_version = ccf_file.header.sdk_version;
+            cc->flags |= SOC_CANCUN_FLAG_CMH_LOADED;
+        } else {
+            status = SOC_CANCUN_LOAD_STATUS_FAILED;
+            cc->flags &= ~SOC_CANCUN_FLAG_CMH_LOADED;
+        }
+        cc->cmh->status = status;
+
+    } else if (*type == CANCUN_SOC_FILE_TYPE_CCH) {
+        ccf = &cc->cch->file;
+        status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
+        cc->cch->status = status;
+        rv = _soc_cancun_file_cch_load(unit, buf, (buf_bytes/BYTES_PER_UINT32));
+
+        if(rv == SOC_E_NONE) {
+            status = SOC_CANCUN_LOAD_STATUS_LOADED;
+            cc->cch->version = ccf_file.header.version;
+            cc->cch->sdk_version = ccf_file.header.sdk_version;
+            cc->flags |= SOC_CANCUN_FLAG_CCH_LOADED;
+        } else {
+            status = SOC_CANCUN_LOAD_STATUS_FAILED;
+            cc->flags &= ~SOC_CANCUN_FLAG_CCH_LOADED;
+        }
+        cc->cch->status = status;
+
+    } else if (*type == CANCUN_SOC_FILE_TYPE_CEH) {
+        ccf = &cc->ceh->file;
+        status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
+        cc->ceh->status = status;
+        rv = _soc_cancun_file_ceh_load(unit, buf, (buf_bytes/BYTES_PER_UINT32));
+
+        if(rv == SOC_E_NONE) {
+            status = SOC_CANCUN_LOAD_STATUS_LOADED;
+            cc->ceh->version = ccf_file.header.version;
+            cc->ceh->sdk_version = ccf_file.header.sdk_version;
+            cc->flags |= SOC_CANCUN_FLAG_CEH_LOADED;
+        } else {
+            status = SOC_CANCUN_LOAD_STATUS_FAILED;
+            cc->flags &= ~SOC_CANCUN_FLAG_CEH_LOADED;
+        }
+        cc->ceh->status = status;
+
+    } else if (*type == CANCUN_SOC_FILE_TYPE_CFH)  {
+        ccf =  &cc->flow_db->file;
+        status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
+        cc->flow_db->status = status;
+        rv = _soc_flow_db_load(unit, buf, (buf_bytes/BYTES_PER_UINT32));
+
+        if(rv == SOC_E_NONE) {
+            status = SOC_CANCUN_LOAD_STATUS_LOADED;
+            cc->flow_db->version = ccf_file.header.version;
+            cc->flags |= SOC_CANCUN_FLAG_CFH_LOADED;
+        } else {
+            status = SOC_CANCUN_LOAD_STATUS_FAILED;
+            cc->flags &= ~SOC_CANCUN_FLAG_CFH_LOADED;
+        }
+        cc->flow_db->status = status;
+    } else {
+        printk("ERROR: can't recognize file type enum %d\n", *type);
+        return SOC_E_PARAM;
+    }
+
+    /* File successfully loaded here. Update ccf */
+    if(ccf) {
+        memcpy(ccf, &ccf_file, sizeof(soc_cancun_file_t));
+        ccf->status = status;
+    }
+
+    return rv;
+}
+
+
+/*
+ * Internal Functions
+ */
+static int _soc_cancun_alloc(struct bcmsw_switchdev *swdev) 
+{
+    soc_cancun_t* cc;
+    swdev->soc_cancun_info = kmalloc(sizeof(soc_cancun_t), GFP_KERNEL); // "soc_cancun_info");
+    if(cc == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+    memset(swdev->soc_cancun_info, 0, sizeof(soc_cancun_t));
+
+    cc = swdev->soc_cancun_info;
+
+    cc->cih = kmalloc(sizeof(soc_cancun_cih_t), GFP_KERNEL); // "soc_cancun_cih");
+    if(cc->cih == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+    memset(cc->cih, 0, sizeof(soc_cancun_cih_t));
+
+    cc->cmh = kmalloc(sizeof(soc_cancun_cmh_t), GFP_KERNEL); // "soc_cancun_cmh");
+    if(cc->cmh == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+    memset(cc->cmh, 0, sizeof(soc_cancun_cmh_t));
+
+    cc->cch = kmalloc(sizeof(soc_cancun_cch_t), GFP_KERNEL); // "soc_cancun_cch");
+    if(cc->cch == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+
+    memset(cc->cch, 0, sizeof(soc_cancun_cch_t));
+    cc->flow_db = kmalloc(sizeof(soc_flow_db_t), GFP_KERNEL); // "soc_flow_db");
+    if(cc->flow_db == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+    memset(cc->flow_db, 0, sizeof(soc_flow_db_t));
+
+    cc->ceh = kmalloc(sizeof(soc_cancun_ceh_t), GFP_KERNEL); // "soc_cancun_ceh");
+    if(cc->ceh == NULL) {
+        goto _soc_cancun_alloc_error;
+    }
+    memset(cc->ceh, 0, sizeof(soc_cancun_ceh_t));
+
+    *cancun = cc;
+
+    return 0;
+
+_soc_cancun_alloc_error:
+    if(cc) {
+        if(cc->cih) {
+            kfree(cc->cih);
+        }
+        if(cc->cmh) {
+            kfree(cc->cmh);
+        }
+        if(cc->cch) {
+            kfree(cc->cch);
+        }
+        if (cc->flow_db) {
+            kfree(cc->flow_db);
+        }
+        if(cc->ceh) {
+            kfree(cc->ceh);
+        }
+        kfree(cc);
+    }
+
+    return -1;
+}
+
+
+int soc_cancun_init (struct bcmsw_switchdev *swdev) 
+{
+    int ret = SOC_E_NONE;
+
+    ret = _soc_cancun_alloc(swdev);
+
+    //load files from buffer
+
+    return SOC_E_NONE;
+}
 
 /*****************************************************************************************/
 /*                             switchdev                                                 */
@@ -1039,7 +1726,7 @@ static int bcmsw_port_create(struct bcmsw_switch *bcmsw_sw, int port_index, cons
 
 
 //TODO - this part might need to be moved to userspace 
-static int bcmsw_ports_create(struct bcmsw_switch *bcmsw_sw)
+static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
 {
     //FIX: hardcode for N3248TE  BCM56371
     // soc_helix5_port_config_init
@@ -1323,6 +2010,34 @@ static int _cmicx_pci_test(struct net_device *dev)
     return -EFAULT;
 }
 
+//_soc_helix5_misc_init
+static int _misc_init(struct bcmsw_switch *bcmsw_sw)
+{
+    /******************************* soc_reset()****************************/
+
+
+    /******************************* soc_reset()****************************/
+    //_soc_helix5_port_mapping_init
+
+    //_soc_helix5_idb_init
+
+    //_soc_hx5_ledup_init
+}
+
+static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
+{
+    int err = 0;
+
+    //create ports
+    err = bcmsw_ports_init(bcmsw_sw);
+    if (err) {
+    	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
+    	goto err_ports_create;
+    }      
+
+err_ports_create:
+    return err;
+}
 
 //soc_do_init(int unit, int reset)
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
@@ -1336,7 +2051,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     
     /************* soc_phyctrl_software_init   *****************************/
 
-    /******************************* soc_reset *****************************/
+    /******************************* soc_reset()****************************/
     // soc_endian_config
     bkn_dev_write32(dev, CMIC_ENDIAN_SELECT, 0);
     // soc_pci_ep_config  - CMICM only
@@ -1351,7 +2066,8 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
      //cmicx_fifodma_init
      _cmicx_fifodma_init(dev);
 
-     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_ARB_CTRL_SBUSDMA, 0xeeeeeeee);
+    //cmicx_sbusdma_reg_init
+     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_ARB_CTRL_SBUSDMA, CMIC_TOP_SBUS_RING_ARB_CTRL_SET);
 
      //soc_esw_schan_fifo_init
      _cmicx_schan_fifo_init(dev);
@@ -1362,7 +2078,7 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //
 
 
-    /************* soc_helix5_chip_reset       *****************************/
+    /************* soc_reset() -> soc_helix5_chip_reset       **************/
     //soc_helix5_sbus_ring_map_config
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_0_7_OFFSET,0x52222100);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_8_15_OFFSET,0x30050005);
@@ -1376,35 +2092,52 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     
     mdelay(250);
 
-
-    /*
-     * Check that PCI memory space is mapped correctly by running a
-     * quick diagnostic on the S-Channel message buffer.
-     */
-    //_cmicx_pci_test(dev);
-
     //do a read
-    _reg32_read(dev, 7, TOP_SOFT_RESET_REGr, &val); 
+    //_reg32_read(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, &val); 
 
     /* Reset IP, EP, MMU and port macros */
     //SOC_IF_ERROR_RETURN(WRITE_TOP_SOFT_RESET_REGr(unit, 0x0));
     //   soc_reg32_set(unit, TOP_SOFT_RESET_REGr, REG_PORT_ANY, 0, rv) 
     //      Write an internal SOC register through S-Channel messaging buffer.
-    val = 0;
-    //_reg32_write(dev, TOP_SOFT_RESET_REGr, &val);
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, 0x0);
+
+
+    /* If frequency is specificed use it , else use the si->frequency */
 
     /* Bring PLLs out of reset */
-    //...
+
+    /* De-assert TS PLL, BS PLL0/1 post reset and bring AVS out of reset */
+    
+
+    /* Bring IP, EP, MMU and port macros out of reset */
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, 0x3fff);
+    mdelay(10);
+
+    /* PM4x10Q QSGMII mode control
+     */
 
 
+
+    //SOC_IF_ERROR_RETURN(soc_trident3_init_idb_memory(unit));
+    //SOC_IF_ERROR_RETURN(_soc_helix5_init_hash_control_reset(unit));
+    //SOC_IF_ERROR_RETURN(soc_helix5_uft_uat_config(unit));
+    //SOC_IF_ERROR_RETURN(_soc_helix5_ft_bank_config(unit));
+
+    //end of soc_helix5_chip_reset
+    
     /* Configure CMIC PCI registers correctly for driver operation.        */
-#if 0
+    /*
+     * Check that PCI memory space is mapped correctly by running a
+     * quick diagnostic on the S-Channel message buffer.
+     */
+    //soc_pcie_fw_status_get()
+    //_cmicx_pci_test(dev);
 
- //configure DMA channels
-  //soc_dma_attach
+    //configure DMA channels
+    //soc_dma_attach
 
-#endif
   
+    /***********************************************************************/
     return 0;
 }
 
@@ -1429,17 +2162,14 @@ int bcmsw_switch_init(void)
     //switch initialization
     bcmsw_switch_do_init(bcmsw_sw);
 
-    //create ports
-    err = bcmsw_ports_create(bcmsw_sw);
-    if (err) {
-    	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
-    	goto err_ports_create;
-    }    
+    //initialize modules
+    bcmsw_modules_init(bcmsw_sw);
+  
 
     //test schan
     //err = bcmsw_soc_mem_read(bcmsw_sw->dev, 0x501c0000, 14, &lport_entry); 
 
-err_ports_create:
+
 err_swdev_register:
     return err;    
 }
