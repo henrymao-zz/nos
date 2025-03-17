@@ -521,8 +521,6 @@ _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *dat
 
     //setup command header
     schan_msg.header.v4.opcode = READ_REGISTER_CMD_MSG;
-    //dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
-    //          (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);
     schan_msg.header.v4.dst_blk = dst_blk;
     schan_msg.header.v4.acc_type = 0;
     schan_msg.header.v4.data_byte_len = data_byte_len;
@@ -566,9 +564,7 @@ _reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t dat
     data_byte_len = 4;
             
     //setup command header
-    schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG;
-    dst_blk = ((address >> SOC_BLOCK_BP) & 0xf) | 
-              (((address >> SOC_BLOCK_MSB_BP) & 0x3) << 4);    
+    schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG; 
     schan_msg.header.v4.dst_blk = dst_blk;
     schan_msg.header.v4.acc_type = 0;
     schan_msg.header.v4.data_byte_len = data_byte_len;
