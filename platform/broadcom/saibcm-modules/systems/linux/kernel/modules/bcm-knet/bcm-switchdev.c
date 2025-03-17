@@ -287,7 +287,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
  */
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 static int
-bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
+_soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -390,19 +390,11 @@ bcmsw_soc_mem_read(struct net_device *dev, int address, int size, void *entry_da
     return rv;
 }
 
-/*
- * Function: _soc_mem_read_schan_msg_send
- *
- * Purpose:  Called within _soc_mem_read.  Construct and send a schan message
- *           holding the read requests, and parse the response.  If an error
- *           happens, try to correct with SER.
- *
- * Returns:  Standard BCM_E_* code
- *
- */
+
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
+// 
 static int
-_soc_mem_write(struct net_device *dev, int address, int copyno, int size, void *entry_data)
+_soc_mem_write(struct net_device *dev, soc_mem_t mem, int size, void *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -437,8 +429,6 @@ _soc_mem_write(struct net_device *dev, int address, int copyno, int size, void *
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
-
-
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
@@ -925,7 +915,7 @@ static int _soc_cancun_cih_mem_load(struct bcmsw_switch *sw, uint8 *buf) {
     memset(entry, 0, sizeof(entry));
     memcpy(entry, (p + SOC_CANCUN_BLOB_DATA_OFFSET), len*4);
 
-    return _soc_mem_write(sw->dev, mem, MEM_BLOCK_ALL, index, &entry);
+    return _soc_mem_write(sw->dev, mem, index, &entry);
 }
 
 static int _soc_cancun_cih_pio_load(struct bcmsw_switch *sw, uint8* buf, int length,
@@ -2269,6 +2259,8 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     /* PM4x10Q QSGMII mode control
      */
 
+    //test memory read&write
+    err = _soc_mem_read(dev, 0x501c0000, 14, &lport_entry); 
 
 
     //SOC_IF_ERROR_RETURN(soc_trident3_init_idb_memory(unit));
@@ -2314,6 +2306,10 @@ int bcmsw_switch_init(void)
 
     //switch initialization
     bcmsw_switch_do_init(bcmsw_sw);
+
+
+    // init cancun, and load cancun pkgs
+
 
     //initialize modules
     bcmsw_modules_init(bcmsw_sw);
