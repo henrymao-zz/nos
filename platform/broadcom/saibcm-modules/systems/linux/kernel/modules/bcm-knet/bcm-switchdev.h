@@ -17,6 +17,16 @@
 /*****************************************************************************************/
 /*                              SOC                                                      */
 /*****************************************************************************************/
+#define COMPILER_64_HI(src)     ((uint32) ((src) >> 32))
+#define COMPILER_64_LO(src)     ((uint32) (src))
+#define COMPILER_64_ZERO(dst)       ((dst) = 0)
+#define COMPILER_64_IS_ZERO(src)    ((src) == 0)
+                                       
+
+#define COMPILER_64_SET(dst, src_hi, src_lo)                \
+    ((dst) = (((uint64) ((uint32)(src_hi))) << 32) | ((uint64) ((uint32)(src_lo))))
+
+
 typedef enum {
     SOC_E_NONE                  = 0,
     SOC_E_INTERNAL              = -1,
@@ -596,12 +606,49 @@ typedef union schan_msg_u {
 /*                           Registers (read through SCHAN)                              */
 /*****************************************************************************************/
 
-#define SCHAN_BLK_IPIPE    1
-#define SCHAN_BLK_TOP      7
+//BCM56370
+#define SCHAN_BLK_IPIPE     1
+#define SCHAN_BLK_EPIPE     2
+#define SCHAN_BLK_TOP       7
+#define SCHAN_BLK_PMQPORT0  18   
+#define SCHAN_BLK_PMQPORT1  22 
+#define SCHAN_BLK_PMQPORT2  26 
+#define SCHAN_BLK_CLPORT0   31
+#define SCHAN_BLK_CLPORT1   32
+#define SCHAN_BLK_CLPORT2   33
+#define SCHAN_BLK_XLPORT0   15
+#define SCHAN_BLK_XLPORT1   19
+#define SCHAN_BLK_XLPORT2   23
+#define SCHAN_BLK_XLPORT6   30
 
 
-#define TOP_SOFT_RESET_REGr 0x02000100
+#define TOP_SOFT_RESET_REGr            0x02000100
+#define CHIP_CONFIGr                   0x2020000
+#define TOP_MISC_GENERIC_CONTROLr      0x2008600
+#define EGR_PORT_BUFFER_SFT_RESET_0r   0x2b130000
+#define IDB_SER_CONTROL_64r            0x2280000
 
+#define IS_TDM_CONFIG_PIPE0r           0x6040100
+#define IS_OPP_SCHED_CFG_PIPE0r        0x6040500
+
+#define EGR_HW_RESET_CONTROL_0r        0x3000000
+#define EGR_HW_RESET_CONTROL_1r        0x3010000
+#define EGR_HW_RESET_CONTROL_1_PIPE0r  0x3010000
+
+#define ING_HW_RESET_CONTROL_1r        0x2230000
+#define ING_HW_RESET_CONTROL_2r        0x2240000
+#define ING_HW_RESET_CONTROL_2_PIPE0r  0x2240000
+
+#define IDB_HW_CONTROLr                0x2200000
+#define CLPORT_MIB_RESETr              0x2022400
+#define CLPORT_XGXS0_CTRL_REGr         0x2021400
+#define CLPORT_MAC_CONTROLr            0x2021000
+#define XLPORT_MIB_RESETr              0x2022400
+#define XLPORT_XGXS0_CTRL_REGr         0x2021400
+
+#define PMQ_XGXS0_CTRL_REGr            0x2020100
+#define ENHANCED_HASHING_CONTROL_2r    0x82001300
+#define XLPORT_MAC_CONTROLr            0x2021000
 
 
 /*****************************************************************************************/

@@ -527,6 +527,7 @@ _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *dat
     return rv;
 }
 
+
 /*
  * Write an internal SOC register through S-Channel messaging buffer.
  */
@@ -557,6 +558,88 @@ _reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t dat
     /* Write header word + address + data DWORD */
     /* Note: The hardware does not send WRITE_REGISTER_ACK_MSG. */
     rv = _cmicx_schan_op(dev, &schan_msg, 3, 0, allow_intr);
+
+    return rv;
+}
+
+static int
+_reg64_read(struct net_device *dev, int dst_blk, uint32_t address, uint64_t *data)
+{
+    schan_msg_t schan_msg;
+    int opcode, err;
+    int rv = 0;
+    uint32 allow_intr = 0;
+    int data_byte_len; 
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+    data_byte_len = 8;
+         
+    schan_msg.readcmd.address = address;
+
+    //setup command header
+    schan_msg.header.v4.opcode = READ_REGISTER_CMD_MSG;
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
+
+    rv = _cmicx_schan_op(dev, &schan_msg, 2, 3, allow_intr);
+    if (rv) {
+       return rv;
+    }
+
+    /* Check result */
+    opcode = schan_msg.header.v4.opcode;
+    err = schan_msg.header.v4.err;
+    if (!rv &&  (opcode != READ_REGISTER_ACK_MSG || err != 0)) {
+        gprintk("_cmicx_schan_op: operation failed: %s(%d)\n", 
+                (opcode != READ_REGISTER_ACK_MSG)?"invalid S-Channel reply, expected READ_REG_ACK:\n":"OTHER", rv);
+
+      return rv;
+    }
+
+    COMPILER_64_SET(*data, 
+                    schan_msg.readresp.data[1], 
+                    schan_msg.readresp.data[0])
+
+    return rv;
+}
+
+
+/*
+ * Write an internal SOC register through S-Channel messaging buffer.
+ */
+static int
+_reg64_write(struct net_device *dev, int dst_blk, uint32_t address, uint64_t data)
+{
+    schan_msg_t schan_msg;
+    int rv = 0;
+    uint32 allow_intr = 0;
+    int data_byte_len; 
+
+    memset(&schan_msg, 0, sizeof(schan_msg_t));
+
+    /* Setup S-Channel command packet */
+    data_byte_len = 8;
+            
+    //setup command header
+    schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG; 
+    schan_msg.header.v4.dst_blk = dst_blk;
+    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.data_byte_len = data_byte_len;
+    schan_msg.header.v4.dma = 0;
+    schan_msg.header.v4.bank_ignore_mask = 0;
+
+    schan_msg.writecmd.address = address;
+    schan_msg.writecmd.data[0] = COMPILER_64_LO(data);
+    schan_msg.writecmd.data[1] = COMPILER_64_HI(data);
+
+    /* Write header word + address + data DWORD */
+    /* Note: The hardware does not send WRITE_REGISTER_ACK_MSG. */
+    rv = _cmicx_schan_op(dev, &schan_msg, 4, 0, allow_intr);
 
     return rv;
 }
@@ -2164,11 +2247,263 @@ err_ports_create:
     return err;
 }
 
+static int _clear_all_memory(struct net_device *dev)
+{
+     /* Initial IPIPE memory */
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_1r, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x00298000);
+
+    /* Initial EPIPE memory */
+    _reg32_write(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_0r, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1r, 0x000c6000);
+    //wait 50ms
+
+    /* Wait for IPIPE memory initialization done */
+    do {
+        _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2_PIPE0r, &val);
+        //sleep 1ms
+        mdelay(1);
+     } while(!(val& (1<<22)));    
+
+    /* Restore L3_ENTRY_HASH_CONTROL->HASH_TABLE_BANK_CONFIG value */
+    ///TODO
+
+    /* Wait for EPIPE memory initialization done */
+    do {
+        _reg32_read(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1_PIPE0r, &val);
+        //sleep 1ms
+        mdelay(1);
+     } while(!(val& (1<<20)));   
+
+    //
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x0);
+    _reg32_write(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1r, 0x00004000);
+
+
+    /* Initial IDB memory */
+    _reg32_write(dev, SCHAN_BLK_IPIPE, IDB_HW_CONTROLr, 0x0);
+    _reg32_write(dev, SCHAN_BLK_IPIPE, IDB_HW_CONTROLr, 0x1);
+    _reg32_write(dev, SCHAN_BLK_IPIPE, IDB_HW_CONTROLr, 0x0);
+
+    /* Initial PORT MIB counter */
+    _reg32_write(dev, SCHAN_BLK_CLPORT1, CLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_CLPORT1, CLPORT_MIB_RESETr, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_CLPORT2, CLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_CLPORT2, CLPORT_MIB_RESETr, 0x00000000);
+    
+    _reg32_write(dev, SCHAN_BLK_XLPORT0, XLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_XLPORT0, XLPORT_MIB_RESETr, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_XLPORT1, XLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_XLPORT1, XLPORT_MIB_RESETr, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_XLPORT2, XLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_XLPORT2, XLPORT_MIB_RESETr, 0x00000000);
+    _reg32_write(dev, SCHAN_BLK_XLPORT6, XLPORT_MIB_RESETr, 0x0000000f);
+    _reg32_write(dev, SCHAN_BLK_XLPORT6, XLPORT_MIB_RESETr, 0x00000000);
+    
+    /* TCAM tables are not handled by hardware reset control */
+    //TODO
+
+    /* TD3-1847 */
+    //RH_DLB_SELECTIONf = 1
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ENHANCED_HASHING_CONTROL_2r, 0x00000000);
+    //soc_mem_clear(unit, RH_LAG_FLOWSETm, COPYNO_ALL, TRUE));
+    //RH_DLB_SELECTIONf = 0
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ENHANCED_HASHING_CONTROL_2r, 0x00000001);
+
+    //RH_DLB_SELECTIONf = 1
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ENHANCED_HASHING_CONTROL_2r, 0x00000005);
+    //soc_mem_clear(unit, RH_HGT_FLOWSETm, COPYNO_ALL, TRUE));
+    //RH_DLB_SELECTIONf = 0
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ENHANCED_HASHING_CONTROL_2r, 0x00000004);
+    //HGT_LAG_FLOWSET_TABLE_CONFIGf = 0
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ENHANCED_HASHING_CONTROL_2r, 0x00000000);
+
+
+    return 0;
+    
+}
+
+
+static int
+_powerdown_single_tsc(struct net_device *dev, int blk, int reg) 
+{
+    /*
+    soc_field_info_t soc_CLPORT_XGXS0_CTRL_REG_BCM56560_B0r_fields[] = {
+    { IDDQf, 1, 4, SOCF_RES },
+    { PWRDWNf, 1, 3, SOCF_RES },
+    { REFIN_ENf, 1, 2, SOCF_RES },
+    { REFOUT_ENf, 1, 1, SOCF_RES },
+    { RSTB_HWf, 1, 0, SOCF_RES }
+    };
+    */
+    uint32      val;
+    /*
+     * Reference clock selection
+     */
+    _reg32_read(dev, blk, reg, &val);
+    val = val |  (1<<2);   // REFIN_ENf = 1 
+    val = val & ~(1<<4);   // IDDQf     = 0
+    _reg32_write(dev, blk, reg, val);
+
+    /* Deassert power down */
+    val = val & ~(1<<3);   // PWRDWNf     = 0
+    _reg32_write(dev, blk, reg, val);
+    usleep(1100);
+
+    /* Reset XGXS */
+    val = val & ~(1);      // RSTB_HWf     = 0
+    _reg32_write(dev, blk, reg, val);
+
+    return 0;
+}
+
+static int 
+_powerup_single_tsc(struct net_device *dev, int blk, int reg) 
+{
+
+    uint32      val;
+
+    /* Bring XGXS out of reset */
+    _reg32_read(dev, blk, reg, &val);
+    val = val | 1;      // RSTB_HWf     = 1
+    _reg32_write(dev, blk, reg, val);
+
+    usleep(1100);
+
+    return 0;
+}
+
+static int _helix5_port_reset(struct net_device *dev)
+{
+    int val;
+
+    //CLPORT  
+    //--------CLPORT 1
+    /* Power off CLPORT blocks */
+    _powerdown_single_tsc(dev, SCHAN_BLK_CLPORT1, CLPORT_XGXS0_CTRL_REGr);
+
+     /* Power on CLPORT blocks */
+     _powerup_single_tsc(dev, SCHAN_BLK_CLPORT1, CLPORT_XGXS0_CTRL_REGr);
+
+    _reg32_write(dev, SCHAN_BLK_CLPORT1, CLPORT_MAC_CONTROLr, 0x00000001);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_CLPORT1, CLPORT_MAC_CONTROLr, 0x00000000);
+   
+    //--------CLPORT 2
+    /* Power off CLPORT blocks */
+    _powerdown_single_tsc(dev, SCHAN_BLK_CLPORT2, CLPORT_XGXS0_CTRL_REGr);
+
+     /* Power on CLPORT blocks */
+    _powerup_single_tsc(dev, SCHAN_BLK_CLPORT2, CLPORT_XGXS0_CTRL_REGr);
+     
+    _reg32_write(dev, SCHAN_BLK_CLPORT2, CLPORT_MAC_CONTROLr, 0x00000001);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_CLPORT2, CLPORT_MAC_CONTROLr, 0x00000000);
+   
+    //PMQPORT 0 1 2 
+    /*
+    soc_field_info_t soc_XLPORT_XGXS0_CTRL_REG_BCM56980_A0r_fields[] = {
+    { IDDQf, 1, 4, SOCF_RES },
+    { PWRDWNf, 1, 3, SOCF_RES },
+    { PWRDWN_CMLf, 1, 5, SOCF_RES },
+    { PWRDWN_CML_LCf, 1, 6, SOCF_RES },
+    { REFCMOSf, 1, 7, SOCF_RES },
+    { REFIN_ENf, 1, 2, SOCF_RES },
+    { REFOUT_ENf, 1, 1, SOCF_RES },
+    { REFSELf, 3, 8, SOCF_LE|SOCF_RES },
+    { RSTB_HWf, 1, 0, SOCF_RES }
+    };    
+    */
+    _reg32_read(rev, SCHAN_BLK_PMQPORT0, CHIP_CONFIGr, &val);
+    if (val & 0x1) { //Q_MODE
+        /* Power off PMQ blocks */
+        _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
+        usleep(10000);
+        /* Power on PMQ blocks */
+        _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
+
+        _reg32_read(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr, &val);
+        val = (val & ~(0x0700)) | (5<<8); // REFSELf = 5
+        _reg32_write(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr, val);
+    }
+
+    _reg32_read(rev, SCHAN_BLK_PMQPORT1, CHIP_CONFIGr, &val);
+    if (val & 0x1) { //Q_MODE
+        /* Power off PMQ blocks */
+        _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
+        usleep(10000);
+        /* Power on PMQ blocks */
+        _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
+
+        _reg32_read(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr, &val);
+        val = (val & ~(0x0700)) | (5<<8); // REFSELf = 5
+        _reg32_write(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr, val);
+    }
+    
+    _reg32_read(rev, SCHAN_BLK_PMQPORT2, CHIP_CONFIGr, &val);
+    if (val & 0x1) { //Q_MODE
+        /* Power off PMQ blocks */
+        _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
+        usleep(10000);
+        /* Power on PMQ blocks */
+        _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
+
+        _reg32_read(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr, &val);
+        val = (val & ~(0x0700)) | (5<<8); // REFSELf = 5
+        _reg32_write(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr, val);
+    }    
+
+    //XLPORT 0 1 2 6
+    _reg32_write(dev, SCHAN_BLK_XLPORT0, XLPORT_MAC_CONTROLr, 0x1);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_XLPORT0, XLPORT_MAC_CONTROLr, 0x0);
+
+    _reg32_write(dev, SCHAN_BLK_XLPORT1, XLPORT_MAC_CONTROLr, 0x1);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_XLPORT1, XLPORT_MAC_CONTROLr, 0x0);
+
+    _reg32_write(dev, SCHAN_BLK_XLPORT2, XLPORT_MAC_CONTROLr, 0x1);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_XLPORT2, XLPORT_MAC_CONTROLr, 0x0);
+
+    //XLPORT6 
+    //!IS_QSGMII_PORT
+    /* Power off XLPORT blocks */
+    _powerdown_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
+    usleep(10000);
+    /* Power on XLPORT blocks */
+    _powerup_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
+
+    /*
+    soc_field_info_t soc_XLPORT_XGXS0_CTRL_REG_BCM56980_A0r_fields[] = {
+    { IDDQf, 1, 4, SOCF_RES },
+    { PWRDWNf, 1, 3, SOCF_RES },
+    { PWRDWN_CMLf, 1, 5, SOCF_RES },
+    { PWRDWN_CML_LCf, 1, 6, SOCF_RES },
+    { REFCMOSf, 1, 7, SOCF_RES },
+    { REFIN_ENf, 1, 2, SOCF_RES },
+    { REFOUT_ENf, 1, 1, SOCF_RES },
+    { REFSELf, 3, 8, SOCF_LE|SOCF_RES },
+    { RSTB_HWf, 1, 0, SOCF_RES }
+    };    
+    */
+   
+    _reg32_read(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr, &val);
+    val = (val & ~(0x0700)) | (5<<8); // REFSELf = 5
+    _reg32_write(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr, val);
+
+    _reg32_write(dev, SCHAN_BLK_XLPORT6, XLPORT_MAC_CONTROLr, 0x1);
+    udelay(10);
+    _reg32_write(dev, SCHAN_BLK_XLPORT6, XLPORT_MAC_CONTROLr, 0x0);
+
+    return 0;
+}
+
 //soc_do_init(int unit, int reset)
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
     struct net_device *dev = bcmsw_sw->dev;
-    //int val;
+    int val;
 
     /* Initialize PCI Host interface */
     //soc_pcie_host_intf_init(unit));
@@ -2240,14 +2575,50 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     /* PM4x10Q QSGMII mode control
      */
+    // PM4X10Q_1_QSGMII_MODE_ENf = 1
+    _reg32_write(dev, SCHAN_BLK_PMQPORT0, CHIP_CONFIGr, 0x31);
+    _reg32_write(dev, SCHAN_BLK_PMQPORT1, CHIP_CONFIGr, 0x31);
+    _reg32_write(dev, SCHAN_BLK_PMQPORT2, CHIP_CONFIGr, 0x31);
+    //TOP_MISC_GENERIC_CONTROLr
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_MISC_GENERIC_CONTROLr, 0x7);
+
+    /* Reset egress hardware resource */
+    /* Write the value to enable 4 lanes on the PM */
+    _reg64_write(dev, SCHAN_BLK_EPIPE, EGR_PORT_BUFFER_SFT_RESET_0r, 0x0000000924924900);
+    /* Set it back to zero now */
+    _reg64_write(dev, SCHAN_BLK_EPIPE, EGR_PORT_BUFFER_SFT_RESET_0r, 0x0);
+    //spn_PARITY_ENABLE
+    _reg64_write(dev, SCHAN_BLK_IPIPE, IDB_SER_CONTROL_64r, 0x0000200a);
 
 
     //SOC_IF_ERROR_RETURN(soc_trident3_init_idb_memory(unit));
+    /* Initialize IDB memory */
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x00380100);
+    /* Wait for IDB memory initialization done */
+    do {
+       _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, &val);
+       //sleep 1ms
+       mdelay(1);
+    } while(!(val& (1<<22)));
+    _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x00100000);
+    //TDM
+    _reg32_write(dev, SCHAN_BLK_IPIPE, IS_TDM_CONFIG_PIPE0r, 0x00080000);
+    _reg32_write(dev, SCHAN_BLK_IPIPE, IS_OPP_SCHED_CFG_PIPE0r, 0x0920000d);
+
     //SOC_IF_ERROR_RETURN(_soc_helix5_init_hash_control_reset(unit));
     //SOC_IF_ERROR_RETURN(soc_helix5_uft_uat_config(unit));
     //SOC_IF_ERROR_RETURN(_soc_helix5_ft_bank_config(unit));
 
+    //soc_trident3_clear_all_memory()
+    _clear_all_memory(dev);
+
+    //end of 
     //end of soc_helix5_chip_reset
+
+    /************* soc_reset() -> soc_helix5_port_reset       **************/
+    //endof soc_helix5_port_reset
+    _helix5_port_reset(dev);
+
     
     /* Configure CMIC PCI registers correctly for driver operation.        */
     /*
