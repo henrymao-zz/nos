@@ -287,28 +287,19 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
  */
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 static int
-_soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
+_soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, void *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
     int rv = 0;
     uint32 allow_intr = 0;
-    int src_blk, dst_blk = 0, data_byte_len; //acc_type
+    int data_byte_len; 
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
     /* Setup S-Channel command packet */
-#define SOC_MEM_FLAG_ACC_TYPE_MASK      0x1f
-#define SOC_MEM_FLAG_ACC_TYPE_SHIFT     22    
-    src_blk = 6; // cmic_block is 6
-    //TODO flags are different for each memory
-    //acc_type = (flags>>SOC_MEM_FLAG_ACC_TYPE_SHIFT)&SOC_MEM_FLAG_ACC_TYPE_MASK;
-    data_byte_len = 4;
+    data_byte_len = size*sizeof(uint32);
 
-    //maddr = soc_mem_addr_get(unit, mem, array_index, copyno, remapped_index,
-    //                         &at);
-    // soc_memories_bcm56370_a0
-    //maddr = mip->base + (index * mip->gran);                
     schan_msg.readcmd.address = address;
 
     //_soc_mem_read_td_tt_byte_len_update(unit, mem, entry_dw, &data_byte_len);
@@ -382,6 +373,7 @@ _soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
             return rv;
         }
        */
+       return rv;
     }
     memcpy(entry_data,
            schan_msg.readresp.data,
@@ -394,33 +386,21 @@ _soc_mem_read(struct net_device *dev, int address, int size, void *entry_data)
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 // 
 static int
-_soc_mem_write(struct net_device *dev, soc_mem_t mem, int size, void *entry_data)
+_soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, void *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
     int rv = 0;
     uint32 allow_intr = 0;
-    int src_blk, dst_blk = 0, data_byte_len; //acc_type
+    int data_byte_len; 
 
     memset(&schan_msg, 0, sizeof(schan_msg_t));
 
     /* Setup S-Channel command packet */
-#define SOC_MEM_FLAG_ACC_TYPE_MASK      0x1f
-#define SOC_MEM_FLAG_ACC_TYPE_SHIFT     22    
-    src_blk = 6; // cmic_block is 6
-    //TODO flags are different for each memory
-    //acc_type = (flags>>SOC_MEM_FLAG_ACC_TYPE_SHIFT)&SOC_MEM_FLAG_ACC_TYPE_MASK;
-    data_byte_len = 4;
+    data_byte_len = size * sizeof(uint32);
 
-    //maddr = soc_mem_addr_get(unit, mem, array_index, copyno, remapped_index,
-    //                         &at);
-    // soc_memories_bcm56370_a0
-    //maddr = mip->base + (index * mip->gran);                
     memcpy(schan_msg.writecmd.data, entry_data, size * sizeof(uint32));
     schan_msg.writecmd.address = address;
-
-    //_soc_mem_read_td_tt_byte_len_update(unit, mem, entry_dw, &data_byte_len);
-    //soc_mem_dst_blk_update(unit, copyno, maddr, &dst_blk);
 
     //setup command header
     schan_msg.header.v4.opcode = WRITE_MEMORY_CMD_MSG;
@@ -430,7 +410,7 @@ _soc_mem_write(struct net_device *dev, soc_mem_t mem, int size, void *entry_data
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
 
-    rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
+    rv = _cmicx_schan_op(dev, &schan_msg, 2 + size, 0, allow_intr);
     if (rv) {
         /*
         int all_done = FALSE;
@@ -698,8 +678,8 @@ int soc_cancun_file_info_get(struct bcmsw_switch *sw, soc_cancun_file_t* ccf, ch
 
     soc_cancun_t *cc = sw->soc_cancun_info;
     soc_cancun_file_header_t *ccfh = (soc_cancun_file_header_t *) buf;
-    uint16 dev_id;
-    uint8 rev_id;
+    //uint16 dev_id;
+    //uint8 rev_id;
     uint32 crc, *file_crc;
     uint8 *cur_buf;
     long cur_buf_size;
@@ -829,16 +809,16 @@ static int _soc_cancun_file_pio_load(struct bcmsw_switch *sw, uint8* buf, int bu
 
 
 
-static int _soc_cancun_cih_tcam_write(int unit, uint8 *buf) {
+static int _soc_cancun_cih_tcam_write(struct bcmsw_switch *sw, uint8 *buf) {
 #define SOC_SBUS_V4_BLOCK_ID_BIT_OFFSET     (19)
 #define SOC_SBUS_V4_BLOCK_ID_BIT_MASK       (0x7F)
-    uint32 entry[SOC_MAX_MEM_WORDS];
-    soc_mem_t mem;
-    uint32 index;
-    uint32 offset;
-    uint32 block = -1;
-    uint32 len;
-    uint32 *p = (uint32*) buf;
+    //uint32 entry[SOC_MAX_MEM_WORDS];
+    //soc_mem_t mem;
+    //uint32 index;
+    //uint32 offset;
+    //uint32 block = -1;
+    //uint32 len;
+    //uint32 *p = (uint32*) buf;
 
     if(!buf) {
         return SOC_E_INTERNAL;
@@ -911,7 +891,9 @@ static int _soc_cancun_cih_mem_load(struct bcmsw_switch *sw, uint8 *buf) {
     memset(entry, 0, sizeof(entry));
     memcpy(entry, (p + SOC_CANCUN_BLOB_DATA_OFFSET), len*4);
 
-    return _soc_mem_write(sw->dev, mem, index, &entry);
+    //TODO
+    //return _soc_mem_write(sw->dev, mem, index, &entry);
+    return 0;
 }
 
 static int _soc_cancun_cih_pio_load(struct bcmsw_switch *sw, uint8* buf, int length,
@@ -1210,7 +1192,7 @@ int soc_cancun_file_load(struct bcmsw_switch *sw, uint8* buf, long buf_bytes, ui
     }
 
     if(*type == CANCUN_SOC_FILE_TYPE_CIH) {
-        soc_cancun_file_branch_id_e branch_id = 0;
+        //soc_cancun_file_branch_id_e branch_id = 0;
         ccf = &cc->cih->file;
         status = SOC_CANCUN_LOAD_STATUS_IN_PROGRESS;
         if(*format == CANCUN_SOC_FILE_FORMAT_PIO) {
@@ -1400,7 +1382,7 @@ _soc_cancun_alloc_error:
 }
 
 
-int soc_cancun_init (struct bcmsw_switchdev *swdev) 
+int soc_cancun_init (struct bcmsw_switch *swdev) 
 {
     int ret = SOC_E_NONE;
 
@@ -1408,7 +1390,7 @@ int soc_cancun_init (struct bcmsw_switchdev *swdev)
 
     //load files from buffer
 
-    return SOC_E_NONE;
+    return ret;
 }
 
 /*****************************************************************************************/
@@ -1789,6 +1771,7 @@ static int bcmsw_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     }
 
 #endif
+    return 0;
 }
 
 //bcm_esw_port_init bcm_td3_port_cfg_init
@@ -1805,7 +1788,7 @@ static int bcmsw_port_init(struct bcmsw_switch *bcmsw_sw)
     }
 
     // clear egress port blocking table
-
+    return 0;
 }
 
 #define HX5_NUM_PHY_PORT                (79)
@@ -2016,6 +1999,7 @@ static int _cmicx_fifodma_init(struct net_device *dev)
     val = 0x36;
     bkn_dev_write32(dev, CMIC_COMMON_POOL_SHARED_FIFO_DMA_WRITE_AXI_MAP_CTRL_1_OFFSET, val);
 
+    return 0;
 }
 
 static int _cmicx_schan_fifo_init(struct net_device *dev)
@@ -2063,7 +2047,7 @@ static int _cmicx_schan_fifo_init(struct net_device *dev)
        //   break;
        //}
 
-       gprintk("schan buff addr ch[%d], 0x%x\n", ch, summary_buff[ch]);
+       //gprintk("schan buff addr ch[%d], 0x%x\n", ch, summary_buff[ch]);
        /* write summary Lo address */
        bkn_dev_write32(dev, CMIC_SCHAN_FIFO_CHx_SUMMARY_ADDR_LOWER(ch),
                     PTR_TO_INT(summary_buff[ch]));
@@ -2084,6 +2068,7 @@ static int _cmicx_schan_fifo_init(struct net_device *dev)
         }
     }
 
+    return 0;
 }
 
 // purpose API to test PCI access to cmicx registers
@@ -2161,6 +2146,7 @@ static int _misc_init(struct bcmsw_switch *bcmsw_sw)
     //_soc_helix5_idb_init
 
     //_soc_hx5_ledup_init
+    return 0;
 }
 
 static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
@@ -2182,7 +2168,7 @@ err_ports_create:
 int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
     struct net_device *dev = bcmsw_sw->dev;
-    int val;
+    //int val;
 
     /* Initialize PCI Host interface */
     //soc_pcie_host_intf_init(unit));
@@ -2255,9 +2241,6 @@ int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
     /* PM4x10Q QSGMII mode control
      */
 
-    //test memory read&write
-    err = _soc_mem_read(dev, 0x501c0000, 14, &lport_entry); 
-
 
     //SOC_IF_ERROR_RETURN(soc_trident3_init_idb_memory(unit));
     //SOC_IF_ERROR_RETURN(_soc_helix5_init_hash_control_reset(unit));
@@ -2312,7 +2295,7 @@ int bcmsw_switch_init(void)
   
 
     //test schan
-    //err = bcmsw_soc_mem_read(bcmsw_sw->dev, 0x501c0000, 14, &lport_entry); 
+    err = _soc_mem_read(bcmsw_sw->dev, 0x501c0000, SCHAN_BLK_IPIPE, 14, &lport_entry); 
 
 
 err_swdev_register:

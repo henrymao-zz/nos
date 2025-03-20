@@ -596,7 +596,9 @@ typedef union schan_msg_u {
 /*                           Registers (read through SCHAN)                              */
 /*****************************************************************************************/
 
+#define SCHAN_BLK_IPIPE    1
 #define SCHAN_BLK_TOP      7
+
 
 #define TOP_SOFT_RESET_REGr 0x02000100
 
