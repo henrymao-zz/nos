@@ -603,7 +603,7 @@ _reg64_read(struct net_device *dev, int dst_blk, uint32_t address, uint64_t *dat
 
     COMPILER_64_SET(*data, 
                     schan_msg.readresp.data[1], 
-                    schan_msg.readresp.data[0])
+                    schan_msg.readresp.data[0]);
 
     return rv;
 }
@@ -2247,8 +2247,11 @@ err_ports_create:
     return err;
 }
 
+
 static int _clear_all_memory(struct net_device *dev)
 {
+    int val;
+
      /* Initial IPIPE memory */
     _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_1r, 0x00000000);
     _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x00298000);
@@ -2348,7 +2351,7 @@ _powerdown_single_tsc(struct net_device *dev, int blk, int reg)
     /* Deassert power down */
     val = val & ~(1<<3);   // PWRDWNf     = 0
     _reg32_write(dev, blk, reg, val);
-    usleep(1100);
+    mdelay(1);
 
     /* Reset XGXS */
     val = val & ~(1);      // RSTB_HWf     = 0
@@ -2368,7 +2371,7 @@ _powerup_single_tsc(struct net_device *dev, int blk, int reg)
     val = val | 1;      // RSTB_HWf     = 1
     _reg32_write(dev, blk, reg, val);
 
-    usleep(1100);
+    mdelay(1);
 
     return 0;
 }
@@ -2414,11 +2417,11 @@ static int _helix5_port_reset(struct net_device *dev)
     { RSTB_HWf, 1, 0, SOCF_RES }
     };    
     */
-    _reg32_read(rev, SCHAN_BLK_PMQPORT0, CHIP_CONFIGr, &val);
+    _reg32_read(dev, SCHAN_BLK_PMQPORT0, CHIP_CONFIGr, &val);
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
-        usleep(10000);
+        mdelay(10);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
 
@@ -2427,11 +2430,11 @@ static int _helix5_port_reset(struct net_device *dev)
         _reg32_write(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr, val);
     }
 
-    _reg32_read(rev, SCHAN_BLK_PMQPORT1, CHIP_CONFIGr, &val);
+    _reg32_read(dev, SCHAN_BLK_PMQPORT1, CHIP_CONFIGr, &val);
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
-        usleep(10000);
+        mdelay(10);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
 
@@ -2440,11 +2443,11 @@ static int _helix5_port_reset(struct net_device *dev)
         _reg32_write(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr, val);
     }
     
-    _reg32_read(rev, SCHAN_BLK_PMQPORT2, CHIP_CONFIGr, &val);
+    _reg32_read(dev, SCHAN_BLK_PMQPORT2, CHIP_CONFIGr, &val);
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
-        usleep(10000);
+        mdelay(10);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
 
@@ -2470,7 +2473,7 @@ static int _helix5_port_reset(struct net_device *dev)
     //!IS_QSGMII_PORT
     /* Power off XLPORT blocks */
     _powerdown_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
-    usleep(10000);
+    mdelay(10);
     /* Power on XLPORT blocks */
     _powerup_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
 
