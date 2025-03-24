@@ -479,7 +479,6 @@ _soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, vo
 }
 
 
-
 /*****************************************************************************************/
 /*                             SCHAN Reg Read/Write                                      */
 /*****************************************************************************************/
@@ -1797,24 +1796,17 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 #define BCMSW_VLAN_DEFAULT    1
 
 //bcm_esw_port_init bcm_td3_port_cfg_init
-static int bcmsw_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
+static int 
+_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 {
-//TODO
-#if 0
     soc_info_t *si = bcmsw_sw->si;
     uint32 port_type;
     uint32 egr_port_type = 0;
     int cpu_hg_index = -1;    
 
-    //contents for register write
-    uint32 egr_port_mem = EGR_LPORT_PROFILEm;
-    uint32 field;
-    uint32 egr_port_field_ids[SOC_MAX_MEM_FIELD_WORDS];
-    uint32 egt_port_field_values[SOC_MAX_MEM_FIELD_WORDS];
-    int egr_port_field_count = 0;
-    uint32 port_field_ids[SOC_MAX_MEM_FIELD_WORDS];
-    uint32 port_field_values[SOC_MAX_MEM_FIELD_WORDS];
-    int port_field_count = 0;    
+    egr_port_entry_t   egr_port_entry;  
+    lport_tab_entry_t  lport_entry;
+    ing_device_port_entry_t ing_device_port_entry;
 
     if (si->port_type[port] == BCMSW_PORT_TYPE_CMIC)) {
         cpu_hg_index = si->cpu_hg_index;
@@ -1828,37 +1820,71 @@ static int bcmsw_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     }
 
     /* EGR_LPORT_TABLE config init */
+    //read EGR_PORTm
+    _soc_mem_read(bcmsw_sw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
 
-    bcmsw_mem_set_field_value_array(egr_port_field_ids, PORT_TYPEf,
-                                    egt_port_field_values, egr_port_type,
-                                    egr_port_field_count);
+    egr_port_entry.port_type = port_type;
 
-    bcmsw_mem_set_field_value_array(egr_port_field_ids, EN_EFILTERf,
-                                  egt_port_field_values, 1,
-                                  egr_port_field_count);                                    
+    _soc_mem_write(bcmsw_sw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
 
-    max_gid = 8; // 8 for BCM_56370_A0
+    /* initialize the Cancun tag profile entry setup
+     * for VT_MISS_UNTAG action. Should be done in Cancun
+     */
+    //soc_cancun_cmh_mem_set(unit, 
 
-    max_gid = (1 << max_gid) - 1;
-    gid = (port < max_gid) ? port : max_gid;
+    /* Copy EGR port information to CPU Higig port if applied */
+    //Not applicable for BCM56370
 
-    bcmsw_mem_set_field_value_array(egr_port_field_ids, VT_PORT_GROUP_IDf,
-                                      egt_port_field_values, gid,
-                                      egr_port_field_count);
+    /* PORT_TABLE config init */
+    //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
+    _soc_mem_read(bcmsw_sw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
 
+    lport_entry.reg.PORT_VIDf = BCMSW_VLAN_DEFAULT;
+    lport_entry.reg.MAC_BASED_VID_ENABLEf = 1;
+    lport_entry.reg.SUBNET_BASED_VID_ENABLEf = 1;
+    lport_entry.reg.PRI_MAPPINGf = 0xfac688;
+    lport_entry.reg.CFI_0_MAPPINGf = 0;
+    lport_entry.reg.CFI_1_MAPPINGf = 1;
+    lport_entry.reg.IPRI_MAPPINGf = 0xfac688;
+    lport_entry.reg.ICFI_0_MAPPINGf = 0;
+    lport_entry.reg.ICFI_1_MAPPINGf = 1;
+    lport_entry.reg.CML_FLAGS_NEWf = 0x8;
+    lport_entry.reg.CML_FLAGS_MOVEf = 0x8;
+    //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_OVID,
+    //lport_entry.reg.VT_KEY_TYPEf = 
+    lport_entry.reg.VT_PORT_TYPE_SELECT_1f = 1;
+    //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_IVID,
+    //lport_entry.reg.VT_KEY_TYPE_2f = 
+    lport_entry.reg.VT_PORT_TYPE_SELECT_2f = 1;
+    lport_entry.reg.PORT_TYPEf = port_type;
+    lport_entry.reg.SRC_SYS_PORT_IDf = port;
+     /* TD3TBD SYS_PORT_ID and PP_PORT_NUM should be covered by CIH,
+     * will remove it after CIH is ready. */
+    lport_entry.reg.SYS_PORT_IDf = port;
+    lport_entry.reg.PP_PORT_NUMf = port;
+    lport_entry.reg.DUAL_MODID_ENABLEf = dual_modid;
+    lport_entry.reg.TAG_ACTION_PROFILE_PTRf = 1;
 
-    if (egr_port_tab_field_count) {
-        rv = soc_mem_fields32_modify(unit, EGR_PORTm, port,
-                                     egr_port_field_count,
-                                     egr_port_field_ids, egt_port_field_values);
-    }
+    _soc_mem_write(bcmsw_sw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
 
-#endif
+    if (cpu_hg_index != -1) {
+        //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
+        /* TD3TBD should be covered by CMH, will remove it after CMH
+         * is ready. */
+         _soc_mem_read(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+
+        //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
+        //                    cpu_hg_index, PORT_TYPEf, 1));
+        ing_device_port_entry.PORT_TYPEf = 1;
+        _soc_mem_write(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+    }    
+
     return 0;
 }
 
 //bcm_esw_port_init bcm_td3_port_cfg_init
-static int bcmsw_port_init(struct bcmsw_switch *bcmsw_sw)
+static int 
+_port_init(struct bcmsw_switch *bcmsw_sw)
 {
     int num_port = HX5_NUM_PORT, port, vid; 
     soc_info_t *si = bcmsw_sw->si;
@@ -1866,7 +1892,7 @@ static int bcmsw_port_init(struct bcmsw_switch *bcmsw_sw)
     vid = BCMSW_VLAN_DEFAULT;
     for (port = 0; port < num_port; port++) {
        if(si->port_type[port] != -1) {
-           bcmsw_port_cfg_init(bcmsw_sw, port, vid);
+           _port_cfg_init(bcmsw_sw, port, vid);
        }
     }
 
