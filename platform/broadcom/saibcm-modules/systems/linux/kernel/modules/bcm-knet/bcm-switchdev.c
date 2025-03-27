@@ -1801,20 +1801,19 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 {
     soc_info_t *si = bcmsw_sw->si;
     uint32 port_type;
-    uint32 egr_port_type = 0;
     int cpu_hg_index = -1;    
 
     egr_port_entry_t   egr_port_entry;  
     lport_tab_entry_t  lport_entry;
     ing_device_port_entry_t ing_device_port_entry;
 
-    if (si->port_type[port] == BCMSW_PORT_TYPE_CMIC)) {
+    if (si->port_type[port] == BCMSW_PORT_TYPE_CMIC) {
         cpu_hg_index = si->cpu_hg_index;
         port_type = 0; /* Same as Ethernet port */
-        egr_port_type = 1; /* CPU port needs to be HG port in EGR_PORT table */
+        //egr_port_type = 1; /* CPU port needs to be HG port in EGR_PORT table */
     } else if (si->port_type[port] == BCMSW_PORT_TYPE_LBPORT) {
         port_type = 2;
-        egr_port_type = 2;
+        //egr_port_type = 2;
     } else {
         port_type = 0;
     }
@@ -1845,10 +1844,12 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     lport_entry.reg.PRI_MAPPINGf = 0xfac688;
     lport_entry.reg.CFI_0_MAPPINGf = 0;
     lport_entry.reg.CFI_1_MAPPINGf = 1;
-    lport_entry.reg.IPRI_MAPPINGf = 0xfac688;
+    lport_entry.reg.IPRI_MAPPINGf_lo = 0xfac688 & 0x3F;
+    lport_entry.reg.IPRI_MAPPINGf_hi = 0xfac688 >> 6; 
     lport_entry.reg.ICFI_0_MAPPINGf = 0;
     lport_entry.reg.ICFI_1_MAPPINGf = 1;
-    lport_entry.reg.CML_FLAGS_NEWf = 0x8;
+    lport_entry.reg.CML_FLAGS_NEWf_lo = 0x8 & 0x7;
+    lport_entry.reg.CML_FLAGS_NEWf_hi = 0x8 >> 3;
     lport_entry.reg.CML_FLAGS_MOVEf = 0x8;
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_OVID,
     //lport_entry.reg.VT_KEY_TYPEf = 
@@ -1856,13 +1857,13 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_IVID,
     //lport_entry.reg.VT_KEY_TYPE_2f = 
     lport_entry.reg.VT_PORT_TYPE_SELECT_2f = 1;
-    lport_entry.reg.PORT_TYPEf = port_type;
-    lport_entry.reg.SRC_SYS_PORT_IDf = port;
+    //lport_entry.reg.PORT_TYPEf = port_type;
+    //lport_entry.reg.SRC_SYS_PORT_IDf = port;
      /* TD3TBD SYS_PORT_ID and PP_PORT_NUM should be covered by CIH,
      * will remove it after CIH is ready. */
-    lport_entry.reg.SYS_PORT_IDf = port;
-    lport_entry.reg.PP_PORT_NUMf = port;
-    lport_entry.reg.DUAL_MODID_ENABLEf = dual_modid;
+    //lport_entry.reg.SYS_PORT_IDf = port;
+    //lport_entry.reg.PP_PORT_NUMf = port;
+    //lport_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
     lport_entry.reg.TAG_ACTION_PROFILE_PTRf = 1;
 
     _soc_mem_write(bcmsw_sw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
@@ -1876,6 +1877,10 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
         //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
         //                    cpu_hg_index, PORT_TYPEf, 1));
         ing_device_port_entry.PORT_TYPEf = 1;
+	ing_device_port_entry.SRC_SYS_PORT_IDf = port;
+	ing_device_port_entry.SYS_PORT_IDf = port;
+	ing_device_port_entry.PP_PORT_NUMf = port;
+	ing_device_port_entry.DUAL_MODID_ENABLEf = 0; //dual_modid;
         _soc_mem_write(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
     }    
 
@@ -1981,7 +1986,7 @@ static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
     bcmsw_sw->si = si;
 
     // initialize port configuration according to soc info. bcm_esw_port_init bcm_td3_port_cfg_init
-    err = bcmsw_port_init(bcmsw_sw);
+    err = _port_init(bcmsw_sw);
     if (err) {
         goto err_port_cfg_init;
     }
