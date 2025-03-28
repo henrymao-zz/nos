@@ -1496,6 +1496,55 @@ typedef union miim_ch_status_s {
 #define MII_GB_STAT_REG         0x0a    /* MII 1000Base-T Status register */
 #define MII_ESR_REG             0x0f    /* MII Extended Status register */
 
+
+/* MIDO  setting */
+#define RATE_EXT_MDIO_DIVISOR_DEF        50
+#define TD3X_RATE_INT_MDIO_DIVISOR_DEF   25
+
+#define MIIM_RING0_CONTROLr     0x100190f0
+#define MIIM_RING1_CONTROLr     0x100190f4
+#define MIIM_RING2_CONTROLr     0x100190f8
+#define MIIM_RING3_CONTROLr     0x100190fc
+#define MIIM_RING4_CONTROLr     0x10019100
+#define MIIM_RING5_CONTROLr     0x10019104
+#define MIIM_RING6_CONTROLr     0x10019108
+#define MIIM_RING7_CONTROLr     0x1001910c
+#define MIIM_RING8_CONTROLr     0x10019110
+#define MIIM_RING9_CONTROLr     0x10019114
+#define MIIM_RING10_CONTROLr    0x10019118
+#define MIIM_RING11_CONTROLr    0x1001911c
+
+
+
+//soc_MIIM_RING0_CONTROL_BCM56870_A0r_fields
+/*
+soc_field_info_t soc_MIIM_RING0_CONTROL_BCM56870_A0r_fields[] = {
+    { CLOCK_DIVIDER_EXTf, 8, 8, SOCF_LE },
+    { CLOCK_DIVIDER_INTf, 8, 0, SOCF_LE },
+    { MDC_MODEf, 1, 26, 0 },
+    { MDIO_OUT_DELAYf, 8, 16, SOCF_LE },
+    { PREAMBLEf, 2, 24, SOCF_LE }
+};
+*/
+typedef union miim_ring_control_s {
+    #if defined(LE_HOST)
+    uint32_t  CLOCK_DIVIDER_INTf:8,
+              CLOCK_DIVIDER_EXTf:8,
+              MDIO_OUT_DELAYf:8,
+              PREAMBLEf:2,
+              MDC_MODEf:1,
+              r0:5;
+    #else
+    uint32_t  r0:5,
+              MDC_MODEf:1,
+              PREAMBLEf:2,
+              MDIO_OUT_DELAYf:8,
+              CLOCK_DIVIDER_EXTf:8,
+              CLOCK_DIVIDER_INTf:8;
+    #endif
+    uint32_t word;
+} miim_ring_control_t;
+
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/

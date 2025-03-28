@@ -2452,6 +2452,32 @@ static int _cmicx_pci_test(struct net_device *dev)
     return -EFAULT;
 }
 
+static int _trident3_mdio_rate_divisor_set(void)
+{
+    int int_divisor, ext_divisor;
+    int ring_idx = 0;
+    int ring_idx_end = 0;
+    miim_ring_control_t ring_control;
+
+    ext_divisor = RATE_EXT_MDIO_DIVISOR_DEF;
+    int_divisor = TD3X_RATE_INT_MDIO_DIVISOR_DEF;
+    //delay = -1;
+
+    /*  mdio ring end based on iProc15 device */
+    ring_idx_end = CMICX_MIIM_12R_RING_INDEX_END;
+
+    for (ring_idx = CMICX_MIIM_RING_INDEX_START; ring_idx <= ring_idx_end; ring_idx++) {
+        //soc_cmicx_miim_divider_set_ring(unit, ring_idx, int_divider, ext_divisor, delay);
+        ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + ring_idx<<2);
+        ring_control.CLOCK_DIVIDER_INTf = int_divider;
+        ring_control.CLOCK_DIVIDER_EXTf = ext_divider;
+        _iproc_setreg(MIIM_RING0_CONTROLr + ring_idx<<2, ring_control.word);
+    }
+
+    return SOC_E_NONE;
+}
+
+
 //_soc_helix5_misc_init
 static int _misc_init(struct bcmsw_switch *bcmsw_sw)
 {
@@ -2463,7 +2489,13 @@ static int _misc_init(struct bcmsw_switch *bcmsw_sw)
 
     //_soc_helix5_idb_init
 
+
+    /* Setup MDIO divider */
+    _trident3_mdio_rate_divisor_set();
+
     //_soc_hx5_ledup_init
+
+
     return 0;
 }
 
