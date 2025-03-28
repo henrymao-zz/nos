@@ -1215,9 +1215,9 @@ bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t value)
 {
   bkn_priv_t *priv = netdev_priv(dev);
   bkn_switch_info_t *sinfo = priv->sinfo;
-  gprintk("bkn_write32 0x%x 0x%x\n", address, value);
   return dev_write32(sinfo, address, value);
 }
+
 
 /*
  * Per-channel operations.

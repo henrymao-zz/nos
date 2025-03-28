@@ -20,6 +20,7 @@
 #include <bcm-knet.h>
 #include "bcm-switchdev.h"
 
+static ibde_t *kernel_bde = NULL;
 
 /*****************************************************************************************/
 /*                              SOC                                                      */
@@ -56,61 +57,62 @@ static const struct {
     int port_type;
     char name[KCOM_NETIF_NAME_MAX];
     int lanes[4];
+    uint16_t ext_phy_addr;
 } n3248te_ports[] = {
-    { 1,   1,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet0", {1, -1, -1, -1} }, 
-    { 2,   2,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet1", {2, -1, -1, -1} }, 
-    { 3,   3,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet2", {3, -1, -1, -1} }, 
-    { 4,   4,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet3", {4, -1, -1, -1} }, 
-    { 5,   5,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet4", {5, -1, -1, -1} }, 
-    { 6,   6,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet5", {6, -1, -1, -1} }, 
-    { 7,   7,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet6", {7, -1, -1, -1} }, 
-    { 8,   8,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet7", {8, -1, -1, -1} }, 
-    { 9,   0,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet8", {9, -1, -1, -1} }, 
-    { 10,  10, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet9", {10, -1, -1, -1} }, 
-    { 11,  11, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1} }, 
-    { 12,  12, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1} }, 
-    { 13,  13, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1} },         
-    { 14,  14, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1} }, 
-    { 15,  15, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1} }, 
-    { 16,  16, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1} }, 
-    { 17,  17, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1} }, 
-    { 18,  18, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1} }, 
-    { 19,  19, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1} }, 
-    { 20,  20, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1} }, 
-    { 21,  21, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1} }, 
-    { 22,  22, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1} }, 
-    { 23,  23, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1} }, 
-    { 24,  24, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1} }, 
-    { 25,  25, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1} }, 
-    { 26,  26, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1} }, 
-    { 27,  27, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1} }, 
-    { 28,  28, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1} }, 
-    { 29,  29, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1} }, 
-    { 30,  30, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1} }, 
-    { 31,  31, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1} }, 
-    { 32,  32, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1} }, 
-    { 33,  33, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1} },        
-    { 34,  34, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1} }, 
-    { 35,  35, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1} }, 
-    { 36,  36, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1} }, 
-    { 37,  37, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1} }, 
-    { 38,  38, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1} }, 
-    { 39,  39, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1} }, 
-    { 40,  40, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1} }, 
-    { 41,  41, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1} }, 
-    { 42,  42, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1} }, 
-    { 43,  43, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1} }, 
-    { 44,  44, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1} }, 
-    { 45,  45, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1} }, 
-    { 46,  46, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1} }, 
-    { 47,  47, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1} }, 
-    { 48,  48, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1} }, 
-    { 49,  64, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1} }, 
-    { 50,  63, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1} }, 
-    { 51,  62, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1} }, 
-    { 52,  61, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1} }, 
-    { 53,  69, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72} }, 
-    { 57,  73, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76} },   
+    { 1,   1,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet0",   {1, -1, -1, -1}, 0x0}, 
+    { 2,   2,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet1",   {2, -1, -1, -1}, 0x1}, 
+    { 3,   3,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet2",   {3, -1, -1, -1}, 0x2}, 
+    { 4,   4,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet3",   {4, -1, -1, -1}, 0x3}, 
+    { 5,   5,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet4",   {5, -1, -1, -1}, 0x4}, 
+    { 6,   6,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet5",   {6, -1, -1, -1}, 0x5}, 
+    { 7,   7,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet6",   {7, -1, -1, -1}, 0x6}, 
+    { 8,   8,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet7",   {8, -1, -1, -1}, 0x7}, 
+    { 9,   0,  1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet8",   {9, -1, -1, -1}, 0x9}, 
+    { 10,  10, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet9",  {10, -1, -1, -1}, 0xa}, 
+    { 11,  11, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1}, 0xb}, 
+    { 12,  12, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1}, 0xc}, 
+    { 13,  13, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1}, 0xd},         
+    { 14,  14, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1}, 0xe}, 
+    { 15,  15, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1}, 0xf}, 
+    { 16,  16, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1}, 0x10}, 
+    { 17,  17, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1}, 0x12}, 
+    { 18,  18, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1}, 0x13}, 
+    { 19,  19, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1}, 0x14}, 
+    { 20,  20, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1}, 0x15}, 
+    { 21,  21, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1}, 0x16}, 
+    { 22,  22, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1}, 0x17}, 
+    { 23,  23, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1}, 0x18}, 
+    { 24,  24, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1}, 0x19}, 
+    { 25,  25, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1}, 0x20}, 
+    { 26,  26, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1}, 0x21}, 
+    { 27,  27, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1}, 0x22}, 
+    { 28,  28, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1}, 0x23}, 
+    { 29,  29, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1}, 0x24}, 
+    { 30,  30, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1}, 0x25}, 
+    { 31,  31, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1}, 0x26}, 
+    { 32,  32, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1}, 0x27}, 
+    { 33,  33, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1}, 0x29},        
+    { 34,  34, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1}, 0x2a}, 
+    { 35,  35, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1}, 0x2b}, 
+    { 36,  36, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1}, 0x2c}, 
+    { 37,  37, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1}, 0x2d}, 
+    { 38,  38, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1}, 0x2e}, 
+    { 39,  39, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1}, 0x2f}, 
+    { 40,  40, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1}, 0x30}, 
+    { 41,  41, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1}, 0x32}, 
+    { 42,  42, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1}, 0x33}, 
+    { 43,  43, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1}, 0x34}, 
+    { 44,  44, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1}, 0x35}, 
+    { 45,  45, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1}, 0x36}, 
+    { 46,  46, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1}, 0x37}, 
+    { 47,  47, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1}, 0x38}, 
+    { 48,  48, 1,   BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1}, 0x39}, 
+    { 49,  64, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1}, 0x40}, 
+    { 50,  63, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1}, 0x41}, 
+    { 51,  62, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1}, 0x42}, 
+    { 52,  61, 10,  BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1}, 0x43}, 
+    { 53,  69, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72}, 0xff}, 
+    { 57,  73, 100, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76}, 0xff},   
     { -1,  -1, -1  },                                      
 };
 
@@ -1784,6 +1786,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 
         //port_type
         si->port_type[port] = n3248te_ports[index].port_type;
+        si->port_ext_phy_addr[port] = n3248te_ports[index].ext_phy_addr;
     }
     si->cpu_hg_index = 72;
     //TODO flex port init
@@ -1887,6 +1890,181 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     return 0;
 }
 
+static int _iproc_setreg(uint32_t addr, uint32_t data)
+{
+    return kernel_bde->iproc_write(0, addr, data);
+}
+
+static uint32_t _iproc_getreg(uint32 addr)
+{
+    return kernel_bde->iproc_read(0, addr);
+}
+
+static
+uint32 _cmicx_miim_cycle_type_get(int is_write, int clause45, uint32 phy_devad)
+{
+    uint32 cycle_type = 0;
+    int is_miim_12r = 1;
+
+    if (clause45) {
+        if(is_write) {
+            if (phy_devad & MIIM_CYCLE_C45_WR) {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_REG_WR : MIIM_CYCLE_C45_REG_WR;
+            } else if (phy_devad & MIIM_CYCLE_C45_WR_AD) {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_REG_AD : MIIM_CYCLE_C45_REG_AD;
+            } else {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_AUTO_WR : MIIM_CYCLE_AUTO;
+            }
+        } else {
+            if (phy_devad & MIIM_CYCLE_C45_RD) {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_REG_RD : MIIM_CYCLE_C45_REG_RD;
+            } else if (phy_devad & MIIM_CYCLE_C45_RD_ADINC) {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_REG_RD_ADINC : MIIM_CYCLE_C45_REG_RD_ADINC;
+            } else {
+                cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C45_AUTO_RD : MIIM_CYCLE_AUTO;
+            }
+        }
+    } else {
+        /* clause 22 */
+        if (is_write) {
+            cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C22_REG_WR : MIIM_CYCLE_C22_REG_WR;
+        } else {
+            cycle_type = is_miim_12r ? MIIM_CYCLE_12R_C22_REG_RD : MIIM_CYCLE_C22_REG_RD;
+        }
+    }
+
+    //LOG_DEBUG(BSL_LS_SOC_MIIM, (BSL_META_U(unit, "is_miim_12r %d, cycle_type %d\n"), is_miim_12r, cycle_type));
+
+    return cycle_type;
+}
+
+//MIIM read CL22
+static int
+_soc_miim_read(struct net_device *dev, uint32 phy_id,
+              uint8 phy_reg_addr, uint16 *phy_rd_data)
+{
+    miim_ch_address_t ch_addr;
+    miim_ch_params_t  ch_params;
+    miim_ch_control_t ch_control;
+    miim_ch_status_t  ch_status;
+    int miim_timeout  = 0; 
+   //return soc_cmicx_miim_operation(unit, FALSE, SOC_CLAUSE_22, phy_id, phy_reg_addr, phy_rd_data);
+
+    /* parse phy_id to bus, phy, and internal indication
+    *   phy_id encoding:
+    *       bit31-16, bitmap for MDIO bus.
+    *       bit7, 1: internal MDIO bus, 0: external MDIO bus
+    *       bit10, broadcast mode
+    *       bit9,8,6,5, mdio bus number
+    *       bit4-0,   mdio addresses
+    */
+   internal_select = PHY_ID_INTERNAL(phy_id);
+   real_phy_id = PHY_ID_ADDR(phy_id);
+   real_bus_id = PHY_ID_BUS_NUM(phy_id);
+   //is_broadcast = PHY_ID_BROADCAST(phy_id);
+   mdio_buses = PHY_ID_BUSMAP(phy_id);
+
+   ch_addr = _iproc_getreg(MIIM_CH0_ADDRESSr);
+   ch_addr.PHY_IDf = real_phy_id;
+   ch_addr.CLAUSE_22_REGADRR_OR_45_DTYPEf = (phy_reg_addr & 0x1f);
+
+   _iproc_setreg(MIIM_CH0_ADDRESSr, ch_addr);
+
+   ch_params = _iproc_getreg(MIIM_CH0_PARAMSr);
+
+   ch_params.SEL_INT_PHYf = internal_select;
+   ch_params.RING_MAPf = mdio_buses;
+
+   phy_devad = phy_reg_addr >> 16;
+   cycle_type = _cmicx_miim_cycle_type_get(unit, is_write, clause45, phy_devad);
+
+   ch_params.MDIO_OP_TYPEf = cycle_type;
+
+   ch_params,PHY_WR_DATAf = 0x0;
+ 
+   _iproc_setreg(MIIM_CH0_PARAMSr, ch_params)
+
+    /* start transaction */
+    ch_control.STARTf = 0x1;
+    _iproc_setreg(MIIM_CH0_CONTROLr, ch_control);
+
+    do {
+        ch_status = _iproc_getreg(MIIM_CH0_STATUSr);
+        is_done = ch_status.DONEf;
+        if (is_done) {
+            break; /* MIIM operation is done */
+        }        
+
+
+        /* check for transaction error */
+        is_error = ch_status.ERRORf;
+        if (is_error) {
+            printk("MDIO transaction Error 0x%x\n", is_error);
+            goto exit;
+        }
+        udelay(1000);
+        miim_timeout++;
+        if(miim_timeout > 30) {
+           printk("MDIO transaction timeout\n");
+           is_error = SOC_E_TIMEOUT;
+           goto exit;
+        }
+    } while(1);
+
+    /* in case of read - get data */
+    *phy_data = ch_status.PHY_RD_DATAf;
+    printk("_cmicx_miim_operation read data: %d \n",*phy_data);
+
+exit:
+    /* cleanup */
+    ch_control.STARTf = 0x0;
+    /* no need to catch error in case of failrue */
+    _iproc_setreg(MIIM_CH0_CONTROLr, ch_control);          
+    return is_error;               
+}
+
+static int
+_ext_phy_probe(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    uint16               phy_addr, phy_id0, phy_id1;
+    uint32               id0_addr, id1_addr;
+    soc_info_t          *si = bcmsw_sw->si;
+
+    id0_addr = MII_PHY_ID0_REG;
+    id1_addr = MII_PHY_ID1_REG;
+
+    phy_addr = si->port_ext_phy_addr[port];
+
+    //read phy_id0
+    _soc_miim_read(bcmsw_sw->dev, phy_addr, id0_addr, &phy_id0);
+
+
+    //read phy_id1
+    _soc_miim_read(bcmsw_sw->dev, phy_addr, id1_addr, &phy_id1);
+
+    //Verify result is expected
+    printk("_ext_phy_probe port %d - phy_addr 0x%x  id0 0x%x id1 0x%x\n",port, phy_addr, phy_id0, phy_id1);
+    return 0;
+}
+
+static int 
+_port_probe(struct bcmsw_switch *bcmsw_sw)
+{
+    soc_info_t *si = bcmsw_sw->si;
+    int port; 
+
+    for (port = 0; port < num_port; port++) {
+       if(si->port_type[port] != -1) {
+           //probe for PHY , and dump information
+           // Only do ext Phy (N3248TE)
+           if (si->port_ext_phy_addr[port] != 0xff) {
+               _ext_phy_probe(bcmsw_sw, port);
+           }
+       }
+    }
+    return 0;
+}
+
 //bcm_esw_port_init bcm_td3_port_cfg_init
 static int 
 _port_init(struct bcmsw_switch *bcmsw_sw)
@@ -1900,8 +2078,26 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
            _port_cfg_init(bcmsw_sw, port, vid);
        }
     }
+    /* Initialize inner TPID
+     * (WAR)Set to 0x9100 then change back to take effort
+     */
+    //TODO
+
 
     // clear egress port blocking table
+    //TODO
+
+    /* Probe for ports */
+    //rv = bcm_esw_port_probe(unit, PBMP_PORT_ALL(unit), &okay_ports);
+    _port_probe(bcmsw_sw);
+
+    /* Probe and initialize MAC and PHY drivers for ports that were OK */
+    //_bcm_port_mode_setup(unit, p, TRUE)) < 0) {
+    //bcm_port_settings_init(unit, p)) < 0) {
+
+
+    //enable ports
+    // if ((rv = bcm_esw_port_enable_set(unit, p, port_enable)) < 0) {
     return 0;
 }
 
@@ -2687,6 +2883,11 @@ int bcmsw_switch_init(void)
   
     //get bcm0 netdev
     bcmsw_sw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
+
+    /* Connect to the kernel bde */
+    if ((linux_bde_create(NULL, &kernel_bde) < 0) || kernel_bde == NULL) {
+        return -ENODEV;
+    }
 
     //switch initialization
     bcmsw_switch_do_init(bcmsw_sw);

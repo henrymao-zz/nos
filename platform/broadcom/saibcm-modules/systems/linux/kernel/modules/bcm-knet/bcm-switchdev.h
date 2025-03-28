@@ -1343,6 +1343,89 @@ typedef union ing_device_port_entry_s {
 
 
 /*****************************************************************************************/
+/*                           Registers (IPROC)  BCM56370                                 */
+/*****************************************************************************************/
+// MIIM_CH0_ADDRESS          0x10019008
+typedef union miim_ch_address_s {
+    #if defined(LE_HOST)
+    uint32_t  r0:6,
+              PHY_IDf:5,
+              CLAUSE_22_REGADRR_OR_45_DTYPEf:5,
+              CLAUSE_45_REG_ADRRf:16;
+    #else
+    uint32_t  CLAUSE_45_REG_ADRRf:16,
+              CLAUSE_22_REGADRR_OR_45_DTYPEf:5,
+              PHY_IDf:5,
+              r0:6;
+    #endif
+    uint32_t word;
+} miim_ch_address_t;
+#define MIIM_CH0_ADDRESSr    0x10019008
+
+// MIIM_CH3_PARAMS           0x10019034
+/*
+soc_field_info_t soc_MIIM_CH0_PARAMS_BCM56980_A0r_fields[] = {
+    { MDIO_OP_TYPEf, 3, 17, SOCF_LE },
+    { PHY_WR_DATAf, 16, 0, SOCF_LE },
+    { RING_MAPf, 12, 20, SOCF_LE },
+    { SEL_INT_PHYf, 1, 16, 0 }
+};
+*/
+typedef union miim_ch_params_s {
+    #if defined(LE_HOST)
+    uint32_t  PHY_WR_DATAf:16,
+              SEL_INT_PHYf:1,
+              MDIO_OP_TYPEf:3,
+              RING_MAPf:12;
+    #else
+    uint32_t  RING_MAPf:12,
+              MDIO_OP_TYPEf:3,
+              SEL_INT_PHYf:1,
+              PHY_WR_DATAf:16;
+    #endif
+    uint32_t word;
+} miim_ch_params_t;
+
+#define MIIM_CH0_PARAMSr     0x10019034
+
+typedef struct miim_ch_control_s {
+    #if defined(LE_HOST)
+    uint32_t  STARTf:1,
+              r0:31;
+    #else
+    uint32_t  r0:31,
+              STARTf:1;
+    #endif
+}miim_ch_control_t;
+
+#define MIIM_CH0_CONTROLr    0x10019030
+
+/*
+soc_field_info_t soc_MIIM_CH0_STATUS_BCM56870_A0r_fields[] = {
+    { ACTIVEf, 1, 16, SOCF_RO },
+    { DONEf, 1, 18, SOCF_RO },
+    { ERRORf, 1, 17, SOCF_RO },
+    { PHY_RD_DATAf, 16, 0, SOCF_LE|SOCF_RO }
+};
+*/
+typedef struct miim_ch_status_s {
+    #if defined(LE_HOST)
+    uint32_t  PHY_RD_DATAf:16,
+              ACTIVEf:1,
+              ERRORf:1,
+              DONEf:1,
+              r0:14;
+    #else
+    uint32_t  r0:14,
+              DONEf:1,
+              ERRORf:1,
+              ACTIVEf:1,
+              PHY_RD_DATAf:16;
+    #endif
+} miim_ch_status_t;
+#define MIIM_CH0_STATUSr     0x1001900c
+
+/*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/
 //#ifdef  BCM_56370_A0
@@ -1391,7 +1474,8 @@ typedef struct {
     int             cpu_hg_index;           /* table index for cpu port
                                              * higig packet where table indexed
                                              * by physical port*/
-    int             port_type[SOC_MAX_NUM_PORTS];                                            
+    int             port_type[SOC_MAX_NUM_PORTS];                     
+    int             port_ext_phy_addr[SOC_MAX_NUM_PORTS];              
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
