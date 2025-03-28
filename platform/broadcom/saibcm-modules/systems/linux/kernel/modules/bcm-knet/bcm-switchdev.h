@@ -1388,7 +1388,7 @@ typedef union miim_ch_params_s {
 
 #define MIIM_CH0_PARAMSr     0x10019034
 
-typedef struct miim_ch_control_s {
+typedef union miim_ch_control_s {
     #if defined(LE_HOST)
     uint32_t  STARTf:1,
               r0:31;
@@ -1396,6 +1396,7 @@ typedef struct miim_ch_control_s {
     uint32_t  r0:31,
               STARTf:1;
     #endif
+    uint32_t word;
 }miim_ch_control_t;
 
 #define MIIM_CH0_CONTROLr    0x10019030
@@ -1408,7 +1409,7 @@ soc_field_info_t soc_MIIM_CH0_STATUS_BCM56870_A0r_fields[] = {
     { PHY_RD_DATAf, 16, 0, SOCF_LE|SOCF_RO }
 };
 */
-typedef struct miim_ch_status_s {
+typedef union miim_ch_status_s {
     #if defined(LE_HOST)
     uint32_t  PHY_RD_DATAf:16,
               ACTIVEf:1,
@@ -1422,6 +1423,7 @@ typedef struct miim_ch_status_s {
               ACTIVEf:1,
               PHY_RD_DATAf:16;
     #endif
+    uint32_t word;
 } miim_ch_status_t;
 #define MIIM_CH0_STATUSr     0x1001900c
 
@@ -1445,6 +1447,54 @@ typedef struct miim_ch_status_s {
 #define MIIM_CYCLE_C45_RD               (1 << (MIIM_CYCLE_C45_SHFT + 0))
 #define MIIM_CYCLE_C45_RD_ADINC         (1 << (MIIM_CYCLE_C45_SHFT + 1))
 
+#define SOC_CLAUSE_45 45
+#define SOC_CLAUSE_22 22
+
+#define CMICX_MIIM_RING_INDEX_START     0
+#define CMICX_MIIM_RING_INDEX_END       7
+#define CMICX_MIIM_12R_RING_INDEX_END   11
+
+/* MDIO CYCLE types for iProc 15 and higher devices
+ * with support for 12 MDIO rings */
+
+#define MIIM_CYCLE_12R_C22_REG_WR           0x0
+#define MIIM_CYCLE_12R_C22_REG_RD           0x1
+#define MIIM_CYCLE_12R_C45_AUTO_WR          0x2
+#define MIIM_CYCLE_12R_C45_AUTO_RD          0x3
+#define MIIM_CYCLE_12R_C45_REG_AD           0x4
+#define MIIM_CYCLE_12R_C45_REG_WR           0x5
+#define MIIM_CYCLE_12R_C45_REG_RD           0x6
+#define MIIM_CYCLE_12R_C45_REG_RD_ADINC     0x7
+
+
+#define PHY_ID_BUS_UPPER_MASK     0x300
+#define PHY_ID_BUS_UPPER_SHIFT    0x6
+#define PHY_ID_BUS_LOWER_MASK     0x60
+#define PHY_ID_BUS_LOWER_SHIFT    5
+#define PHY_ID_BUS_NUM(_id)   ((((_id) & PHY_ID_BUS_UPPER_MASK) >> \
+        PHY_ID_BUS_UPPER_SHIFT) | (((_id) & PHY_ID_BUS_LOWER_MASK) >> \
+        PHY_ID_BUS_LOWER_SHIFT))
+#define PHY_ID_ADDR_MASK          0x1f
+#define PHY_ID_ADDR_SHIFT         0
+#define PHY_ID_ADDR(_id)          (((_id) & PHY_ID_ADDR_MASK) >> PHY_ID_ADDR_SHIFT)
+#define PHY_ID_INTERNAL(_id)      ((_id & 0x80) ? 1 : 0)
+#define PHY_ID_BROADCAST(_id)     ((_id & 0x400) ? 1 : 0)
+#define PHY_ID_BUSMAP_SHIFT       16
+#define PHY_ID_BUSMAP(_id)        (_id >> PHY_ID_BUSMAP_SHIFT)
+
+
+/* Standard MII Registers */
+
+#define MII_CTRL_REG            0x00    /* MII Control Register : r/w */
+#define MII_STAT_REG            0x01    /* MII Status Register: ro */
+#define MII_PHY_ID0_REG         0x02    /* MII PHY ID register: r/w */
+#define MII_PHY_ID1_REG         0x03    /* MII PHY ID register: r/w */
+#define MII_ANA_REG             0x04    /* MII Auto-Neg Advertisement: r/w */
+#define MII_ANP_REG             0x05    /* MII Auto-Neg Link Partner: ro */
+#define MII_AN_EXP_REG          0x06    /* MII Auto-Neg Expansion: ro */
+#define MII_GB_CTRL_REG         0x09    /* MII 1000Base-T control register */
+#define MII_GB_STAT_REG         0x0a    /* MII 1000Base-T Status register */
+#define MII_ESR_REG             0x0f    /* MII Extended Status register */
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -1496,7 +1546,7 @@ typedef struct {
                                              * higig packet where table indexed
                                              * by physical port*/
     int             port_type[SOC_MAX_NUM_PORTS];                     
-    int             port_ext_phy_addr[SOC_MAX_NUM_PORTS];              
+    int             ext_phy_addr[SOC_MAX_NUM_PORTS];              
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
