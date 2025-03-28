@@ -1425,6 +1425,27 @@ typedef struct miim_ch_status_s {
 } miim_ch_status_t;
 #define MIIM_CH0_STATUSr     0x1001900c
 
+/* MIIM port selection (bit map of clause selection, 1=22, 0=45; Lynx only) */
+
+#define MIIM_CYCLE_AUTO                 0x0
+#define MIIM_CYCLE_C22_REG_WR           0x1
+#define MIIM_CYCLE_C22_REG_RD           0x2
+#define MIIM_CYCLE_C45_REG_AD           0x4
+#define MIIM_CYCLE_C45_REG_WR           0x5
+#define MIIM_CYCLE_C45_REG_RD_ADINC     0x6
+#define MIIM_CYCLE_C45_REG_RD           0x7
+
+/* CL45 warmboot write disable override */
+#define MIIM_WB_C45                     (1 << 0)
+
+#define MIIM_CYCLE_C45_SHFT             6
+#define MIIM_CYCLE_C45_MASK             (0x3 << MIIM_CYCLE_C45_SHFT)
+#define MIIM_CYCLE_C45_WR               (1 << (MIIM_CYCLE_C45_SHFT + 0))
+#define MIIM_CYCLE_C45_WR_AD            (1 << (MIIM_CYCLE_C45_SHFT + 1))
+#define MIIM_CYCLE_C45_RD               (1 << (MIIM_CYCLE_C45_SHFT + 0))
+#define MIIM_CYCLE_C45_RD_ADINC         (1 << (MIIM_CYCLE_C45_SHFT + 1))
+
+
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/

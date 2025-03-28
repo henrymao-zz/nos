@@ -1880,10 +1880,10 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
         //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
         //                    cpu_hg_index, PORT_TYPEf, 1));
         ing_device_port_entry.PORT_TYPEf = 1;
-	ing_device_port_entry.SRC_SYS_PORT_IDf = port;
-	ing_device_port_entry.SYS_PORT_IDf = port;
-	ing_device_port_entry.PP_PORT_NUMf = port;
-	ing_device_port_entry.DUAL_MODID_ENABLEf = 0; //dual_modid;
+	    ing_device_port_entry.SRC_SYS_PORT_IDf = port;
+	    ing_device_port_entry.SYS_PORT_IDf = port;
+	    ing_device_port_entry.PP_PORT_NUMf = port;
+	    ing_device_port_entry.DUAL_MODID_ENABLEf = 0; //dual_modid;
         _soc_mem_write(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
     }    
 
