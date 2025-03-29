@@ -54,8 +54,8 @@ typedef struct {
     int port;
     int phy_port;
     int bandwidth;
-    int port_type;
     int ext_phy_addr;
+    int port_type;
     char name[KCOM_NETIF_NAME_MAX];
     int lanes[4];
 } port_info_t;
@@ -113,9 +113,9 @@ static const port_info_t n3248te_ports[] = {
     { 50,  63, 10, 0x41, BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1}}, 
     { 51,  62, 10, 0x42, BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1}}, 
     { 52,  61, 10, 0x43, BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1}}, 
-    { 53,  69, 100,0xff, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72}}, 
-    { 57,  73, 100,0xff, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76}},   
-    { -1,  -1, -1,  -1,  -1, "\0", {-1, -1, -1, -1} }                                      
+    { 53,  69, 100,  -1, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72}}, 
+    { 57,  73, 100,  -1, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76}},   
+    { -1,  -1,  -1,  -1,                     -1, "\0",         {-1, -1, -1, -1}}                                      
 };
 
 /*****************************************************************************************/
@@ -1735,6 +1735,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[index] = -1;
         si->port_num_lanes[index] = -1;
         si->port_type[index] = -1;
+	si->ext_phy_addr[index] = -1;
     }
     for (mmu_port = 0; mmu_port < num_mmu_port; mmu_port++) {
         si->port_m2p_mapping[mmu_port] = -1;
@@ -1881,11 +1882,11 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 
         //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
         //                    cpu_hg_index, PORT_TYPEf, 1));
-        ing_device_port_entry.PORT_TYPEf = 1;
-	    ing_device_port_entry.SRC_SYS_PORT_IDf = port;
-	    ing_device_port_entry.SYS_PORT_IDf = port;
-	    ing_device_port_entry.PP_PORT_NUMf = port;
-	    ing_device_port_entry.DUAL_MODID_ENABLEf = 0; //dual_modid;
+        ing_device_port_entry.reg.PORT_TYPEf = 1;
+        ing_device_port_entry.reg.SRC_SYS_PORT_IDf = port;
+        ing_device_port_entry.reg.SYS_PORT_IDf = port;
+        ing_device_port_entry.reg.PP_PORT_NUMf = port;
+        ing_device_port_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
         _soc_mem_write(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
     }    
 
@@ -1971,61 +1972,72 @@ _soc_miim_read(struct net_device *dev, uint32 phy_id,
    mdio_buses = (1 << real_bus_id);
 
    ch_addr.word = _iproc_getreg(MIIM_CH0_ADDRESSr);
-   ch_addr.PHY_IDf = real_phy_id;
-   ch_addr.CLAUSE_22_REGADRR_OR_45_DTYPEf = (phy_reg_addr & 0x1f);
+   ch_addr.reg.PHY_IDf = real_phy_id;
+   ch_addr.reg.CLAUSE_22_REGADRR_OR_45_DTYPEf = (phy_reg_addr & 0x1f);
 
    _iproc_setreg(MIIM_CH0_ADDRESSr, ch_addr.word);
 
    ch_params.word = _iproc_getreg(MIIM_CH0_PARAMSr);
 
-   ch_params.SEL_INT_PHYf = internal_select;
-   ch_params.RING_MAPf = mdio_buses;
+   ch_params.reg.SEL_INT_PHYf = internal_select;
+   ch_params.reg.RING_MAPf = mdio_buses;
 
    phy_devad = phy_reg_addr >> 16;
    cycle_type = _cmicx_miim_cycle_type_get(0, 0, phy_devad);
 
-   ch_params.MDIO_OP_TYPEf = cycle_type;
+   ch_params.reg.MDIO_OP_TYPEf = cycle_type;
 
-   ch_params.PHY_WR_DATAf = 0x0;
+   ch_params.reg.PHY_WR_DATAf = 0x0;
  
    _iproc_setreg(MIIM_CH0_PARAMSr, ch_params.word);
 
+   //printk("read id=0x%02x addr=0x%02x real_phy_id=0x%x, mdio_buses=0x%x internal 0x%x cycle 0x%x\n",
+   //	  phy_id, phy_reg_addr, real_phy_id, mdio_buses, internal_select, cycle_type);
+
     /* start transaction */
-    ch_control.STARTf = 0x1;
+    ch_control.reg.STARTf = 1;
+    //printk("ch_control 0x%x\n", ch_control.word);
     _iproc_setreg(MIIM_CH0_CONTROLr, ch_control.word);
+
+    //readback
+    ch_control.word = _iproc_getreg(MIIM_CH0_CONTROLr);
+    //printk("ch_control readback 0x%x\n", ch_control.word);
 
     do {
         ch_status.word = _iproc_getreg(MIIM_CH0_STATUSr);
-        is_done = ch_status.DONEf;
+        is_done = ch_status.reg.DONEf;
         if (is_done) {
             break; /* MIIM operation is done */
         }        
 
-
         /* check for transaction error */
-        is_error = ch_status.ERRORf;
+        is_error = ch_status.reg.ERRORf;
         if (is_error) {
-            printk("MDIO transaction Error 0x%x\n", is_error);
+            printk("MDIO transaction Error 0x%x ch_status 0x%x\n", is_error, ch_status.word);
             goto exit;
         }
-        udelay(1000);
+        msleep(200);
         miim_timeout++;
-        if(miim_timeout > 30) {
-           printk("MDIO transaction timeout\n");
+        if(miim_timeout > 15) {
+           printk("MDIO transaction timeout ch_status 0x%x\n", ch_status.word);
            is_error = SOC_E_TIMEOUT;
            goto exit;
         }
     } while(1);
 
     /* in case of read - get data */
-    *phy_data = ch_status.PHY_RD_DATAf;
-    printk("_cmicx_miim_operation read data: %d \n",*phy_data);
+    *phy_data = ch_status.reg.PHY_RD_DATAf;
+    //printk("_cmicx_miim_operation read data: %d \n",*phy_data);
 
 exit:
     /* cleanup */
-    ch_control.STARTf = 0x0;
+    ch_control.reg.STARTf = 0;
     /* no need to catch error in case of failrue */
     _iproc_setreg(MIIM_CH0_CONTROLr, ch_control.word);          
+
+    if (is_error) {
+      *phy_data = -1;
+    }
     return is_error;               
 }
 
@@ -2064,7 +2076,7 @@ _port_probe(struct bcmsw_switch *bcmsw_sw)
        if(si->port_type[port] != -1) {
            //probe for PHY , and dump information
            // Only do ext Phy (N3248TE)
-           if (si->ext_phy_addr[port] != 0xff) {
+           if (si->ext_phy_addr[port] !=  -1) {
                _ext_phy_probe(bcmsw_sw, port);
            }
        }
@@ -2468,10 +2480,10 @@ static int _trident3_mdio_rate_divisor_set(void)
 
     for (ring_idx = CMICX_MIIM_RING_INDEX_START; ring_idx <= ring_idx_end; ring_idx++) {
         //soc_cmicx_miim_divider_set_ring(unit, ring_idx, int_divider, ext_divisor, delay);
-        ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + ring_idx<<2);
-        ring_control.CLOCK_DIVIDER_INTf = int_divider;
-        ring_control.CLOCK_DIVIDER_EXTf = ext_divider;
-        _iproc_setreg(MIIM_RING0_CONTROLr + ring_idx<<2, ring_control.word);
+        ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + (ring_idx<<2));
+        ring_control.reg.CLOCK_DIVIDER_EXTf = ext_divisor;
+	ring_control.reg.CLOCK_DIVIDER_INTf = int_divisor;
+        _iproc_setreg(MIIM_RING0_CONTROLr + (ring_idx<<2), ring_control.word);
     }
 
     return SOC_E_NONE;
@@ -2770,7 +2782,7 @@ static int _helix5_port_reset(struct net_device *dev)
 }
 
 //soc_do_init(int unit, int reset)
-int bcmsw_switch_do_init(struct bcmsw_switch *bcmsw_sw)
+static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
 {
     struct net_device *dev = bcmsw_sw->dev;
     int val;
@@ -2929,19 +2941,34 @@ int bcmsw_switch_init(void)
         return -ENODEV;
     }
 
-    //switch initialization
-    bcmsw_switch_do_init(bcmsw_sw);
+    //switch initialization 
+    //BCM: init soc
+    _switch_do_init(bcmsw_sw);
 
+    //load m0 firmware
+    //BCM: m0 load 0 0x0 linkscan_led_fw.bin
+    //	   m0 load 0 0x3800 custom_led.bin
 
     // init cancun, and load cancun pkgs
+    //BCM: cancun load cch
+    //     cancun load ceh
+    //     cancun load cmh
+    //     cancun load cih
 
+    //misc_init
+    //BCM: init misc
+    _misc_init(bcmsw_sw);
 
     //initialize modules
+    //BCM: init bcm
     bcmsw_modules_init(bcmsw_sw);
   
 
     //test schan
     //err = _soc_mem_read(bcmsw_sw->dev, 0x501c0000, SCHAN_BLK_IPIPE, 14, &lport_entry); 
+
+
+    //test iproc reg read/write
 
 
 err_swdev_register:

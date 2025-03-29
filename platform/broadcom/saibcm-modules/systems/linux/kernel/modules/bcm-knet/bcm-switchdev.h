@@ -1252,6 +1252,7 @@ soc_field_info_t soc_ING_DEVICE_PORT_BCM56370_A0m_fields[] = {
 */
 
 typedef union ing_device_port_entry_s {
+    struct ing_port_reg_ {
 #if defined(LE_HOST)
     uint64 PORT_TYPEf:3,                          /*   0:2      */
            LPORT_PROFILE_IDXf:10,                 /*   3:12     */
@@ -1327,6 +1328,7 @@ typedef union ing_device_port_entry_s {
            DISABLE_TIMESTAMPINGf:1,               /* 132:132    */
            PORT_IPBM_INDEXf_hi:4;                 /* 128:131    */
 #endif
+    }reg;
     uint8_t  bytes[18];
 }ing_device_port_entry_t;
 
@@ -1347,6 +1349,7 @@ typedef union ing_device_port_entry_s {
 /*****************************************************************************************/
 // MIIM_CH0_ADDRESS          0x10019008
 typedef union miim_ch_address_s {
+    struct _ch_addr_ {
     #if defined(LE_HOST)
     uint32_t  r0:6,
               PHY_IDf:5,
@@ -1358,11 +1361,11 @@ typedef union miim_ch_address_s {
               PHY_IDf:5,
               r0:6;
     #endif
+    }reg;
     uint32_t word;
 } miim_ch_address_t;
 #define MIIM_CH0_ADDRESSr    0x10019008
 
-// MIIM_CH3_PARAMS           0x10019034
 /*
 soc_field_info_t soc_MIIM_CH0_PARAMS_BCM56980_A0r_fields[] = {
     { MDIO_OP_TYPEf, 3, 17, SOCF_LE },
@@ -1372,6 +1375,7 @@ soc_field_info_t soc_MIIM_CH0_PARAMS_BCM56980_A0r_fields[] = {
 };
 */
 typedef union miim_ch_params_s {
+    struct _ch_params_ {
     #if defined(LE_HOST)
     uint32_t  PHY_WR_DATAf:16,
               SEL_INT_PHYf:1,
@@ -1383,12 +1387,14 @@ typedef union miim_ch_params_s {
               SEL_INT_PHYf:1,
               PHY_WR_DATAf:16;
     #endif
+    }reg;
     uint32_t word;
 } miim_ch_params_t;
 
-#define MIIM_CH0_PARAMSr     0x10019034
+#define MIIM_CH0_PARAMSr     0x10019004
 
 typedef union miim_ch_control_s {
+    struct _ch_control_ {
     #if defined(LE_HOST)
     uint32_t  STARTf:1,
               r0:31;
@@ -1396,10 +1402,11 @@ typedef union miim_ch_control_s {
     uint32_t  r0:31,
               STARTf:1;
     #endif
+    }reg;
     uint32_t word;
 }miim_ch_control_t;
 
-#define MIIM_CH0_CONTROLr    0x10019030
+#define MIIM_CH0_CONTROLr    0x10019000  //BCM56370 
 
 /*
 soc_field_info_t soc_MIIM_CH0_STATUS_BCM56870_A0r_fields[] = {
@@ -1410,6 +1417,7 @@ soc_field_info_t soc_MIIM_CH0_STATUS_BCM56870_A0r_fields[] = {
 };
 */
 typedef union miim_ch_status_s {
+    struct _ch_status_ {
     #if defined(LE_HOST)
     uint32_t  PHY_RD_DATAf:16,
               ACTIVEf:1,
@@ -1423,6 +1431,7 @@ typedef union miim_ch_status_s {
               ACTIVEf:1,
               PHY_RD_DATAf:16;
     #endif
+    }reg;
     uint32_t word;
 } miim_ch_status_t;
 #define MIIM_CH0_STATUSr     0x1001900c
@@ -1527,6 +1536,7 @@ soc_field_info_t soc_MIIM_RING0_CONTROL_BCM56870_A0r_fields[] = {
 };
 */
 typedef union miim_ring_control_s {
+    struct _ring_control_ {
     #if defined(LE_HOST)
     uint32_t  CLOCK_DIVIDER_INTf:8,
               CLOCK_DIVIDER_EXTf:8,
@@ -1542,6 +1552,7 @@ typedef union miim_ring_control_s {
               CLOCK_DIVIDER_EXTf:8,
               CLOCK_DIVIDER_INTf:8;
     #endif
+    }reg;
     uint32_t word;
 } miim_ring_control_t;
 
