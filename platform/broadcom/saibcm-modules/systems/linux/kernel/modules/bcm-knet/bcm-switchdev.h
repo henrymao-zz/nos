@@ -1557,6 +1557,124 @@ typedef union miim_ring_control_s {
 } miim_ring_control_t;
 
 /*****************************************************************************************/
+/*                            PHY related                                                */
+/*****************************************************************************************/
+
+#define PHY_FLAGS_COPPER           (1 << 0)  /* copper medium */
+#define PHY_FLAGS_FIBER            (1 << 1)  /* fiber medium */
+#define PHY_FLAGS_PASSTHRU         (1 << 2)  /* serdes passthru (5690) */
+#define PHY_FLAGS_10B              (1 << 3)  /* ten bit interface (TBI) */
+#define PHY_FLAGS_5421S            (1 << 4)  /* True if PHY is a 5421S */
+#define PHY_FLAGS_DISABLE          (1 << 5)  /* True if PHY is disabled */
+#define PHY_FLAGS_C45              (1 << 6)  /* True if PHY uses clause 45
+                                              * MIIM */
+#define PHY_FLAGS_100FX            (1 << 7)  /* True if PHY at 100FX
+                                              * (for 5482S) */
+#define PHY_FLAGS_MEDIUM_CHANGE    (1 << 8)  /* True if PHY medium changed
+                                              * between copper and fiber */
+#define PHY_FLAGS_SERDES_FIBER     (1 << 9)  /* True if use internal serdes
+                                              * phy */
+#define PHY_FLAGS_WAN              (1 << 10) /* WAN mode */
+#define PHY_FLAGS_SGMII_AUTONEG    (1 << 11) /* Use SGMII autoneg between
+                                              * internal SerDes and external
+                                              * PHY */
+#define PHY_FLAGS_EXTERNAL_PHY     (1 << 12) /* Port has external PHY */
+#define PHY_FLAGS_FORCED_SGMII     (1 << 13) /* Interface between internal and
+                                              * external PHY is always SGMII */
+#define PHY_FLAGS_FORCED_COPPER    (1 << 14) /* Forced media to copper */
+#define PHY_FLAGS_C73              (1 << 15) /* Auto-negotiation for Backplane
+                                              * Ethernet (clause 73) */
+#define PHY_FLAGS_INDEPENDENT_LANE (1 << 16) /* Treat each XGXS lane as
+                                              * independent lane. */
+#define PHY_FLAGS_SINGLE_LANE      (1 << 17) /* Use only lane 0 of XGXS core. */
+
+#define PHY_FLAGS_PRIMARY_SERDES    (1<<18)
+
+#define PHY_FLAGS_SECONDARY_SERDES (1<<19)
+
+#define PHY_FLAGS_INIT_DONE        (1<<20)
+
+#define PHY_FLAGS_HC65_FABRIC      (1<<21)   /* True if PHY used for SBX */
+                                             /* fabric links */
+#define PHY_FLAGS_EEE_CAPABLE      (1<<22)
+
+#define PHY_FLAGS_EEE_ENABLED      (1<<23)
+
+#define PHY_FLAGS_EEE_MODE         (1<<24)
+
+#define PHY_FLAGS_BR               (1<<25)
+
+#define PHY_FLAGS_HS_CAPABLE       (1<<26)
+
+#define PHY_FLAGS_CHAINED          (1<<27)
+
+#define PHY_FLAGS_REPEATER		   (1<<28)		/* PHY is a repeater */
+
+#define PHY_FLAGS_SUPPORT_DUAL_RATE (1<<29)
+
+#define PHY_FLAGS_SERVICE_INT_PHY_LINK_GET  (1<<30)
+#define PHY_FLAGS_NO_SYS_LINE_SPD_SYNC      (1<<31)                                               
+
+#define PHY_BRCM_OUI6           0xd40129        /* Broadcom OUI */
+#define PHY_BCM5418X_OUI        PHY_BRCM_OUI6
+#define PHY_BCM54182_MODEL      0x01
+
+
+
+#define PHY_OUI(id0, id1) \
+        _bit_rev_by_byte_word32((uint32)(id0) << 6 | ((id1) >> 10 & 0x3f))
+
+#define PHY_MODEL(id0, id1) ((id1) >> 4 & 0x3f)
+
+
+/****************************BCM54182 Phy Register****************************************/
+/*
+ * Top Misc Global Reset 
+ */
+#define PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_OFFSET            0x82b
+#define PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TOP_MII_SOFT     (1<<15)
+#define PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TIMESYNC         (1<<10)
+
+#define PHY_BCM542XX_PHYADDR_REVERSE                    (1<<0)
+#define PHY_BCM542XX_REAR_HALF                          (1<<1)
+#define PHY_BCM542XX_SYS_SIDE_AUTONEG                   (1<<2)
+
+#define PHY_PORTS_PER_QSGMII        4
+#define PHY_QSGMII0_HEAD            0x0
+#define PHY_QSGMII1_HEAD            (PHY_QSGMII0_HEAD + PHY_PORTS_PER_QSGMII)
+
+/*
+ * Top Misc Top Cfg 
+ */
+
+#define PHY_BCM542XX_TOP_MISC_TOP_CFG_REG_OFFSET      0x810
+#define PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA    (1<<3)
+#define PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL     (1<<2)
+ 
+#define PHY_BCM542XX_MII_CTRL_REG                     0x00
+/*
+ * AUXILIARY CONTROL REG
+ */
+#define PHY_BCM542XX_AUX_CTRL_REG_OFFSET              0x028
+
+/*
+ * DSP_TAP10
+ */
+#define PHY_BCM542XX_DSP_TAP10_REG_OFFSET             0x125
+
+/*
+ * COPPER_POWER_MII_CTRL Register
+ */
+#define PHY_BCM542XX_POWER_MII_CTRL_REG_OFFSET        0x02A
+#define PHY_BCM542XX_POWER_MII_CTRL_SUPER_ISOLATE    (1<<5)
+
+/*
+ * LED GPIO CTRL_STATUS
+ */
+#define PHY_BCM542XX_LED_GPIO_CTRL_STATUS_REG_OFFSET  0x01F
+
+
+/*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/
 //#ifdef  BCM_56370_A0
@@ -1582,6 +1700,23 @@ typedef enum{
 
 //#endif  /* BCM_56370_A0 */
 
+typedef struct port_cb_s {
+    uint8_t   valid;    
+    uint8_t   probed;
+    uint32_t  ext_phy_addr;
+    uint32_t  int_phy_addr;
+    uint32_t  phy_flags;
+    uint32_t  primary_and_offset;
+
+    struct dev_desc_ {
+       uint32_t flags;
+       uint16 phy_id_orig;
+       uint16 phy_id_base; /* port 0 addr */
+       uint16 phy_slice;
+       int32_t  port_pre_speed;       
+    } dev_desc;
+} port_info_t;
+
 typedef struct {
     int             bandwidth;                                /* max core bandwidth */
     int             port_p2l_mapping[SOC_MAX_NUM_PORTS];      /* phy to logic */
@@ -1596,17 +1731,18 @@ typedef struct {
     int             port_m2p_mapping[SOC_MAX_NUM_MMU_PORTS];  /* mmu to phy */
     int             port_num_lanes[SOC_MAX_NUM_PORTS];        /* number of lanes */  
     int             port_speed_max[SOC_MAX_NUM_PORTS];        /* max port speed */
-    int             port_init_speed[SOC_MAX_NUM_PORTS];   /* ports initial speed */
+    int             port_init_speed[SOC_MAX_NUM_PORTS];       /* ports initial speed */
     int             port_serdes[SOC_MAX_NUM_PORTS];           /* serdes number */
     int             port_num_subport[SOC_MAX_NUM_PORTS];      /* number of subport */    
     int             port_pipe[SOC_MAX_NUM_PORTS];             /* pipe number */
-    int             port_group[SOC_MAX_NUM_PORTS];        /* group number */
+    int             port_group[SOC_MAX_NUM_PORTS];            /* group number */
 
     int             cpu_hg_index;           /* table index for cpu port
                                              * higig packet where table indexed
                                              * by physical port*/
     int             port_type[SOC_MAX_NUM_PORTS];                     
-    int             ext_phy_addr[SOC_MAX_NUM_PORTS];              
+
+    port_info_t     ports[SOC_MAX_NUM_PORTS];                 /* port information */
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))

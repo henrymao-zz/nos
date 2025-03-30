@@ -55,68 +55,82 @@ typedef struct {
     int phy_port;
     int bandwidth;
     int ext_phy_addr;
+    int primary_and_offset;
     int port_type;
     char name[KCOM_NETIF_NAME_MAX];
     int lanes[4];
 } port_info_t;
 
 static const port_info_t n3248te_ports[] = {
-    { 1,   1,  1, 0x0, BCMSW_PORT_TYPE_GXPORT, "Ethernet0",  {1, -1, -1, -1}}, 
-    { 2,   2,  1, 0x1, BCMSW_PORT_TYPE_GXPORT, "Ethernet1",  {2, -1, -1, -1}}, 
-    { 3,   3,  1, 0x2, BCMSW_PORT_TYPE_GXPORT, "Ethernet2",  {3, -1, -1, -1}}, 
-    { 4,   4,  1, 0x3, BCMSW_PORT_TYPE_GXPORT, "Ethernet3",  {4, -1, -1, -1}}, 
-    { 5,   5,  1, 0x4, BCMSW_PORT_TYPE_GXPORT, "Ethernet4",  {5, -1, -1, -1}}, 
-    { 6,   6,  1, 0x5, BCMSW_PORT_TYPE_GXPORT, "Ethernet5",  {6, -1, -1, -1}}, 
-    { 7,   7,  1, 0x6, BCMSW_PORT_TYPE_GXPORT, "Ethernet6",  {7, -1, -1, -1}}, 
-    { 8,   8,  1, 0x7, BCMSW_PORT_TYPE_GXPORT, "Ethernet7",  {8, -1, -1, -1}}, 
-    { 9,   0,  1, 0x9, BCMSW_PORT_TYPE_GXPORT, "Ethernet8",  {9, -1, -1, -1}}, 
-    { 10,  10, 1, 0xa, BCMSW_PORT_TYPE_GXPORT, "Ethernet9",  {10, -1, -1, -1}}, 
-    { 11,  11, 1, 0xb, BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1}}, 
-    { 12,  12, 1, 0xc, BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1}}, 
-    { 13,  13, 1, 0xd, BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1}},         
-    { 14,  14, 1, 0xe, BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1}}, 
-    { 15,  15, 1, 0xf, BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1}}, 
-    { 16,  16, 1,  0x10, BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1}}, 
-    { 17,  17, 1,  0x12, BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1}}, 
-    { 18,  18, 1,  0x13, BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1}}, 
-    { 19,  19, 1,  0x14, BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1}}, 
-    { 20,  20, 1,  0x15, BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1}}, 
-    { 21,  21, 1,  0x16, BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1}}, 
-    { 22,  22, 1,  0x17, BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1}}, 
-    { 23,  23, 1,  0x18, BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1}}, 
-    { 24,  24, 1,  0x19, BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1}}, 
-    { 25,  25, 1,  0x20, BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1}}, 
-    { 26,  26, 1,  0x21, BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1}}, 
-    { 27,  27, 1,  0x22, BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1}}, 
-    { 28,  28, 1,  0x23, BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1}}, 
-    { 29,  29, 1,  0x24, BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1}}, 
-    { 30,  30, 1,  0x25, BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1}}, 
-    { 31,  31, 1,  0x26, BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1}}, 
-    { 32,  32, 1,  0x27, BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1}}, 
-    { 33,  33, 1,  0x29, BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1}},        
-    { 34,  34, 1,  0x2a, BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1}}, 
-    { 35,  35, 1,  0x2b, BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1}}, 
-    { 36,  36, 1,  0x2c, BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1}}, 
-    { 37,  37, 1,  0x2d, BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1}}, 
-    { 38,  38, 1,  0x2e, BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1}}, 
-    { 39,  39, 1,  0x2f, BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1}}, 
-    { 40,  40, 1,  0x30, BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1}}, 
-    { 41,  41, 1,  0x32, BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1}}, 
-    { 42,  42, 1,  0x33, BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1}}, 
-    { 43,  43, 1,  0x34, BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1}}, 
-    { 44,  44, 1,  0x35, BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1}}, 
-    { 45,  45, 1,  0x36, BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1}}, 
-    { 46,  46, 1,  0x37, BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1}}, 
-    { 47,  47, 1,  0x38, BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1}}, 
-    { 48,  48, 1,  0x39, BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1}}, 
-    { 49,  64, 10, 0x40, BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1}}, 
-    { 50,  63, 10, 0x41, BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1}}, 
-    { 51,  62, 10, 0x42, BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1}}, 
-    { 52,  61, 10, 0x43, BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1}}, 
-    { 53,  69, 100,  -1, BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72}}, 
-    { 57,  73, 100,  -1, BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76}},   
-    { -1,  -1,  -1,  -1,                     -1, "\0",         {-1, -1, -1, -1}}                                      
+    { 1,   1,  1, 0x0, 0x0100, BCMSW_PORT_TYPE_GXPORT, "Ethernet0",  {1, -1, -1, -1}}, 
+    { 2,   2,  1, 0x1, 0x0101, BCMSW_PORT_TYPE_GXPORT, "Ethernet1",  {2, -1, -1, -1}}, 
+    { 3,   3,  1, 0x2, 0x0102, BCMSW_PORT_TYPE_GXPORT, "Ethernet2",  {3, -1, -1, -1}}, 
+    { 4,   4,  1, 0x3, 0x0103, BCMSW_PORT_TYPE_GXPORT, "Ethernet3",  {4, -1, -1, -1}}, 
+    { 5,   5,  1, 0x4, 0x0104, BCMSW_PORT_TYPE_GXPORT, "Ethernet4",  {5, -1, -1, -1}}, 
+    { 6,   6,  1, 0x5, 0x0105, BCMSW_PORT_TYPE_GXPORT, "Ethernet5",  {6, -1, -1, -1}}, 
+    { 7,   7,  1, 0x6, 0x0106, BCMSW_PORT_TYPE_GXPORT, "Ethernet6",  {7, -1, -1, -1}}, 
+    { 8,   8,  1, 0x7, 0x0107, BCMSW_PORT_TYPE_GXPORT, "Ethernet7",  {8, -1, -1, -1}}, 
+    { 9,   0,  1, 0x9, 0x0900, BCMSW_PORT_TYPE_GXPORT, "Ethernet8",  {9, -1, -1, -1}}, 
+    { 10,  10, 1, 0xa, 0x0901, BCMSW_PORT_TYPE_GXPORT, "Ethernet9",  {10, -1, -1, -1}}, 
+    { 11,  11, 1, 0xb, 0x0902, BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1}}, 
+    { 12,  12, 1, 0xc, 0x0903, BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1}}, 
+    { 13,  13, 1, 0xd, 0x0904, BCMSW_PORT_TYPE_GXPORT, "Ethernet12", {13, -1, -1, -1}},         
+    { 14,  14, 1, 0xe, 0x0905, BCMSW_PORT_TYPE_GXPORT, "Ethernet13", {14, -1, -1, -1}}, 
+    { 15,  15, 1, 0xf, 0x0906, BCMSW_PORT_TYPE_GXPORT, "Ethernet14", {15, -1, -1, -1}}, 
+    { 16,  16, 1,  0x10, 0x0907, BCMSW_PORT_TYPE_GXPORT, "Ethernet15", {16, -1, -1, -1}}, 
+    { 17,  17, 1,  0x12, 0x1200, BCMSW_PORT_TYPE_GXPORT, "Ethernet16", {17, -1, -1, -1}}, 
+    { 18,  18, 1,  0x13, 0x1201, BCMSW_PORT_TYPE_GXPORT, "Ethernet17", {18, -1, -1, -1}}, 
+    { 19,  19, 1,  0x14, 0x1202, BCMSW_PORT_TYPE_GXPORT, "Ethernet18", {19, -1, -1, -1}}, 
+    { 20,  20, 1,  0x15, 0x1203, BCMSW_PORT_TYPE_GXPORT, "Ethernet19", {20, -1, -1, -1}}, 
+    { 21,  21, 1,  0x16, 0x1204, BCMSW_PORT_TYPE_GXPORT, "Ethernet20", {21, -1, -1, -1}}, 
+    { 22,  22, 1,  0x17, 0x1205, BCMSW_PORT_TYPE_GXPORT, "Ethernet21", {22, -1, -1, -1}}, 
+    { 23,  23, 1,  0x18, 0x1206, BCMSW_PORT_TYPE_GXPORT, "Ethernet22", {23, -1, -1, -1}}, 
+    { 24,  24, 1,  0x19, 0x1207, BCMSW_PORT_TYPE_GXPORT, "Ethernet23", {24, -1, -1, -1}}, 
+    { 25,  25, 1,  0x20, 0x2000, BCMSW_PORT_TYPE_GXPORT, "Ethernet24", {25, -1, -1, -1}}, 
+    { 26,  26, 1,  0x21, 0x2001, BCMSW_PORT_TYPE_GXPORT, "Ethernet25", {26, -1, -1, -1}}, 
+    { 27,  27, 1,  0x22, 0x2002, BCMSW_PORT_TYPE_GXPORT, "Ethernet26", {27, -1, -1, -1}}, 
+    { 28,  28, 1,  0x23, 0x2003, BCMSW_PORT_TYPE_GXPORT, "Ethernet27", {28, -1, -1, -1}}, 
+    { 29,  29, 1,  0x24, 0x2004, BCMSW_PORT_TYPE_GXPORT, "Ethernet28", {29, -1, -1, -1}}, 
+    { 30,  30, 1,  0x25, 0x2005, BCMSW_PORT_TYPE_GXPORT, "Ethernet29", {30, -1, -1, -1}}, 
+    { 31,  31, 1,  0x26, 0x2006, BCMSW_PORT_TYPE_GXPORT, "Ethernet30", {31, -1, -1, -1}}, 
+    { 32,  32, 1,  0x27, 0x2007, BCMSW_PORT_TYPE_GXPORT, "Ethernet31", {32, -1, -1, -1}}, 
+    { 33,  33, 1,  0x29, 0x2900, BCMSW_PORT_TYPE_GXPORT, "Ethernet32", {33, -1, -1, -1}},        
+    { 34,  34, 1,  0x2a, 0x2901, BCMSW_PORT_TYPE_GXPORT, "Ethernet33", {34, -1, -1, -1}}, 
+    { 35,  35, 1,  0x2b, 0x2902, BCMSW_PORT_TYPE_GXPORT, "Ethernet34", {35, -1, -1, -1}}, 
+    { 36,  36, 1,  0x2c, 0x2903, BCMSW_PORT_TYPE_GXPORT, "Ethernet35", {36, -1, -1, -1}}, 
+    { 37,  37, 1,  0x2d, 0x2904, BCMSW_PORT_TYPE_GXPORT, "Ethernet36", {37, -1, -1, -1}}, 
+    { 38,  38, 1,  0x2e, 0x2905, BCMSW_PORT_TYPE_GXPORT, "Ethernet37", {38, -1, -1, -1}}, 
+    { 39,  39, 1,  0x2f, 0x2906, BCMSW_PORT_TYPE_GXPORT, "Ethernet38", {39, -1, -1, -1}}, 
+    { 40,  40, 1,  0x30, 0x2907, BCMSW_PORT_TYPE_GXPORT, "Ethernet39", {40, -1, -1, -1}}, 
+    { 41,  41, 1,  0x32, 0x3200, BCMSW_PORT_TYPE_GXPORT, "Ethernet40", {41, -1, -1, -1}}, 
+    { 42,  42, 1,  0x33, 0x3201, BCMSW_PORT_TYPE_GXPORT, "Ethernet41", {42, -1, -1, -1}}, 
+    { 43,  43, 1,  0x34, 0x3202, BCMSW_PORT_TYPE_GXPORT, "Ethernet42", {43, -1, -1, -1}}, 
+    { 44,  44, 1,  0x35, 0x3203, BCMSW_PORT_TYPE_GXPORT, "Ethernet43", {44, -1, -1, -1}}, 
+    { 45,  45, 1,  0x36, 0x3204, BCMSW_PORT_TYPE_GXPORT, "Ethernet44", {45, -1, -1, -1}}, 
+    { 46,  46, 1,  0x37, 0x3205, BCMSW_PORT_TYPE_GXPORT, "Ethernet45", {46, -1, -1, -1}}, 
+    { 47,  47, 1,  0x38, 0x3206, BCMSW_PORT_TYPE_GXPORT, "Ethernet46", {47, -1, -1, -1}}, 
+    { 48,  48, 1,  0x39, 0x3207, BCMSW_PORT_TYPE_GXPORT, "Ethernet47", {48, -1, -1, -1}}, 
+    { 49,  64, 10, 0x40, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet48", {64, -1, -1, -1}}, 
+    { 50,  63, 10, 0x41, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet49", {63, -1, -1, -1}}, 
+    { 51,  62, 10, 0x42, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet50", {62, -1, -1, -1}}, 
+    { 52,  61, 10, 0x43, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet51", {61, -1, -1, -1}}, 
+    { 53,  69, 100,  -1, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet52", {69, 70, 71, 72}}, 
+    { 57,  73, 100,  -1, -1,     BCMSW_PORT_TYPE_XLPORT, "Ethernet56", {73, 74, 75, 76}},   
+    { -1,  -1,  -1,  -1, -1,                         -1, "\0",         {-1, -1, -1, -1}}                                      
 };
+
+/*****************************************************************************************/
+/*                              UTILS                                                    */
+/*****************************************************************************************/
+/* reverse the bits in each byte of a 32 bit long */
+static uint32
+_bit_rev_by_byte_word32(uint32 n)
+{
+    n = (((n & 0xaaaaaaaa) >> 1) | ((n & 0x55555555) << 1));
+    n = (((n & 0xcccccccc) >> 2) | ((n & 0x33333333) << 2));
+    n = (((n & 0xf0f0f0f0) >> 4) | ((n & 0x0f0f0f0f) << 4));
+    return n;
+}
 
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
@@ -1735,7 +1749,10 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[index] = -1;
         si->port_num_lanes[index] = -1;
         si->port_type[index] = -1;
-	si->ext_phy_addr[index] = -1;
+        si->ports[index].valid = FALSE;
+        si->ports[index].probed = FALSE;
+	    si->ports[index].ext_phy_addr = -1;
+        si->ports[index].primary_and_offset = -1;
     }
     for (mmu_port = 0; mmu_port < num_mmu_port; mmu_port++) {
         si->port_m2p_mapping[mmu_port] = -1;
@@ -1762,6 +1779,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[port] = pipe;
         si->port_type[port] = hx5_anc_ports[index].port_type;
         //SOC_PBMP_PORT_ADD(si->pipe_pbm[pipe], port);
+        si->ports[port].valid = TRUE;
     }
 
     //FIXME hardcoded for N3248TE
@@ -1789,7 +1807,9 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 
         //port_type
         si->port_type[port] = n3248te_ports[index].port_type;
-        si->ext_phy_addr[port] = n3248te_ports[index].ext_phy_addr;
+        si->ports[port].valid = TRUE;
+        si->ports[port].ext_phy_addr = n3248te_ports[index].ext_phy_addr;
+        si->ports[port].primary_and_offset = n3248te_ports[index].primary_and_offset;
     }
     si->cpu_hg_index = 72;
     //TODO flex port init
@@ -1893,6 +1913,12 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     return 0;
 }
 
+
+
+/*****************************************************************************************/
+/*                            CMICX MIIM read/write                                      */
+/*****************************************************************************************/
+
 static int _iproc_setreg(uint32_t addr, uint32_t data)
 {
     return kernel_bde->iproc_write(0, addr, data);
@@ -1941,11 +1967,11 @@ uint32 _cmicx_miim_cycle_type_get(int is_write, int clause45, uint32 phy_devad)
     return cycle_type;
 }
 
-//MIIM read CL22
-static int
-_soc_miim_read(struct net_device *dev, uint32 phy_id,
-              uint8 phy_reg_addr, uint16 *phy_data)
+
+static int 
+_cmicx_miim_operation_cl22(int is_write, uint32 phy_id, uint8 phy_reg_addr, uint16 *phy_data)
 {
+
     miim_ch_address_t ch_addr;
     miim_ch_params_t  ch_params;
     miim_ch_control_t ch_control;
@@ -1983,12 +2009,16 @@ _soc_miim_read(struct net_device *dev, uint32 phy_id,
    ch_params.reg.RING_MAPf = mdio_buses;
 
    phy_devad = phy_reg_addr >> 16;
-   cycle_type = _cmicx_miim_cycle_type_get(0, 0, phy_devad);
+   cycle_type = _cmicx_miim_cycle_type_get(is_write, 0, phy_devad);
 
    ch_params.reg.MDIO_OP_TYPEf = cycle_type;
 
-   ch_params.reg.PHY_WR_DATAf = 0x0;
- 
+   if (is_write) {
+       ch_params.reg.PHY_WR_DATAf = *phy_data;
+   } else {
+       ch_params.reg.PHY_WR_DATAf = 0x0;
+   }
+   
    _iproc_setreg(MIIM_CH0_PARAMSr, ch_params.word);
 
    //printk("read id=0x%02x addr=0x%02x real_phy_id=0x%x, mdio_buses=0x%x internal 0x%x cycle 0x%x\n",
@@ -2026,8 +2056,10 @@ _soc_miim_read(struct net_device *dev, uint32 phy_id,
     } while(1);
 
     /* in case of read - get data */
-    *phy_data = ch_status.reg.PHY_RD_DATAf;
-    //printk("_cmicx_miim_operation read data: %d \n",*phy_data);
+    if (!is_write) { 
+        *phy_data = ch_status.reg.PHY_RD_DATAf;
+        //printk("_cmicx_miim_operation read data: %d \n",*phy_data);
+    }
 
 exit:
     /* cleanup */
@@ -2040,51 +2072,987 @@ exit:
     }
     return is_error;               
 }
+//MIIM write CL22
+static int 
+_soc_miim_write(uint32 phy_id, uint8 phy_reg_addr, uint16 phy_wr_data)
+{
+    return _cmicx_miim_operation_cl22(TRUE, phy_id, phy_reg_addr, &phy_wr_data);
+}
+
+//MIIM read CL22
+static int
+_soc_miim_read(uint32 phy_id, uint8 phy_reg_addr, uint16 *phy_data)
+{
+    return _cmicx_miim_operation_cl22(FLASE, phy_id, phy_reg_addr, &phy_wr_data);
+}
+
+/*****************************************************************************************/
+/*                            Phy Read/Write                                             */
+/*****************************************************************************************/
+
+static int 
+phy_reg_read(uint16_t phy_addr, uint8_t reg_addr, uint16 * data)
+{
+    return  _soc_miim_read(phy_addr, reg_addr, data);
+}
+
+static int 
+phy_reg_write(uint16_t phy_addr, uint8_t reg_addr, uint16 data)
+{
+    return  _soc_miim_write(phy_addr, reg_addr, data);
+}
+
+static int 
+phy_reg_modify(uint16_t phy_addr,  
+               uint8_t reg_addr,
+               uint16 data, uint16 mask)
+{
+    uint16_t        tmp, otmp;
+
+    reg_data = reg_data & reg_mask;
+
+    phy_reg_read(phy_addr, reg_addr, &tmp)
+
+
+    otmp = tmp;
+    tmp &= ~(reg_mask);
+    tmp |= reg_data;
+
+    if (otmp != tmp) {
+        phy_reg_write(phy_addr, reg_addr, tmp);
+    }
+    return SOC_E_NONE;
+}
+/*****************************************************************************************/
+/*                             FE/GE PHY Standard OP                                     */
+/*****************************************************************************************/
+
+int
+phy_reg_ge_write(int port, uint16_t phy_addr, uint8 reg_addr, uint16 data)
+{
+    int      rv;
+    uint16_t reg_bank = 0;
+
+    rv       = SOC_E_NONE;
+
+    switch(reg_addr) {
+        /* Map shadow registers */
+        case 0x15:
+            /* SHAD_EXPD for 54640E */
+            //BCM54640E_SHAD_EXPD_PRE(unit, pc, reg_bank);
+
+            phy_reg_write(phy_addr, 0x17, reg_bank);
+            break;
+        case 0x18:
+            if (reg_bank <= 0x0007) {
+                if (reg_bank == 0x0007) {
+                    data |= 0x8000;
+                }
+                data = (data & ~(0x0007)) | reg_bank;
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1C:
+            if (reg_bank <= 0x001F) {
+                data = 0x8000 | (reg_bank << 10) | (data & 0x03FF);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1D:
+            if (reg_bank == 0x0000) {
+                data = data & 0x07FFF;
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        default:
+            /* Must not write to reserved registers */ 
+            if (reg_addr > 0x001e) {
+                rv = SOC_E_PARAM;
+            }
+            break;
+    }
+
+    if ( rv >= 0) {
+        rv = phy_reg_write(phy_addr, reg_addr, data);
+    }
+     
+
+    if (rv < 0) {
+        printk("phy_reg_ge_write failed:"
+               " u=%d phy_id=0x%2x  reg_addr=0x%02x "
+               " rv=%d\n"), port, phy_addr, reg_addr, rv); 
+    }
+
+    return rv;
+}
+
+
+// Reset PHY and wait for it to come out of reset.
+int
+phy_fe_ge_reset(int port, uint16_t phy_addr)
+{
+    uint16          ctrl, tmp;
+    int             timeout = 0, reset_timeout = 0;
+
+    /* IEEE Standard Registers */
+    /* 1000BASE-T/100BASE-TX/10BASE-T MII Control Register (Addr 00h) */
+    phy_reg_read(phy_addr, 0x00, &ctrl);
+
+    phy_reg_ge_write(port, phy_addr, 0x00, (ctrl | MII_CTRL_RESET));
+
+    soc_timeout_init(&to,
+             soc_property_get(unit,
+                      spn_PHY_RESET_TIMEOUT,
+                      PHY_RESET_TIMEOUT_USEC), 1);
+
+    do {
+        phy_reg_read(phy_addr, 0x00, &tmp);
+
+        msleep(10);
+        reset_timeout++;
+        if(reset_timeout > 2) {
+            timeout = 1;
+            break;
+        }
+    } while ((tmp & MII_CTRL_RESET) != 0);
+
+    if (timeout) {
+        printk("phy_fe_ge_reset: timeout on u=%d p=%d\n",port, phy_addr);
+        phy_reg_ge_write(port, phy_addr, 0x00, ctrl);
+    }
+
+    return (SOC_E_NONE);
+}
+
+/*****************************************************************************************/
+/*                            BCM542XX Phy Read/Write                                    */
+/*****************************************************************************************/
+
+/* RDB register accessing funtions */
+static int
+phy_bcm542xx_rdb_reg_write(uint16_t phy_addr, uint8_t reg_addr, uint16 data)
+{
+    int  rv;
+
+    /* MDIO write the RDB reg. address to reg.0x1E = <reg_addr> */
+    rv = phy_reg_write(phy_addr, PHY_BCM542XX_RDB_ADDR_REG_OFFSET,PHY_BCM542XX_RDB_ADDR_REG_ADDR & reg_addr);
+
+    if ( SOC_E_NONE == rv ) {
+        /* MDIO read from reg.0x1F to modify the RDB register's value */
+        rv = phy_reg_write(phy_addr, PHY_BCM542XX_RDB_DATA_REG_OFFSET, data);
+    }
+    return rv;
+}
+
+//RDB register modification  (works ONLY under RDB register addressing mode !!)
+static int
+phy_bcm542xx_rdb_reg_modify(uint16_t phy_addr, uint8_t reg_addr, uint16 data, uint16 mask)
+{
+    int  rv;
+
+    /* MDIO write the RDB reg. address to reg.0x1E = <reg_addr> */
+    rv = phy_reg_write(phy_addr, PHY_BCM542XX_RDB_ADDR_REG_OFFSET,PHY_BCM542XX_RDB_ADDR_REG_ADDR & reg_addr);
+
+    if ( SOC_E_NONE == rv ) {
+        /* MDIO read from reg.0x1F to modify the RDB register's value */
+        rv = phy_reg_modify(phy_addr, PHY_BCM542XX_RDB_DATA_REG_OFFSET, data, mask);
+    }
+    return rv;
+}
+
+/* General - PHY register access */
+static int
+phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
+                       uint8_t reg_addr, uint16_t data)
+{
+    int     rv = SOC_E_NONE;
+    uint16  val;
+
+    //if ( SOC_WARM_BOOT(unit) || SOC_IS_RELOADING(unit) ) {
+    //    return SOC_E_NONE;
+    //}
+    //rv = SOC_E_NONE;
+
+    switch ( reg_addr ) {
+        /* Map shadow registers */
+        case 0x15:
+            phy_reg_write(phy_addr, 0x17, reg_bank);
+            break;
+        case 0x18:
+            if ( reg_bank <= 0x0007 ) {
+                val = (reg_bank << 12) | 0x7;
+                phy_reg_write(phy_addr, reg_addr, val);
+
+                if (reg_bank == 0x0007) {
+                    data |= 0x8000;
+                    mask |= 0x8000;
+                }
+                mask &= ~(0x0007);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1C:
+            if ( reg_bank <= 0x001F ) {
+                val = (reg_bank << 10);
+                phy_reg_write(phy_addr, reg_addr, val);
+                data |= 0x8000;
+                mask |= 0x8000;
+                mask &= ~(0x1F << 10);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1D:
+            if ( reg_bank == 0x0000 ) {
+                mask &= 0x07FFF;
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+    }
+    if ( rv >= 0 ) {
+        rv = phy_reg_write(phy_addr, reg_addr, data);
+    } 
+
+    if ( rv < 0 ) {
+        printk("phy_bcm542xx_reg_write: failed:"
+               "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
+               "rv=%d\n", ph_addr, reg_bank, reg_addr, rv);
+    }
+    return rv;
+}
+
+static int
+phy_bcm542xx_reg_modify(uint16_t phy_addr, uint16 reg_bank,
+                        uint8 reg_addr, uint16 data, uint16 mask)
+{
+    int     rv = SOC_E_NONE;
+    uint16  val;
+
+    //if ( SOC_WARM_BOOT(unit) || SOC_IS_RELOADING(unit) ) {
+    //    return SOC_E_NONE;
+    //}
+    //rv = SOC_E_NONE;
+
+    switch ( reg_addr ) {
+        /* Map shadow registers */
+        case 0x15:
+            phy_reg_write(phy_addr, 0x17, reg_bank);
+            break;
+        case 0x18:
+            if ( reg_bank <= 0x0007 ) {
+                val = (reg_bank << 12) | 0x7;
+                phy_reg_write(phy_addr, reg_addr, val);
+
+                if (reg_bank == 0x0007) {
+                    data |= 0x8000;
+                    mask |= 0x8000;
+                }
+                mask &= ~(0x0007);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1C:
+            if ( reg_bank <= 0x001F ) {
+                val = (reg_bank << 10);
+                phy_reg_write(phy_addr, reg_addr, val);
+                data |= 0x8000;
+                mask |= 0x8000;
+                mask &= ~(0x1F << 10);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1D:
+            if ( reg_bank == 0x0000 ) {
+                mask &= 0x07FFF;
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+    }
+    if ( rv >= 0 ) {
+        rv = phy_reg_modify(phy_addr, reg_addr, data, mask);
+    } 
+
+    if ( rv < 0 ) {
+        printk("phy_bcm542xx_reg_modify: failed:"
+               "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
+               "rv=%d\n", ph_addr, reg_bank, reg_addr, rv);
+    }
+    return rv;
+}
+
+
+/*
+ * QSGMII register WRITE
+ */
+int
+phy_bcm542xx_qsgmii_reg_write(uint16_t phy_addr, 
+        int dev_port, uint16 block, uint8 reg,
+        uint16 data)
+{
+    uint16  val;
+
+    //if ( SOC_WARM_BOOT(unit) || SOC_IS_RELOADING(unit) ) {
+    //    return SOC_E_NONE;
+    //}
+
+    /* Lanes from 0 to 7 (or 0x1F for all lanes) */
+    if ( ((dev_port < 0) || (dev_port > 7)) && (dev_port != 0x1F) ) {
+        return SOC_E_FAIL;
+    }
+
+    /* Set BAR to AER */
+    //if ( PHY_IS_BCM5418x_19x(pc) ) {
+    val = 0xFFDE;
+    //} else {
+    //    val = 0xFFD0;
+    //}
+
+    SOC_IF_ERROR_RETURN
+        (phy_bcm542xx_reg_write(unit, pc,
+                                PHY_BCM542XX_REG_QSGMII, 0, 0x1F, val));
+
+    /* set aer reg to access sgmii lane */
+    val = dev_port;
+    SOC_IF_ERROR_RETURN
+        (phy_bcm542xx_reg_write(unit, pc,
+                                PHY_BCM542XX_REG_QSGMII, 0, 0x1E, val));
+
+    /* set bar to register block */
+    val = (block & 0xfff0);
+    SOC_IF_ERROR_RETURN
+        (phy_bcm542xx_reg_write(unit, pc,
+                                PHY_BCM542XX_REG_QSGMII, 0, 0x1F, val));
+
+    /* Write the register */
+    if (block >= 0x8000) {
+        reg |= 0x10;
+    }
+
+    SOC_IF_ERROR_RETURN
+        (phy_bcm542xx_reg_write(unit, pc,
+                                PHY_BCM542XX_REG_QSGMII, 0, reg, data));
+
+    return SOC_E_NONE;
+}
+
+/*****************************************************************************************/
+/*                             Phy Probe                                                 */
+/*****************************************************************************************/
 
 static int
 _ext_phy_probe(struct bcmsw_switch *bcmsw_sw, int port)
 {
     uint16               phy_addr, phy_id0, phy_id1;
     uint32               id0_addr, id1_addr;
-    soc_info_t          *si = bcmsw_sw->si;
+    soc_info_t           *si = bcmsw_sw->si;
+    port_info_t          *p_port;
+
+    p_port = &si->ports[port];
 
     id0_addr = MII_PHY_ID0_REG;
     id1_addr = MII_PHY_ID1_REG;
 
-    phy_addr = si->ext_phy_addr[port];
+    phy_addr = p_port->ext_phy_addr;
 
     //read phy_id0
-    _soc_miim_read(bcmsw_sw->dev, phy_addr, id0_addr, &phy_id0);
+    _soc_miim_read(phy_addr, id0_addr, &phy_id0);
 
 
     //read phy_id1
-    _soc_miim_read(bcmsw_sw->dev, phy_addr, id1_addr, &phy_id1);
+    _soc_miim_read(phy_addr, id1_addr, &phy_id1);
 
     //Verify result is expected
-    printk("_ext_phy_probe port %d - phy_addr 0x%x  id0 0x%x id1 0x%x\n",port, phy_addr, phy_id0, phy_id1);
+    
+    //set probed if phy type match
+    if( PHY_OUI(phy_id0, phy_id1) ==  PHY_BCM5418X_OUI &&
+        PHY_MODEL(phy_id0, phy_id1) == PHY_BCM54182_MODEL) {
+        p_port->probed = TRUE;
+        printk("_ext_phy_probe port %d BCM54182 probe\n", port);
+    } else {
+        printk("_ext_phy_probe port %d - phy_addr 0x%x  id0 0x%x id1 0x%x\n",port, phy_addr, phy_id0, phy_id1);
+    }
+    
     return 0;
 }
 
+
+
+/*****************************************************************************************/
+/*                             BCM542XX Init/Setup                                       */
+/*****************************************************************************************/
+#if 0
+static int
+phy_bcm542xx_ability_local_get(int unit, soc_port_t port, soc_port_ability_t *ability)
+{
+    //phy_ctrl_t  *pc;
+
+    if (NULL == ability) {
+        return SOC_E_PARAM;
+    }
+    //pc = EXT_PHY_SW_STATE(unit, port);
+    memset(ability, 0,  sizeof(soc_port_ability_t)); /* zero initialize */
+
+    if ( PHY_COPPER_MODE(unit, port) ) {
+        ability->speed_half_duplex  = SOC_PA_SPEED_100MB | SOC_PA_SPEED_10MB;
+        ability->speed_full_duplex  = SOC_PA_SPEED_1000MB |
+                                      SOC_PA_SPEED_100MB |
+                                      SOC_PA_SPEED_10MB;
+
+        ability->pause     = SOC_PA_PAUSE | SOC_PA_PAUSE_ASYMM;
+        ability->interface = SOC_PA_INTF_SGMII;
+        ability->medium    = SOC_PA_MEDIUM_COPPER;
+        ability->loopback  = SOC_PA_LB_PHY;
+        ability->flags     = SOC_PA_AUTONEG;
+
+        /* EEE settings */
+        if ( PHY_FLAGS_TST(unit, port, PHY_FLAGS_EEE_CAPABLE) ) {
+                ability->eee |= SOC_PA_EEE_1GB_BASET | SOC_PA_EEE_100MB_BASETX;
+        }
+
+        if ( pc->automedium ) {
+            ability->flags     |= SOC_PA_COMBO;
+        }
+    } else if ( PHY_FIBER_MODE(unit, port) ) {
+        ability->speed_half_duplex  = SOC_PA_SPEED_100MB;
+        ability->speed_full_duplex  = SOC_PA_SPEED_1000MB |SOC_PA_SPEED_100MB;
+
+        ability->pause     = SOC_PA_PAUSE | SOC_PA_PAUSE_ASYMM;
+        ability->interface = SOC_PA_INTF_SGMII;
+        ability->medium    = SOC_PA_MEDIUM_FIBER;
+        ability->loopback  = SOC_PA_LB_PHY;
+        ability->flags     = SOC_PA_AUTONEG;
+
+        if ( pc->automedium ) {
+            ability->flags     |= SOC_PA_COMBO;
+        }
+
+    } else {
+        return SOC_E_INTERNAL;
+    }
+
+    LOG_INFO(BSL_LS_SOC_PHY,
+             (BSL_META_U(unit, "phy_bcm542xx_ability_local_get: u=%d p=%d "
+                               "ability_hd_speed=0x%x, ability_fd_speed=0x%x, "
+                               "ability_pause=0x%x\n"),
+              unit, port, ability->speed_half_duplex,
+              ability->speed_full_duplex, ability->pause));
+    return ( SOC_E_NONE );
+}
+
+int
+soc_phyctrl_ability_local_get(int unit, soc_port_t port,
+                             soc_port_ability_t *ability)
+{
+    int                 rv;
+    soc_port_ability_t  ability_int;
+    soc_port_ability_t  ability_ext;
+    phy_ctrl_t         *int_pc;
+    phy_ctrl_t         *ext_pc;
+
+    SOC_NULL_PARAM_CHECK(ability);
+
+    LOG_VERBOSE(BSL_LS_SOC_PHY,
+                (BSL_META_U(unit,
+                            "entered soc_phyctrl_ability_local_get: "
+                            "unit %d, port %d\n"), unit, port));
+    
+    //ext_pc = EXT_PHY_SW_STATE(unit, port);
+    //int_pc = INT_PHY_SW_STATE(unit, port);
+    //SOC_PHYCTRL_INIT_CHECK(ext_pc, int_pc);
+
+    ability_int.speed_half_duplex = ability_ext.speed_half_duplex = SOC_PA_SPEED_ALL;
+    ability_int.speed_full_duplex = ability_ext.speed_full_duplex = SOC_PA_SPEED_ALL;
+
+    rv = SOC_E_NONE;
+    if (NULL != int_pc) {
+
+        rv = _soc_phy_ability_local_get(unit, port, int_pc->pd, ability);
+        ability_int.speed_full_duplex = ability->speed_full_duplex;
+        ability_int.speed_half_duplex = ability->speed_half_duplex; 
+    }
+
+    if (SOC_SUCCESS(rv) && NULL != ext_pc) {
+        /* next make sure it's not phy_null_driver */
+        if (ext_pc->write != NULL) {
+            ability->speed_half_duplex = ability->speed_full_duplex = 0;
+            rv = _soc_phy_ability_local_get(unit, port, ext_pc->pd, ability);
+            ability_ext.speed_full_duplex = ability->speed_full_duplex;
+            ability_ext.speed_half_duplex = ability->speed_half_duplex;
+        }
+    }
+
+    if (SOC_SUCCESS(rv)) {
+        ability->speed_half_duplex = ability_int.speed_half_duplex & ability_ext.speed_half_duplex;
+        ability->speed_full_duplex = ability_int.speed_full_duplex & ability_ext.speed_full_duplex;  
+    }
+
+    if (SOC_FAILURE(rv)) {
+        PHYCTRL_WARN(("soc_phyctrl_ability_get failed %d\n", rv));
+    }
+    return rv;
+}
+
+
+//Might not need, verify register read
+static int
+_bcm_port_ability_local_get(struct bcmsw_switch *bcmsw_sw, int port,
+                           bcm_port_ability_t *ability_mask)
+{
+    soc_port_ability_t             mac_ability, phy_ability;
+    soc_pa_encap_t                 encap_ability;
+
+    memset(&phy_ability, 0, sizeof(soc_port_ability_t));
+    memset(&mac_ability, 0, sizeof(soc_port_ability_t));
+
+    SOC_IF_ERROR_RETURN
+        (soc_phyctrl_ability_local_get(unit, port, &phy_ability));
+
+    if (!(IS_TDM_PORT(unit, port))) {
+        SOC_IF_ERROR_RETURN
+            (MAC_ABILITY_LOCAL_GET(PORT(unit, port).p_mac, unit,
+                                   port, &mac_ability));
+    }
+
+    /* Combine MAC and PHY abilities */
+    {
+        ability_mask->speed_half_duplex =
+            mac_ability.speed_half_duplex & phy_ability.speed_half_duplex;
+    }
+    ability_mask->speed_full_duplex =
+        mac_ability.speed_full_duplex & phy_ability.speed_full_duplex;
+    ability_mask->pause     = mac_ability.pause & phy_ability.pause;
+    if (phy_ability.interface == 0) {
+        ability_mask->interface = mac_ability.interface;
+    } else {
+        ability_mask->interface = phy_ability.interface;
+    }
+    ability_mask->medium    = phy_ability.medium;
+    ability_mask->channel   = phy_ability.channel;
+    ability_mask->fec       = phy_ability.fec;
+    /* mac_ability.eee without phy_ability.eee makes no sense */
+    ability_mask->eee    = phy_ability.eee;
+    ability_mask->loopback  = mac_ability.loopback | phy_ability.loopback |
+                               BCM_PORT_ABILITY_LB_NONE;
+    ability_mask->flags     = mac_ability.flags | phy_ability.flags;
+
+    /* Get port encapsulation ability */
+    encap_ability = mac_ability.encap;
+
+    //if ((soc_feature(unit, soc_feature_embedded_higig))
+    //    && IS_E_PORT(unit, port)) {
+    //    encap_ability |= BCM_PA_ENCAP_HIGIG2_L2;
+    //    encap_ability |= BCM_PA_ENCAP_HIGIG2_IP_GRE;
+    //}
+
+    if (IS_HL_PORT(unit, port) &&
+         (SOC_IS_ENDURO(unit) || SOC_IS_HURRICANEX(unit) ||
+          SOC_IS_KATANA2(unit) )) {
+        encap_ability |= BCM_PA_ENCAP_HIGIG2;
+        /* should be HiGig-Lite, not Higig2 */
+        encap_ability |= BCM_PA_ENCAP_HIGIG2_LITE;
+    }
+
+    ability_mask->encap = encap_ability;
+    return BCM_E_NONE;
+}
+#endif
+
+//Reset PHY and wait for it to come out of reset.
+static int
+phy_bcm542xx_reset(int port, uint16_t phy_addr)
+{
+    int rv;
+
+    rv = phy_fe_ge_reset(port, phy_addr);
+
+    return ( rv );
+}
+
+static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    //_phy_bcm54282_init
+    soc_info_t  *si = bcmsw_sw->si;
+    port_info_t *p_port;
+    uint16_t     phy_id;
+
+    p_port = &si->ports[port];
+
+    /*
+    * Configure extended control register for led mode and
+    * jumbo frame support
+    */
+    phy_id = p_port->dev_desc.phy_id_base; /* RV */
+
+    /* Enable QSGMII MDIO sharing feature
+       - Enable access to QSGMII reg space using port3's MDIO address
+       - Use PHYA[4:0]+3 (Port3's MDIO) instead of PHYA[4:0)+8 as MDIO address.
+       - It saves one MDIO address for customer.
+       - Access to this top level register via port 0 only
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            PHY_BCM542XX_TOP_MISC_TOP_CFG_REG_OFFSET,
+                            PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL
+                          | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA,
+                            PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL
+                          | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA));
+
+    /* replace it with qsgmii phy id */
+    //PHY_BCM542XX_SLICE_ADDR
+    phy_id = p_port->dev_desc.phy_slice;
+    if (p_port->dev_desc.flags & PHY_BCM542XX_PHYADDR_REVERSE) {
+        phy_id = p_port->dev_desc.phy_id_base - 3;
+    } else {
+        phy_id = p_port->dev_desc.phy_id_base + 3;
+    }    
+
+    /* QSGMII FIFO Elasticity */
+    phy_bcm542xx_qsgmii_reg_write(phy_id,
+                                  p_port->dev_desc.phy_slice /*dev_port*/,
+                                  0x8300, 0x12, 0x0006));
+
+    /* Restore access to Copper/Fiber register space.
+     *  TOP lvl register, access through port0 only
+     */
+    phy_id = p_port->dev_desc.phy_id_base;
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            PHY_BCM542XX_TOP_MISC_TOP_CFG_REG_OFFSET,
+                            0,
+                            PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL
+                          | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA);
+    /* Restore the phy mdio address */
+    phy_id =  p_port->dev_desc.phy_id_orig;
+
+    /* system side QSGMII AutoNeg mode */
+    //if ( soc_property_port_get(unit, port, spn_PHY_SGMII_AUTONEG, TRUE) ) {
+    //    PHY_BCM542XX_SYS_SIDE_AUTONEG_SET(pc);
+    //} else {
+    //    PHY_BCM542XX_SYS_SIDE_AUTONEG_CLR(pc);
+    //}
+    p_port->dev_desc.flags &= ~PHY_BCM542XX_SYS_SIDE_AUTONEG;
+
+    /* Configure LED mode and turn on jumbo frame support */
+    //TODO
+    //_phy_bcm54280_init(unit, port);
+
+    /* In case of QSGMII devices, there is a LPI pass through mode
+       which has to be enabled for native EEE to work. In case of VNG,
+       it is already set by default. To enable it:
+    SOC_IF_ERROR_RETURN
+       (phy_bcm542xx_qsgmii_reg_write(PHY_BCM54282_QSGMII_DEV_ADDR(_pc),
+                                      (int)PHY_BCM542XX_DEV_PHY_SLICE(pc),
+                                      0x833e, 0x0e, 0xc000));
+    */
+    return SOC_E_NONE;    
+}
+
 static int 
-_port_probe(struct bcmsw_switch *bcmsw_sw)
+phy_bcm542xx_reset_setup(struct bcmsw_switch *bcmsw_sw,
+    int port,
+    int reset,
+    int automedium,
+    int fiber_preferred,
+    int fiber_detect,
+    int fiber_enable,
+    int copper_enable,
+    int ext_phy_autodetect_en,
+    int ext_phy_fiber_iface)
+{
+    int     primary_and_offset;
+    int     primary_port;
+    int     index;
+    int     oui = 0, model = 0, rev = 0;
+    soc_info_t  *si = bcmsw_sw->si;
+    port_info_t *p_port;
+    uint32_t     phy_addr;
+
+    p_port = &si->ports[port];
+
+    //TODO, ext addr only
+    phy_addr = p_port->ext_phy_addr;
+
+    primary_and_offset = p_port->primary_and_offset;
+
+    /* Set primary port & offset */
+    primary_port = (primary_and_offset >> 8) & 0xffff;
+    index = primary_and_offset & 0xff;
+
+    if ( index & 0x80 ) {
+        p_port->dev_desc.flags |=  PHY_BCM542XX_PHYADDR_REVERSE;
+    } else {
+        p_port->dev_desc.flags &= ~PHY_BCM542XX_PHYADDR_REVERSE;
+    }
+
+    /* Do not change the order */
+    index &= ~0x80; /* clear reverse bit (PHYA_REV) */
+    p_port->dev_desc.phy_id_orig = p_port->ext_phy_addr;
+    p_port->dev_desc.phy_slice = index;
+    /* phy address of port 0 */
+    if (p_port->dev_desc.flags & PHY_BCM542XX_PHYADDR_REVERSE) {
+        p_port->dev_desc.phy_id_base = p_port->dev_desc.phy_id_orig + p_port->dev_desc.phy_slice;
+    } else {
+        p_port->dev_desc.phy_id_base =  p_port->dev_desc.phy_id_orig - p_port->dev_desc.phy_slice;
+    }
+
+    /* workaround for 50140/54140/5018x/5418x/5019x/5419x : restarting AFE PLL *\
+     *      after the power rails are stable, to fix the issue of AFE PLL lock */
+    //if (  PHY_IS_BCM5418x_19x(pc) &&
+    if((PHY_QSGMII0_HEAD == index) || (PHY_QSGMII1_HEAD == index)) {
+        int  qii = 0;
+        /* reset PLL of port 0-3/4-7 in one-shot before initializing port 0/4 */
+        for ( qii = 0; qii < PHY_PORTS_PER_QSGMII; qii++ ) {
+            /* RDB_reg.0x015[1]   enable Auto-Power-Down DLL */
+            phy_bcm542xx_rdb_reg_modify(phy_addr+qii, 0x015, 0, BCM542XX_AUTO_PWR_DOWN_DLL_DIS);
+
+            /* Reg.0x00[11]  Power down copper interface */
+            phy_bcm542xx_reg_modify(phy_addr+qii, 0x0000, PHY_BCM542XX_MII_CTRL_REG, PHY_BCM542XX_MII_CTRL_PWR_DOWN, PHY_BCM542XX_MII_CTRL_PWR_DOWN);
+
+            /* Reg.0x00[11]  Power up   copper interface */
+            phy_bcm542xx_reg_modify(phy_addr+qii, 0x0000,  PHY_BCM542XX_MII_CTRL_REG, 0, PHY_BCM542XX_MII_CTRL_PWR_DOWN);
+
+            /* RDB_reg.0x015[1]  disable Auto-Power-Down DLL */
+            phy_bcm542xx_rdb_reg_modify(phy_addr+qii, 0x015,BCM542XX_AUTO_PWR_DOWN_DLL_DIS, BCM542XX_AUTO_PWR_DOWN_DLL_DIS);
+        }
+    }
+
+
+    /* PHY reset */
+    phy_bcm542xx_reset(port, phy_addr);
+
+    if ( !(p_port->phy_flags & PHY_FLAGS_INIT_DONE) ) {
+        /* Reset the Top level register block  (RDB Reg.0x800-0xAFF) *\
+        \* during the 1st initialization only.                       */
+        phy_bcm542xx_rdb_reg_modify(phy_addr,
+                              PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_OFFSET,
+                              PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TOP_MII_SOFT |
+                              PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TIMESYNC,
+                              PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TOP_MII_SOFT |
+                              PHY_BCM542XX_TOP_MISC_GLOBAL_RESET_TIMESYNC);
+    }
+
+    /* get the model & revision ID of PHY chip */
+    //SOC_IF_ERROR_RETURN(
+    //        _phy_bcm542xx_model_rev_get(unit, pc,&oui, &model, &rev));
+    //if ( PHY_IS_BCM5418x_14x(pc) ) {
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E7, 0xA008);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x0028, 0x0C30);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x00D8, 0x0020);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x012D, 0x0352);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x012E, 0xA04D);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x0164, 0x0500);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x0165, 0x7859);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x0125, 0x091B);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E8, 0x00C3);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E9, 0x00CC);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01EA, 0x0300);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E2, 0x02E3);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E3, 0x7FC1);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x01E5, 0xA7AB);
+    phy_bcm542xx_rdb_reg_write(phy_addr, 0x0028, 0x0430);
+
+
+    //BCM54182
+    /* DISable dsp clock for 5414x / 5418x / 5419x */
+    phy_bcm542xx_rdb_reg_write(phy_addr, PHY_BCM542XX_AUX_CTRL_REG_OFFSET, 0x0430);
+    /* Enhanced Amplitude and AB Symmetry */
+    phy_bcm542xx_rdb_reg_write(phy_addr, PHY_BCM542XX_DSP_TAP10_REG_OFFSET, 0x091B);
+
+    /* config property PHY_OPERATIONAL_MODE == 0x80 or 0x8000 or 0x8080    *\
+    \*        means to keep Super Isolate setting (depend on HW strap pin) */
+    //if ( 0 == (PHY_RETAIN_SUPER_ISOLATE &
+    //           soc_property_port_get(unit, port, spn_PHY_OPERATIONAL_MODE, 0)) ) {
+    /* Remove  Super Isolate */
+    phy_bcm542xx_rdb_reg_modify(phy_addr,
+                                PHY_BCM542XX_POWER_MII_CTRL_REG_OFFSET, 0x0,
+                                PHY_BCM542XX_POWER_MII_CTRL_SUPER_ISOLATE);
+
+    /* Enable current mode LED */
+    phy_bcm542xx_rdb_reg_write(phy_addr,
+                               PHY_BCM542XX_LED_GPIO_CTRL_STATUS_REG_OFFSET,
+                               0xBC00);
+
+    phy_bcm542xx_dev_init(bcmsw_sw, port);
+
+    return SOC_E_NONE;
+
+}
+
+static int
+phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
+                         int port,
+                         int reset,
+                         int automedium,
+                         int fiber_preferred,
+                         int fiber_detect,
+                         int fiber_enable,
+                         int copper_enable,
+                         int ext_phy_autodetect_en,
+                         int ext_phy_fiber_iface)
+{
+    soc_info_t  *si = bcmsw_sw->si;
+    port_info_t *p_port;
+    uint32_t     phy_id;
+
+    p_port = &si->ports[port];
+
+    if ( reset ) {
+        phy_bcm542xx_reset_setup(bcmsw_sw, port, automedium,
+                                 fiber_preferred, fiber_detect,
+                                 fiber_enable,
+                                 copper_enable,
+                                 ext_phy_autodetect_en,
+                                 ext_phy_fiber_iface);
+    } 
+    //else {
+    //    SOC_IF_ERROR_RETURN(
+    //        phy_bcm542xx_dev_init(   unit, port, automedium,
+    //                                 fiber_preferred, fiber_detect,
+    //                                 fiber_enable,
+    //                                 copper_enable,
+    //                                 ext_phy_autodetect_en,
+    //                                 ext_phy_fiber_iface));
+    //    /* called by _phy_bcm542xx_no_reset_setup() or _phy_bcm542xx_medium_change() *\
+    //    \* no need to do the remaining RESET process below                           */
+    //    return SOC_E_NONE;
+    //}
+
+    //if ( SOC_WARM_BOOT(unit) || SOC_IS_RELOADING(unit) ) {
+    //    return SOC_E_NONE;
+    //}
+
+    //dev_port = PHY_BCM542XX_DEV_PHY_SLICE(pc);
+
+    /* Reset EEE to default state i.e disable */
+
+    /* Native */
+    /* Disable LPI feature */
+    //SOC_IF_ERROR_RETURN(
+    //        PHY_MODIFY_BCM542XX_EEE_803Dr(unit, pc, 0x0000, 0xC000) );
+    /* Reset counters and other settings */
+    //SOC_IF_ERROR_RETURN(
+    //        PHY_MODIFY_BCM542XX_EEE_STAT_CTRLr(unit, pc, 0x0000, 0x3fff) );
+
+    /* AutogrEEEn */
+    phy_id = p_port->dev_desc.phy_id_base;
+    /* Disable AutogrEEEn and reset other settings */
+    phy_bcm542xx_rdb_reg_write(phy_id,
+                            PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHYN(dev_port),
+                            0x8000);
+    return SOC_E_NONE;
+}
+
+
+static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    int  fiber_capable = 0;
+    int  automedium = 0;
+    int  fiber_detect = 0;
+    int  fiber_enable = 0;
+    int  copper_enable = TRUE;
+    int  ext_phy_autodetect_en = 0
+    int  ext_phy_fiber_iface = -1;
+
+    /* Init PHYS and MACs to defaults */
+    phy_bcm542xx_init_setup(bcmsw_sw, port, 
+                            TRUE,
+                            automedium,
+                            fiber_preferred,
+                            fiber_detect,
+                            fiber_enable,
+                            copper_enable,
+                            ext_phy_autodetect_en,
+                            ext_phy_fiber_iface);
+
+    /* Set LED Modes and Control */      
+    
+    //_phy_bcm542xx_medium_config_update
+}
+
+/*****************************************************************************************/
+/*                             Port Init/Setup                                           */
+/*****************************************************************************************/
+
+//Set initial operating mode for a port.
+static int 
+_bcm_port_mode_setup(struct bcmsw_switch *bcmsw_sw)
+{
+    //bcm_esw_port_ability_local_get
+
+    //soc_phyctrl_interface_set
+    //MAC_INTERFACE_SET
+
+    //MAC_ENABLE_SET
+
+}
+
+static int 
+_port_probe(struct bcmsw_switch *bcmsw_sw, int port)
 {
     soc_info_t *si = bcmsw_sw->si;
-    int num_port = HX5_NUM_PORT;
-    int port; 
 
-    for (port = 0; port < num_port; port++) {
-       if(si->port_type[port] != -1) {
-           //probe for PHY , and dump information
-           // Only do ext Phy (N3248TE)
-           if (si->ext_phy_addr[port] !=  -1) {
-               _ext_phy_probe(bcmsw_sw, port);
-           }
-       }
+    // probe for PHY , and dump information
+    // Only do ext Phy (N3248TE)
+    if (si->ports[port].ext_phy_addr !=  -1) {
+        _ext_phy_probe(bcmsw_sw, port);
     }
     return 0;
 }
 
-//bcm_esw_port_init bcm_td3_port_cfg_init
+static int _phyctrl_init(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    soc_info_t *si = bcmsw_sw->si;
+    port_info_t *p_port;
+
+    p_port = &si->ports[port];
+
+    printk("entered soc_phyctrl_init: port %d , probed %d\n", port, p_port->probed);
+
+    if(p_port->probed) {  
+       //Call Phy Model specific init -> pd_init = phy_bcm542xx_init
+       phy_bcm542xx_init(bcmsw_sw, port);
+
+       p_port->phy_flags |= PHY_FLAGS_INIT_DONE;
+    }
+
+    return 0;
+}
+
+static int 
+_phyctrl_pbm_probe_init(struct bcmsw_switch *bcmsw_sw)
+{
+    soc_info_t *si = bcmsw_sw->si;
+    int port; 
+    int num_port = HX5_NUM_PORT;
+
+    for (port = 0; port < num_port; port++) {
+        if(si->ports[port].valid == TRUE) {
+            _port_probe(bcmsw_sw, port);
+
+           /* do PHY init pass1 */
+           _phyctrl_init(bcmsw_sw, port);
+        }
+    }
+
+    /* do PHY init pass2 if requested */
+
+    /* do PHY init pass3 if requested */
+
+
+    /* do PHY init pass4 if requested */
+
+    /* do PHY init pass5 if requested */
+
+    //_bcm_port_mac_init();
+}
+
+//bcm_esw_port_init 
 static int 
 _port_init(struct bcmsw_switch *bcmsw_sw)
 {
@@ -2094,25 +3062,35 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
     vid = BCMSW_VLAN_DEFAULT;
     for (port = 0; port < num_port; port++) {
        if(si->port_type[port] != -1) {
-          // _port_cfg_init(bcmsw_sw, port, vid);
+           //bcm_td3_port_cfg_init
+           _port_cfg_init(bcmsw_sw, port, vid);
 	  
        }
     }
-    /* Initialize inner TPID
+    // STEP 1 
+    /* 
+     * Initialize inner TPID
      * (WAR)Set to 0x9100 then change back to take effort
      */
     //TODO
 
 
+    // STEP 2 
     // clear egress port blocking table
     //TODO
 
-    /* Probe for ports */
-    //rv = bcm_esw_port_probe(unit, PBMP_PORT_ALL(unit), &okay_ports);
-    _port_probe(bcmsw_sw);
+    // STEP 3 - Probe for Ports -> bcm_esw_port_probe
+    /* Probe the PHY and set up the PHY and MAC for the specified ports.
+     * bcm_esw_port_probe(unit, PBMP_PORT_ALL(unit), &okay_ports);
+     */
+    /*soc_phyctrl_pbm_probe_init */
+    _phyctrl_pbm_probe_init(bcmsw_sw);
 
+    // STEP 4
     /* Probe and initialize MAC and PHY drivers for ports that were OK */
     //_bcm_port_mode_setup(unit, p, TRUE)) < 0) {
+    //_bcm_port_mode_setup(bcmsw_sw);
+
     //bcm_port_settings_init(unit, p)) < 0) {
 
 
