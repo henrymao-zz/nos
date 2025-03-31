@@ -50,7 +50,7 @@ static const struct {
 };
 
 
-typedef struct {
+typedef struct port_info_s {
     int port;
     int phy_port;
     int bandwidth;
@@ -59,9 +59,9 @@ typedef struct {
     int port_type;
     char name[KCOM_NETIF_NAME_MAX];
     int lanes[4];
-} port_info_t;
+} port_config_t;
 
-static const port_info_t n3248te_ports[] = {
+static const port_config_t n3248te_ports[] = {
     { 1,   1,  1, 0x0, 0x0100, BCMSW_PORT_TYPE_GXPORT, "Ethernet0",  {1, -1, -1, -1}}, 
     { 2,   2,  1, 0x1, 0x0101, BCMSW_PORT_TYPE_GXPORT, "Ethernet1",  {2, -1, -1, -1}}, 
     { 3,   3,  1, 0x2, 0x0102, BCMSW_PORT_TYPE_GXPORT, "Ethernet2",  {3, -1, -1, -1}}, 
@@ -1969,9 +1969,8 @@ uint32 _cmicx_miim_cycle_type_get(int is_write, int clause45, uint32 phy_devad)
 
 
 static int 
-_cmicx_miim_operation_cl22(int is_write, uint32 phy_id, uint8 phy_reg_addr, uint16 *phy_data)
+_cmicx_miim_operation_cl22(int is_write, uint32 phy_id, uint32_t phy_reg_addr, uint16 *phy_data)
 {
-
     miim_ch_address_t ch_addr;
     miim_ch_params_t  ch_params;
     miim_ch_control_t ch_control;
@@ -2074,16 +2073,16 @@ exit:
 }
 //MIIM write CL22
 static int 
-_soc_miim_write(uint32 phy_id, uint8 phy_reg_addr, uint16 phy_wr_data)
+_soc_miim_write(uint32 phy_id, uint8 phy_reg_addr, uint16 phy_data)
 {
-    return _cmicx_miim_operation_cl22(TRUE, phy_id, phy_reg_addr, &phy_wr_data);
+    return _cmicx_miim_operation_cl22(TRUE, phy_id, phy_reg_addr, &phy_data);
 }
 
 //MIIM read CL22
 static int
 _soc_miim_read(uint32 phy_id, uint8 phy_reg_addr, uint16 *phy_data)
 {
-    return _cmicx_miim_operation_cl22(FLASE, phy_id, phy_reg_addr, &phy_wr_data);
+    return _cmicx_miim_operation_cl22(FALSE, phy_id, phy_reg_addr, phy_data);
 }
 
 /*****************************************************************************************/
@@ -2109,14 +2108,13 @@ phy_reg_modify(uint16_t phy_addr,
 {
     uint16_t        tmp, otmp;
 
-    reg_data = reg_data & reg_mask;
+    data = data & mask;
 
-    phy_reg_read(phy_addr, reg_addr, &tmp)
-
+    phy_reg_read(phy_addr, reg_addr, &tmp);
 
     otmp = tmp;
-    tmp &= ~(reg_mask);
-    tmp |= reg_data;
+    tmp &= ~(mask);
+    tmp |= data;
 
     if (otmp != tmp) {
         phy_reg_write(phy_addr, reg_addr, tmp);
@@ -2183,7 +2181,7 @@ phy_reg_ge_write(int port, uint16_t phy_addr, uint8 reg_addr, uint16 data)
     if (rv < 0) {
         printk("phy_reg_ge_write failed:"
                " u=%d phy_id=0x%2x  reg_addr=0x%02x "
-               " rv=%d\n"), port, phy_addr, reg_addr, rv); 
+               " rv=%d\n", port, phy_addr, reg_addr, rv); 
     }
 
     return rv;
@@ -2202,11 +2200,6 @@ phy_fe_ge_reset(int port, uint16_t phy_addr)
     phy_reg_read(phy_addr, 0x00, &ctrl);
 
     phy_reg_ge_write(port, phy_addr, 0x00, (ctrl | MII_CTRL_RESET));
-
-    soc_timeout_init(&to,
-             soc_property_get(unit,
-                      spn_PHY_RESET_TIMEOUT,
-                      PHY_RESET_TIMEOUT_USEC), 1);
 
     do {
         phy_reg_read(phy_addr, 0x00, &tmp);
@@ -2233,7 +2226,7 @@ phy_fe_ge_reset(int port, uint16_t phy_addr)
 
 /* RDB register accessing funtions */
 static int
-phy_bcm542xx_rdb_reg_write(uint16_t phy_addr, uint8_t reg_addr, uint16 data)
+phy_bcm542xx_rdb_reg_write(uint16_t phy_addr, uint16_t reg_addr, uint16 data)
 {
     int  rv;
 
@@ -2249,7 +2242,7 @@ phy_bcm542xx_rdb_reg_write(uint16_t phy_addr, uint8_t reg_addr, uint16 data)
 
 //RDB register modification  (works ONLY under RDB register addressing mode !!)
 static int
-phy_bcm542xx_rdb_reg_modify(uint16_t phy_addr, uint8_t reg_addr, uint16 data, uint16 mask)
+phy_bcm542xx_rdb_reg_modify(uint16_t phy_addr, uint16_t reg_addr, uint16 data, uint16 mask)
 {
     int  rv;
 
@@ -2283,32 +2276,24 @@ phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
             break;
         case 0x18:
             if ( reg_bank <= 0x0007 ) {
-                val = (reg_bank << 12) | 0x7;
-                phy_reg_write(phy_addr, reg_addr, val);
-
                 if (reg_bank == 0x0007) {
                     data |= 0x8000;
-                    mask |= 0x8000;
                 }
-                mask &= ~(0x0007);
+		data = (data & ~(0x0007)) | reg_bank;
             } else {
                 rv = SOC_E_PARAM;
             }
             break;
         case 0x1C:
             if ( reg_bank <= 0x001F ) {
-                val = (reg_bank << 10);
-                phy_reg_write(phy_addr, reg_addr, val);
-                data |= 0x8000;
-                mask |= 0x8000;
-                mask &= ~(0x1F << 10);
+		data = 0x8000 | (reg_bank << 10) | (data & 0x03FF);
             } else {
                 rv = SOC_E_PARAM;
             }
             break;
         case 0x1D:
             if ( reg_bank == 0x0000 ) {
-                mask &= 0x07FFF;
+		data = data & 0x07FFF;
             } else {
                 rv = SOC_E_PARAM;
             }
@@ -2321,14 +2306,14 @@ phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
     if ( rv < 0 ) {
         printk("phy_bcm542xx_reg_write: failed:"
                "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
-               "rv=%d\n", ph_addr, reg_bank, reg_addr, rv);
+               "rv=%d\n", phy_addr, reg_bank, reg_addr, rv);
     }
     return rv;
 }
 
 static int
 phy_bcm542xx_reg_modify(uint16_t phy_addr, uint16 reg_bank,
-                        uint8 reg_addr, uint16 data, uint16 mask)
+                        uint8_t reg_addr, uint16 data, uint16 mask)
 {
     int     rv = SOC_E_NONE;
     uint16  val;
@@ -2383,7 +2368,7 @@ phy_bcm542xx_reg_modify(uint16_t phy_addr, uint16 reg_bank,
     if ( rv < 0 ) {
         printk("phy_bcm542xx_reg_modify: failed:"
                "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
-               "rv=%d\n", ph_addr, reg_bank, reg_addr, rv);
+               "rv=%d\n", phy_addr, reg_bank, reg_addr, rv);
     }
     return rv;
 }
@@ -2411,34 +2396,24 @@ phy_bcm542xx_qsgmii_reg_write(uint16_t phy_addr,
     /* Set BAR to AER */
     //if ( PHY_IS_BCM5418x_19x(pc) ) {
     val = 0xFFDE;
-    //} else {
-    //    val = 0xFFD0;
-    //}
-
-    SOC_IF_ERROR_RETURN
-        (phy_bcm542xx_reg_write(unit, pc,
-                                PHY_BCM542XX_REG_QSGMII, 0, 0x1F, val));
+    phy_reg_write(phy_addr, 0x1F, val);
 
     /* set aer reg to access sgmii lane */
     val = dev_port;
-    SOC_IF_ERROR_RETURN
-        (phy_bcm542xx_reg_write(unit, pc,
-                                PHY_BCM542XX_REG_QSGMII, 0, 0x1E, val));
+    phy_reg_write(phy_addr, 0x1E, val);
 
     /* set bar to register block */
     val = (block & 0xfff0);
-    SOC_IF_ERROR_RETURN
-        (phy_bcm542xx_reg_write(unit, pc,
-                                PHY_BCM542XX_REG_QSGMII, 0, 0x1F, val));
+    phy_reg_write(phy_addr, 0x1F, val);
 
     /* Write the register */
     if (block >= 0x8000) {
         reg |= 0x10;
     }
 
-    SOC_IF_ERROR_RETURN
-        (phy_bcm542xx_reg_write(unit, pc,
-                                PHY_BCM542XX_REG_QSGMII, 0, reg, data));
+    phy_reg_write(phy_addr, reg, data);
+
+    printk("phy_bcm542xx_qsgmii_reg_write port %d reg 0x%x data 0x%x\n", phy_addr, reg, data);
 
     return SOC_E_NONE;
 }
@@ -2475,7 +2450,7 @@ _ext_phy_probe(struct bcmsw_switch *bcmsw_sw, int port)
     if( PHY_OUI(phy_id0, phy_id1) ==  PHY_BCM5418X_OUI &&
         PHY_MODEL(phy_id0, phy_id1) == PHY_BCM54182_MODEL) {
         p_port->probed = TRUE;
-        printk("_ext_phy_probe port %d BCM54182 probe\n", port);
+        printk("_ext_phy_probe port %d BCM54182 probed\n", port);
     } else {
         printk("_ext_phy_probe port %d - phy_addr 0x%x  id0 0x%x id1 0x%x\n",port, phy_addr, phy_id0, phy_id1);
     }
@@ -2702,7 +2677,7 @@ static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
                             PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL
                           | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA,
                             PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL
-                          | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA));
+                          | PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_PHYA);
 
     /* replace it with qsgmii phy id */
     //PHY_BCM542XX_SLICE_ADDR
@@ -2716,7 +2691,7 @@ static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
     /* QSGMII FIFO Elasticity */
     phy_bcm542xx_qsgmii_reg_write(phy_id,
                                   p_port->dev_desc.phy_slice /*dev_port*/,
-                                  0x8300, 0x12, 0x0006));
+                                  0x8300, 0x12, 0x0006);
 
     /* Restore access to Copper/Fiber register space.
      *  TOP lvl register, access through port0 only
@@ -2756,7 +2731,6 @@ static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
 static int 
 phy_bcm542xx_reset_setup(struct bcmsw_switch *bcmsw_sw,
     int port,
-    int reset,
     int automedium,
     int fiber_preferred,
     int fiber_detect,
@@ -2899,6 +2873,7 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
     soc_info_t  *si = bcmsw_sw->si;
     port_info_t *p_port;
     uint32_t     phy_id;
+    int          dev_port;
 
     p_port = &si->ports[port];
 
@@ -2918,8 +2893,8 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
     //                                 copper_enable,
     //                                 ext_phy_autodetect_en,
     //                                 ext_phy_fiber_iface));
-    //    /* called by _phy_bcm542xx_no_reset_setup() or _phy_bcm542xx_medium_change() *\
-    //    \* no need to do the remaining RESET process below                           */
+    //    // called by _phy_bcm542xx_no_reset_setup() or _phy_bcm542xx_medium_change() 
+    //    //   no need to do the remaining RESET process below                           
     //    return SOC_E_NONE;
     //}
 
@@ -2941,6 +2916,7 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
 
     /* AutogrEEEn */
     phy_id = p_port->dev_desc.phy_id_base;
+    dev_port = p_port->dev_desc.phy_slice;
     /* Disable AutogrEEEn and reset other settings */
     phy_bcm542xx_rdb_reg_write(phy_id,
                             PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHYN(dev_port),
@@ -2955,8 +2931,9 @@ static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
     int  automedium = 0;
     int  fiber_detect = 0;
     int  fiber_enable = 0;
+    int  fiber_preferred = 0;
     int  copper_enable = TRUE;
-    int  ext_phy_autodetect_en = 0
+    int  ext_phy_autodetect_en = 0;
     int  ext_phy_fiber_iface = -1;
 
     /* Init PHYS and MACs to defaults */

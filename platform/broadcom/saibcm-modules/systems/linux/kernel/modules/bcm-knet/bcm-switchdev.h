@@ -1627,6 +1627,21 @@ typedef union miim_ring_control_s {
 #define PHY_MODEL(id0, id1) ((id1) >> 4 & 0x3f)
 
 
+/* MII Control Register: bit definitions */
+
+#define MII_CTRL_FS_2500        (1 << 5) /* Force speed to 2500 Mbps */
+#define MII_CTRL_SS_MSB         (1 << 6) /* Speed select, MSb */
+#define MII_CTRL_CST            (1 << 7) /* Collision Signal test */
+#define MII_CTRL_FD             (1 << 8) /* Full Duplex */
+#define MII_CTRL_RAN            (1 << 9) /* Restart Autonegotiation */
+#define MII_CTRL_IP             (1 << 10) /* Isolate Phy */
+#define MII_CTRL_PD             (1 << 11) /* Power Down */
+#define MII_CTRL_AE             (1 << 12) /* Autonegotiation enable */
+#define MII_CTRL_SS_LSB         (1 << 13) /* Speed select, LSb */
+#define MII_CTRL_LE             (1 << 14) /* Loopback enable */
+#define MII_CTRL_RESET          (1 << 15) /* PHY reset */
+
+
 /****************************BCM54182 Phy Register****************************************/
 /*
  * Top Misc Global Reset 
@@ -1652,6 +1667,26 @@ typedef union miim_ring_control_s {
 #define PHY_BCM542XX_TOP_MISC_CFG_REG_QSGMII_SEL     (1<<2)
  
 #define PHY_BCM542XX_MII_CTRL_REG                     0x00
+
+/* MII Control Register: bit definitions */
+#define PHY_BCM542XX_MII_CTRL_UNIDIR_EN      (1<<5)  /* Force speed to 2500 Mbps */
+#define PHY_BCM542XX_MII_CTRL_SS_MSB         (1<<6)  /* Speed select, MSb */
+#define PHY_BCM542XX_MII_CTRL_FD             (1<<8)  /* Full Duplex */
+#define PHY_BCM542XX_MII_CTRL_RST_AN         (1<<9)  /* Restart Autonegotiation */
+#define PHY_BCM542XX_MII_CTRL_PWR_DOWN       (1<<11) /* Power Down */
+#define PHY_BCM542XX_MII_CTRL_AN_EN          (1<<12) /* Autonegotiation enable */
+#define PHY_BCM542XX_MII_CTRL_SS_LSB         (1<<13) /* Speed select, LSb */
+#define PHY_BCM542XX_MII_CTRL_LPBK_EN        (1<<14) /* Loopback enable */
+#define PHY_BCM542XX_MII_CTRL_RESET          (1<<15) /* PHY reset */
+
+#define BCM542XX_AUTO_PWR_DOWN_DLL_DIS                  (1<<1)
+
+#define BMACSEC_TOP_MISC_REG_SIZE 1
+#define PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHY0 0x800
+#define PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHYN(n) \
+                      (PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHY0 + \
+                       BMACSEC_TOP_MISC_REG_SIZE*(n)*2/*skip one reg*/)
+
 /*
  * AUXILIARY CONTROL REG
  */
@@ -1672,6 +1707,19 @@ typedef union miim_ring_control_s {
  * LED GPIO CTRL_STATUS
  */
 #define PHY_BCM542XX_LED_GPIO_CTRL_STATUS_REG_OFFSET  0x01F
+
+/* Registers used to Rd/Wr using RDB mode */
+#define PHY_BCM542XX_RDB_ADDR_REG_OFFSET        (0x1E)
+#define PHY_BCM542XX_RDB_ADDR_REG_ADDR          (0xffff)
+#define PHY_BCM542XX_RDB_DATA_REG_OFFSET        (0x1F)
+#define PHY_BCM542XX_RDB_DATA_REG_DATA          (0xffff)
+/* Registers used to enable RDB register access mode */
+#define PHY_BCM542XX_REG_17_OFFSET              (0x17)
+#define PHY_BCM542XX_REG_17_SELECT_EXP_7E       (0x0F7E)
+#define PHY_BCM542XX_REG_15_OFFSET              (0x15)
+#define PHY_BCM542XX_REG_15_RDB_EN              (0x0000)
+#define PHY_BCM542XX_REG_15_RDB_DIS             (0x8000)
+#define PHY_BCM542XX_REG_1E_SELECT_RDB          (0x0087)
 
 
 /*****************************************************************************************/
