@@ -155,11 +155,11 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
         }                
     }
 
-    if (rv == 0) {
-        gprintk("  Done in %d polls\n", schan_timeout);
-    }
+    //if (rv == 0) {
+        //gprintk("  Done in %d polls\n", schan_timeout);
+    //}
 
-    gprintk("  schanCtrl is 0x %x\n", schanCtrl);
+    //gprintk("  schanCtrl is 0x %x\n", schanCtrl);
 
     if (schanCtrl & SC_CHx_MSG_NAK) {
         rv = -EFAULT;
@@ -251,7 +251,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
     ch = 0;
 
     val = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch));
-    gprintk("_cmicx_schan_op schanCtrl = 0x%x\n", val);
+    //gprintk("_cmicx_schan_op schanCtrl = 0x%x\n", val);
 
     do {
         rv = 0;
@@ -278,7 +278,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
             msg->dwords[i] = bkn_dev_read32(dev, CMIC_COMMON_POOL_SCHAN_CHx_MESSAGEn(ch, i));
         }
 
-        _cmicx_schan_dump(dev, msg, dwc_read);
+        //_cmicx_schan_dump(dev, msg, dwc_read);
 
     } while (0);
 
@@ -2045,9 +2045,9 @@ _cmicx_miim_operation_cl22(int is_write, uint32 phy_id, uint32_t phy_reg_addr, u
             printk("MDIO transaction Error 0x%x ch_status 0x%x\n", is_error, ch_status.word);
             goto exit;
         }
-        msleep(200);
+        udelay(1000);
         miim_timeout++;
-        if(miim_timeout > 15) {
+        if(miim_timeout > 30) {
            printk("MDIO transaction timeout ch_status 0x%x\n", ch_status.word);
            is_error = SOC_E_TIMEOUT;
            goto exit;
@@ -3499,7 +3499,7 @@ static int _clear_all_memory(struct net_device *dev)
     do {
         _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2_PIPE0r, &val);
         //sleep 1ms
-        mdelay(1);
+       msleep(1);
      } while(!(val& (1<<22)));    
 
     /* Restore L3_ENTRY_HASH_CONTROL->HASH_TABLE_BANK_CONFIG value */
@@ -3509,7 +3509,7 @@ static int _clear_all_memory(struct net_device *dev)
     do {
         _reg32_read(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1_PIPE0r, &val);
         //sleep 1ms
-        mdelay(1);
+        msleep(1);
      } while(!(val& (1<<20)));   
 
     //
@@ -3585,7 +3585,7 @@ _powerdown_single_tsc(struct net_device *dev, int blk, int reg)
     /* Deassert power down */
     val = val & ~(1<<3);   // PWRDWNf     = 0
     _reg32_write(dev, blk, reg, val);
-    mdelay(1);
+    msleep(1);
 
     /* Reset XGXS */
     val = val & ~(1);      // RSTB_HWf     = 0
@@ -3605,7 +3605,7 @@ _powerup_single_tsc(struct net_device *dev, int blk, int reg)
     val = val | 1;      // RSTB_HWf     = 1
     _reg32_write(dev, blk, reg, val);
 
-    mdelay(1);
+    msleep(1);
 
     return 0;
 }
@@ -3655,7 +3655,7 @@ static int _helix5_port_reset(struct net_device *dev)
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
-        mdelay(10);
+        msleep(100);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT0, PMQ_XGXS0_CTRL_REGr);
 
@@ -3668,7 +3668,7 @@ static int _helix5_port_reset(struct net_device *dev)
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
-        mdelay(10);
+        msleep(10);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
 
@@ -3681,7 +3681,7 @@ static int _helix5_port_reset(struct net_device *dev)
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
-        mdelay(10);
+        msleep(10);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
 
@@ -3707,7 +3707,7 @@ static int _helix5_port_reset(struct net_device *dev)
     //!IS_QSGMII_PORT
     /* Power off XLPORT blocks */
     _powerdown_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
-    mdelay(10);
+    msleep(10);
     /* Power on XLPORT blocks */
     _powerup_single_tsc(dev, SCHAN_BLK_XLPORT6, XLPORT_XGXS0_CTRL_REGr);
 
@@ -3787,7 +3787,7 @@ static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
     bkn_dev_write32(dev, CMIC_TOP_SBUS_RING_MAP_56_63_OFFSET,0x00000000);
     bkn_dev_write32(dev, CMIC_TOP_SBUS_TIMEOUT_OFFSET,0x5000);
     
-    mdelay(250);
+    msleep(250);
 
     //do a read
     //_reg32_read(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, &val); 
@@ -3808,7 +3808,7 @@ static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
     /* Bring IP, EP, MMU and port macros out of reset */
     _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, 0x3fff);
-    mdelay(10);
+    msleep(10);
 
     /* PM4x10Q QSGMII mode control
      */
@@ -3835,7 +3835,7 @@ static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
     do {
        _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, &val);
        //sleep 1ms
-       mdelay(1);
+       msleep(1);
     } while(!(val& (1<<22)));
     _reg32_write(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, 0x00100000);
     //TDM
