@@ -1753,6 +1753,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->ports[index].probed = FALSE;
 	    si->ports[index].ext_phy_addr = -1;
         si->ports[index].primary_and_offset = -1;
+        si->ports[index].eth_port_type = 0;
     }
     for (mmu_port = 0; mmu_port < num_mmu_port; mmu_port++) {
         si->port_m2p_mapping[mmu_port] = -1;
@@ -1810,6 +1811,10 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->ports[port].valid = TRUE;
         si->ports[port].ext_phy_addr = n3248te_ports[index].ext_phy_addr;
         si->ports[port].primary_and_offset = n3248te_ports[index].primary_and_offset;
+        //FIXME, only GE port supported
+        if (si->port_init_speed[port] == 1000) {
+            si->ports[port].eth_port_type = ETH_GE_PORT;
+        }
     }
     si->cpu_hg_index = 72;
     //TODO flex port init
@@ -2219,6 +2224,26 @@ phy_fe_ge_reset(int port, uint16_t phy_addr)
 
     return (SOC_E_NONE);
 }
+
+int
+phy_fe_ge_enable_set(port_info_t *pport, int port, int enable)
+{
+    if (enable) {
+        pport->phy_flags &= ~PHY_FLAGS_DISABLE;
+    } else {
+        pport->phy_flags |= PHY_FLAGS_DISABLE;
+    }
+
+    return (SOC_E_NONE);
+}
+
+int
+phy_fe_ge_enable_get(port_info_t *pport, int port, int *enable)
+{
+    *enable = !((pport->phy_flags)&PHY_FLAGS_DISABLE == PHY_FLAGS_DISABLE);
+    return(SOC_E_NONE);
+}
+
 
 /*****************************************************************************************/
 /*                            BCM542XX Phy Read/Write                                    */
@@ -2640,6 +2665,27 @@ _bcm_port_ability_local_get(struct bcmsw_switch *bcmsw_sw, int port,
 }
 #endif
 
+//Enable or disable the physical interface.
+static int
+phy_bcm542xx_enable_set(port_info_t *pport, int port, uint16_t phy_addr, int enable)
+{
+    uint16    power = (enable) ? 0 : PHY_BCM542XX_MII_CTRL_PWR_DOWN;
+
+    phy_bcm542xx_reg_modify(phy_addr, 0x0000,  PHY_BCM542XX_MII_CTRL_REG, power, PHY_BCM542XX_MII_CTRL_PWR_DOWN);
+
+    /* Update software state */
+    phy_fe_ge_enable_set(pport, port, enable);
+
+
+    return 0;
+}
+
+static int 
+phy_bcm542xx_enable_get(port_info_t *pport,  int *enable)
+{
+    return phy_fe_ge_enable_get(pport, enable);
+}
+
 //Reset PHY and wait for it to come out of reset.
 static int
 phy_bcm542xx_reset(int port, uint16_t phy_addr)
@@ -2956,21 +3002,13 @@ static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
 /*                             Port Init/Setup                                           */
 /*****************************************************************************************/
 
-//Set initial operating mode for a port.
-static int 
-_bcm_port_mode_setup(struct bcmsw_switch *bcmsw_sw)
-{
-    //bcm_esw_port_ability_local_get
+/*****************************************************************************************/
+/*                             Port Init/Setup -- PHY                                    */
+/*****************************************************************************************/
 
-    //soc_phyctrl_interface_set
-    //MAC_INTERFACE_SET
-
-    //MAC_ENABLE_SET
-
-}
 
 static int 
-_port_probe(struct bcmsw_switch *bcmsw_sw, int port)
+_phyctrl_probe(struct bcmsw_switch *bcmsw_sw, int port)
 {
     soc_info_t *si = bcmsw_sw->si;
 
@@ -2979,6 +3017,7 @@ _port_probe(struct bcmsw_switch *bcmsw_sw, int port)
     if (si->ports[port].ext_phy_addr !=  -1) {
         _ext_phy_probe(bcmsw_sw, port);
     }
+
     return 0;
 }
 
@@ -3010,26 +3049,193 @@ _phyctrl_pbm_probe_init(struct bcmsw_switch *bcmsw_sw)
 
     for (port = 0; port < num_port; port++) {
         if(si->ports[port].valid == TRUE) {
-            _port_probe(bcmsw_sw, port);
+            _phyctrl_probe(bcmsw_sw, port);
 
-           /* do PHY init pass1 */
-           _phyctrl_init(bcmsw_sw, port);
+            /* do PHY init pass1 */
+            PHYCTRL_INIT_STATE_SET(&(si->ports[port].phy_ctrl), PHYCTRL_INIT_STATE_PASS1);
+            _phyctrl_init(bcmsw_sw, port);
+
+            // BCM54182 only need init pass 1
+            /* do PHY init pass2 - 5  if requested */
+          
+            PHYCTRL_INIT_STATE_SET(&(si->ports[port].phy_ctrl), PHYCTRL_INIT_STATE_DEFAULT);
         }
     }
-
-    /* do PHY init pass2 if requested */
-
-    /* do PHY init pass3 if requested */
-
-
-    /* do PHY init pass4 if requested */
-
-    /* do PHY init pass5 if requested */
-
-    //_bcm_port_mac_init();
 }
 
-//bcm_esw_port_init 
+/*****************************************************************************************/
+/*                             Port Ctrl                                                 */
+/*****************************************************************************************/
+
+static int _pm4x10_qtc_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+{
+    soc_info_t *si = bcmsw_sw->si;
+
+    port_info_t *pport = si->ports[port];
+
+    return phy_bcm542xx_enable_set(pport, port, pp_port->ext_phy_addr, enable);
+}
+
+static int 
+_bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int flags, int enable)
+{
+    if (flags & PORTMOD_PORT_ENABLE_PHY) {
+        //portmod_port_enable_set();
+        _pm4x10_qtc_port_enable_set(bcmsw_sw, port, 1);
+    }
+
+    //Check if MAC needs to be modified based on whether
+    //(portmod_port_mac_reset_check(unit, pport,
+    //    enable, &mac_reset));
+
+    //if (flags & PORTMOD_PORT_ENABLE_MAC ) {
+
+
+    //}
+
+    return 0;
+}
+
+static int 
+bcmi_esw_portctrl_probe()
+{
+
+    /* Add port to PM */
+//portmod_xphy_lane_detach(unit, physical_port+lane, 1);
+//PORT_UNLOCK(unit);
+//PORTMOD_PBMP_PORT_ADD(p_pbmp, physical_port+lane);
+//rv = soc_esw_portctrl_setup_ext_phy_add(unit, port, &p_pbmp);
+
+//rv = soc_esw_portctrl_add(unit, port, init_flag, add_info);
+   return 0;
+}
+
+static int
+bcmi_esw_portctrl_probe_pbmp(struct bcmsw_switch *bcmsw_sw)
+{
+
+    /*step1: probe Serdes and external PHY core*/
+    //bcmi_esw_portctrl_probe
+
+    /*step2 : initialize PASS1 for SerDes and external PHY*/
+
+    /* step3:broadcast firmware download for all external phys inculde legacy and Phymod PHYs*/
+
+    /*step4:initialize PASS2 for Serdes and external PHY*/
+
+
+    //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
+}
+
+
+/*****************************************************************************************/
+/*                             Port Init/Setup                                           */
+/*****************************************************************************************/
+static int
+_bcm_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+{
+    //bcmi_esw_portctrl_speed_set
+    //if (enable == TRUE) {
+    // disable MAC and PHY
+    //bcmi_esw_portctrl_enable_set
+
+    /* disable AN */
+    // _bcm_esw_portctrl_disable_autoneg
+
+    //reconfigure chip
+    //_bcm_esw_portctrl_speed_chip_reconfigure
+
+    //Restore port's enable state based on what was read prior to setting speed 
+
+    return 0;
+}
+
+//Setting the speed for a given port
+int
+bcm_esw_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+{
+    int rv;
+    rv = _bcm_port_speed_set(bcmsw_sw, port, speed);
+
+    //bcm_esw_port_enable_set
+    //bcm_esw_link_change
+    //_bcm_esw_port_link_delay_update
+
+    return rv;
+}
+int bcm_esw_port_autoneg_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+{
+    //bcmi_esw_portctrl_autoneg_set
+#if 0
+    _bcm_esw_port_gport_phyn_validate(unit, port,
+        &local_port, &phyn,
+        &phy_lane, &sys_side));
+
+    if (local_port != -1) {
+        port = local_port;
+    }
+
+    if (local_port == -1) {
+        /* Configure outermost PHY (common case) */
+        rv = portmod_port_autoneg_set(unit, port, PORTMOD_INIT_F_EXTERNAL_MOST_ONLY, &an);
+    } else {
+        /* Configure PHY specified by GPORT */
+        rv = portmod_port_redirect_autoneg_set(unit, pport, phyn,
+                                               phy_lane, sys_side, &an);
+    }
+#endif   
+    return 0;                                            
+}
+
+
+int
+bcm_esw_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+{
+   //bcmi_esw_portctrl_enable_set
+   if (enable) {
+      // enable PHY
+      rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_PHY, TRUE);
+
+      /* Get link status after PHY state has been set */
+      //rv = bcm_esw_port_link_status_get(unit, port, &link);
+
+      // enable MAC
+      rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_MAC, TRUE);
+   } else {
+
+
+   }
+}
+
+static int
+bcm_port_settings_init(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    int             val, rc;
+    soc_info_t *si = bcmsw_sw->si;
+
+    rc = bcm_esw_port_speed_set(bcmsw_sw, port, si->port_init_speed[port]);
+
+    //val = soc_property_port_get(unit, port, spn_PORT_INIT_DUPLEX, -1);
+    //if (val != -1) {
+    //    info.duplex = val;
+    //    info.action_mask |= BCM_PORT_ATTR_DUPLEX_MASK;
+    //}
+    //bcm_esw_port_duplex_set(unit, port, info->duplex);
+    
+
+    //val = soc_property_port_get(unit, port, spn_PORT_INIT_ADV, -1);
+    //if (val != -1) {
+    //    info.local_advert = val;
+    //    info.action_mask |= BCM_PORT_ATTR_LOCAL_ADVERT_MASK;
+    //}
+    //bcm_esw_port_advert_set(unit, port, info->local_advert);
+
+    rc = bcm_esw_port_autoneg_set(bcmsw_sw, port, TRUE);
+
+    return rc;
+}
+
+
 static int 
 _port_init(struct bcmsw_switch *bcmsw_sw)
 {
@@ -3060,19 +3266,25 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
     /* Probe the PHY and set up the PHY and MAC for the specified ports.
      * bcm_esw_port_probe(unit, PBMP_PORT_ALL(unit), &okay_ports);
      */
+    /* Check for PortMod */
+    bcmi_esw_portctrl_probe_pbmp(bcmsw_sw);
+
     /*soc_phyctrl_pbm_probe_init */
     _phyctrl_pbm_probe_init(bcmsw_sw);
 
+    // Probe function should leave port disabled 
+    //soc_phyctrl_enable_set
+
     // STEP 4
-    /* Probe and initialize MAC and PHY drivers for ports that were OK */
-    //_bcm_port_mode_setup(unit, p, TRUE)) < 0) {
-    //_bcm_port_mode_setup(bcmsw_sw);
-
-    //bcm_port_settings_init(unit, p)) < 0) {
-
+    for (port = 0; port < num_port; port++) {
+        if(si->ports[port].valid == TRUE) {
+            bcm_port_settings_init(bcmsw_sw, port);
+        }
+     }    
 
     //enable ports
     // if ((rv = bcm_esw_port_enable_set(unit, p, port_enable)) < 0) {
+    bcm_esw_port_enable_set(bcmsw_sw, port, TRUE);
     return 0;
 }
 

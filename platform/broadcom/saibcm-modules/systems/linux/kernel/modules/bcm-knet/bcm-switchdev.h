@@ -1721,6 +1721,18 @@ typedef union miim_ring_control_s {
 #define PHY_BCM542XX_REG_15_RDB_DIS             (0x8000)
 #define PHY_BCM542XX_REG_1E_SELECT_RDB          (0x0087)
 
+/*****************************************************************************************/
+/*                              MAC related                                              */
+/*****************************************************************************************/
+
+typedef enum _mac_mode_e {
+    SOC_MAC_MODE_10_100,                /* 10/100 Mb/s MAC selected */
+    SOC_MAC_MODE_10,                    /* 10/100 Mb/s MAC in 10Mbps mode */
+    SOC_MAC_MODE_1000_T,                /* 1000/TURBO MAC selected */
+    SOC_MAC_MODE_10000,                 /* 10G MAC selected */
+    SOC_MAC_MODE_100000                 /* 100G MAC selected */
+} mac_mode_t;
+
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -1748,13 +1760,31 @@ typedef enum{
 
 //#endif  /* BCM_56370_A0 */
 
+
+#define ETH_GE_PORT    0x0001
+#define ETH_XE_PORT    0x0002
+#define ETH_HG_PORT    0x0004
+#define ETH_HGL_PORT   0x0008
+#define ETH_STK_PORT   0x0010
+#define ETH_CES_PORT   0x0020
+#define ETH_OLP_PORT   0x0040
+#define ETH_LPHY_PORT  0x0080
+#define ETH_ETH_PORT   0x0100
+#define ETH_INTLB_PORT 0x0200
+
+
 typedef struct port_cb_s {
+    uint32_t  eth_port_type;
     uint8_t   valid;    
     uint8_t   probed;
     uint32_t  ext_phy_addr;
     uint32_t  int_phy_addr;
     uint32_t  phy_flags;
     uint32_t  primary_and_offset;
+
+    struct phy_ctrl_ {
+       uint32_t flags; 
+    } phy_ctrl;
 
     struct dev_desc_ {
        uint32_t flags;
@@ -1764,6 +1794,23 @@ typedef struct port_cb_s {
        int32_t  port_pre_speed;       
     } dev_desc;
 } port_info_t;
+
+/****************************     phy_ctrl.flags    **************************************/
+/* bit 31:29 used for init state */
+#define PHYCTRL_INIT_STATE_DEFAULT 0
+#define PHYCTRL_INIT_STATE_PASS1   1
+#define PHYCTRL_INIT_STATE_PASS2   2
+#define PHYCTRL_INIT_STATE_PASS3   3
+#define PHYCTRL_INIT_STATE_PASS4   4
+#define PHYCTRL_INIT_STATE_PASS5   5
+#define PHYCTRL_INIT_STATE_PASS6   6
+#define PHYCTRL_INIT_STATE_PASS7   7
+#define PHYCTRL_INIT_MASK          0x7
+#define PHYCTRL_INIT_SHFT          29
+#define PHYCTRL_INIT_STATE(_pc)     ((((_pc)->flags) >> PHYCTRL_INIT_SHFT) & PHYCTRL_INIT_MASK)
+#define PHYCTRL_INIT_STATE_SET(_pc,_st) ((_pc)->flags = ((_pc)->flags & \
+    (~(PHYCTRL_INIT_MASK << PHYCTRL_INIT_SHFT))) | \
+    (((_st) & PHYCTRL_INIT_MASK) << PHYCTRL_INIT_SHFT))
 
 typedef struct {
     int             bandwidth;                                /* max core bandwidth */
@@ -1788,9 +1835,9 @@ typedef struct {
     int             cpu_hg_index;           /* table index for cpu port
                                              * higig packet where table indexed
                                              * by physical port*/
-    int             port_type[SOC_MAX_NUM_PORTS];                     
+    int             port_type[SOC_MAX_NUM_PORTS];             /* internal port type */               
 
-    port_info_t     ports[SOC_MAX_NUM_PORTS];                 /* port information */
+    port_info_t     ports[SOC_MAX_NUM_PORTS];                 /* port information   */
 } soc_info_t;
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
