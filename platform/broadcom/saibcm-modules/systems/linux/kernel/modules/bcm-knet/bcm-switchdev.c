@@ -1726,6 +1726,161 @@ err_alloc_wq:
 }
 
 
+static void
+_soc_hx5_mmu_idb_ports_assign(soc_info_t *si)
+{
+    int port, phy_port, mmu_port_os, mmu_port_lr;
+    int mmu_port_old, phy_port_old;
+
+    mmu_port_os = 0;
+
+    /* PHY Ports: 61-64
+     * MMU/IDB Ports: 0-3
+     */
+    for (phy_port = 61; phy_port <= 64; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 69-72
+     * MMU/IDB Ports: 4-7
+     */
+    for (phy_port = 69; phy_port <= 72; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 65-68
+     * MMU/IDB Ports: 8-11
+     */
+    for (phy_port = 65; phy_port <= 68; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 73-76
+     * MMU/IDB Ports: 12-15
+     */
+    for (phy_port = 73; phy_port <= 76; phy_port++, mmu_port_os++) {
+        if (phy_port >= SOC_MAX_NUM_PORTS) {
+            /* coverity[dead_error_line] */
+            continue;
+        }
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    mmu_port_lr = mmu_port_os;
+
+    
+    for (phy_port = 1; phy_port <= 4; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 17-20
+     * MMU/IDB Ports: 20-23
+     */
+    for (phy_port = 17; phy_port <= 20; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 33-36
+     * MMU/IDB Ports: 24-27
+     */
+    for (phy_port = 33; phy_port <= 36; phy_port++, mmu_port_os++) {
+        si->port_p2m_mapping[phy_port] = mmu_port_os;
+        si->port_m2p_mapping[mmu_port_os] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 49-60
+     * MMU/IDB Ports: 40-51
+     */
+    for (phy_port = 49; phy_port <= 60; phy_port++) {
+        si->port_p2m_mapping[phy_port] = phy_port - 9;
+        si->port_m2p_mapping[phy_port - 9] = phy_port;
+
+        port = si->port_p2l_mapping[phy_port];
+        if (port == -1) {
+            continue;
+        }
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+    }
+
+    /* PHY Ports: 1-60
+     * MMU/IDB Ports within 16-68
+     *
+     * When DL ports are in LR we use a running number
+     * In Line-rate config PM4x10Q can be in GMII mode (upto 16 lanes)
+     */
+    for (phy_port = 1; phy_port <= 60; phy_port++) {
+        port = si->port_p2l_mapping[phy_port];
+        //if ((port == -1) || IS_OVERSUB_PORT(unit, port)) {
+        if (port == -1) {
+            continue;
+        }
+
+        mmu_port_old = si->port_p2m_mapping[phy_port];
+        phy_port_old = si->port_m2p_mapping[mmu_port_lr];
+
+        if (phy_port_old != -1) {
+            si->port_p2m_mapping[phy_port_old] = -1;
+        }
+        if (mmu_port_old != -1) {
+            si->port_m2p_mapping[mmu_port_old] = -1;
+        }
+        si->port_p2m_mapping[phy_port] = mmu_port_lr;
+        si->port_l2i_mapping[port] = si->port_p2m_mapping[phy_port];
+        si->port_m2p_mapping[mmu_port_lr] = phy_port;
+        mmu_port_lr++;
+    }
+
+    return;
+}
+
 
 static void bcmsw_soc_info_init(soc_info_t *si)
 {
@@ -1819,6 +1974,18 @@ static void bcmsw_soc_info_init(soc_info_t *si)
     si->cpu_hg_index = 72;
     //TODO flex port init
 
+    //DUMP SOC INFO
+    printk("helix5 port config ------------------------\n");
+    for (index =0; index< 79; index++) {
+        printk(" %i %i %i %i %i %i %i\n",
+                si->port_l2p_mapping[index],
+                si->port_p2l_mapping[index],
+                si->port_l2i_mapping[index],
+                si->port_p2m_mapping[index],
+                si->port_m2p_mapping[index],
+                si->port_pipe[index],
+                si->port_serdes[index]);
+    }
 }
 
 
@@ -3084,6 +3251,11 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
         _pm4x10_qtc_port_enable_set(bcmsw_sw, port, 1);
     //}
 
+    portmod_ext_to_int_cmd_set() 
+
+    unimac_reset_check
+
+    _soc_link_update
     //Check if MAC needs to be modified based on whether
     //(portmod_port_mac_reset_check(unit, pport,
     //    enable, &mac_reset));
@@ -3677,6 +3849,124 @@ static int _misc_init(struct bcmsw_switch *bcmsw_sw)
 
 
     return 0;
+
+}
+
+
+int
+soc_trident3_xpe_reg_get(int unit, soc_reg_t reg, int xpe, int base_index,
+                         int index, uint64 *data)
+{
+    return _soc_trident3_xpe_reg_access(unit, reg, xpe, base_index,
+                                        index, data, FALSE);
+}
+
+
+static int 
+_soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+{
+    uint64 rval64, rval64_tmp;
+    int pipe, i;
+    int split, pos, mmu_port;
+    soc_info_t *si = bcmsw_sw->si;
+
+    uint32_t reg[3][2] = {
+    {
+        THDU_OUTPUT_PORT_RX_ENABLE_SPLIT0r,
+        THDU_OUTPUT_PORT_RX_ENABLE_SPLIT1r
+    },
+    {
+        MMU_THDM_DB_PORT_RX_ENABLE_64_SPLIT0r,
+        MMU_THDM_DB_PORT_RX_ENABLE_64_SPLIT1r
+    },
+    {
+        MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT0r,
+        MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT1r
+    }
+    };
+    
+    pipe = si->port_pipe[port];
+    phy_port = si->port_l2p_mapping[port];
+    mmu_port = si->port_p2m_mapping[phy_port];
+    /* Reg config is per pipe, get local MMU port. */
+    mmu_port = mmu_port & SOC_TD3_MMU_PORT_STRIDE;
+
+    if (mmu_port < 64) {
+        split = 0;
+        pos = mmu_port;
+    } else {
+        split = 1;
+        pos = mmu_port - 64;
+    }
+
+
+    for (i = 0; i < 3; i++) {
+        rval64 = 0;
+        rval64_tmp  = 1 << pos;
+
+        _reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], &rval64);                                  
+        printk("_soc_hx5_thdo_hw_set 0x%x\n",rval64);
+
+        if (enable) {
+            rval64 |= rval64_tmp;
+        } else {
+            rval64 &= (~rval64_tmp);
+        }
+        _reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], rval64);
+    }
+}
+
+return SOC_E_NONE;
+}
+
+//_soc_helix5_mmu_init
+static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
+{
+    uint32 val;
+    int num_port = HX5_NUM_PORT, port, vid; 
+    soc_info_t *si = bcmsw_sw->si;
+
+    for (port = 0; port < num_port; port++) {
+       if(si->port_type[port] != -1) {
+           _soc_hx5_thdo_hw_set(bcmsw_sw, port, 1);
+       }
+    }
+
+    /* enable WRED refresh */
+    //    SOC_IF_ERROR_RETURN(READ_WRED_REFRESH_CONTROLr(unit, &rval));
+    //    soc_reg_field_set(unit, WRED_REFRESH_CONTROLr, &rval,
+    //            REFRESH_DISABLEf, 0);
+    //    soc_reg_field_set(unit, WRED_REFRESH_CONTROLr, &rval,
+    //            REFRESH_PERIODf, time_refresh);
+    //    SOC_IF_ERROR_RETURN(WRITE_WRED_REFRESH_CONTROLr(unit, rval));
+    val = 0x30;
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, val);
+
+    //readback
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, &val);
+    printk("_mmu_init WRED_REFRESH_CONTROLr = 0x%x\n", val);
+
+
+    //soc_trident3_sc_reg32_get(unit, MMU_1DBG_Cr, 0, 0, 0, &rval));
+    //soc_reg_field_set(unit, MMU_1DBG_Cr, &rval, FIELD_Af, 1);
+    //soc_trident3_sc_reg32_set(unit, MMU_1DBG_Cr, -1, -1, 0, rval));
+    val = 0x29;
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, val);
+
+    //readback
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, &val);
+    printk("_mmu_init MMU_1DBG_Cr = 0x%x\n", val);
+    
+    // (soc_trident3_sc_reg32_set(unit, MMU_2DBG_C_1r, -1, -1, 0, 0x4));
+    val = 0x4;
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, val);
+
+    //readback
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, &val);
+    printk("_mmu_init MMU_2DBG_C_1r = 0x%x\n", val);
+
+
+    return 0;
 }
 
 static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
@@ -4059,6 +4349,7 @@ static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
     //SOC_IF_ERROR_RETURN(soc_helix5_uft_uat_config(unit));
     //SOC_IF_ERROR_RETURN(_soc_helix5_ft_bank_config(unit));
 
+
     //soc_trident3_clear_all_memory()
     _clear_all_memory(dev);
 
@@ -4126,6 +4417,9 @@ int bcmsw_switch_init(void)
     //misc_init
     //BCM: init misc
     _misc_init(bcmsw_sw);
+
+    //init mmu
+    _mmu_init(bcmsw_sw);
 
     //initialize modules
     //BCM: init bcm

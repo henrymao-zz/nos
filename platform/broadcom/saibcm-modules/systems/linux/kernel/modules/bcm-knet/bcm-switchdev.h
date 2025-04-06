@@ -609,6 +609,8 @@ typedef union schan_msg_u {
 //BCM56370
 #define SCHAN_BLK_IPIPE     1
 #define SCHAN_BLK_EPIPE     2
+#define SCHAN_BLK_MMU_XPE   3
+#define SCHAN_BLK_MMU_SC    4
 #define SCHAN_BLK_TOP       7
 
 #define SCHAN_BLK_PMQPORT0  18   
@@ -1794,6 +1796,10 @@ typedef struct port_cb_s {
        int32_t  port_pre_speed;       
     } dev_desc;
 } port_info_t;
+
+#define SOC_TD3_MMU_PORT_STRIDE          0x7f  /* MMU Port number space per pipe */
+#define SOC_TD3_MMU_PORT_PER_PIPE        128
+
 
 /****************************     phy_ctrl.flags    **************************************/
 /* bit 31:29 used for init state */
