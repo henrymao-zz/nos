@@ -2238,9 +2238,9 @@ phy_fe_ge_enable_set(port_info_t *pport, int port, int enable)
 }
 
 int
-phy_fe_ge_enable_get(port_info_t *pport, int port, int *enable)
+phy_fe_ge_enable_get(port_info_t *pport, int *enable)
 {
-    *enable = !((pport->phy_flags)&PHY_FLAGS_DISABLE == PHY_FLAGS_DISABLE);
+    *enable = !(((pport->phy_flags)&PHY_FLAGS_DISABLE) == PHY_FLAGS_DISABLE);
     return(SOC_E_NONE);
 }
 
@@ -3071,18 +3071,18 @@ static int _pm4x10_qtc_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, 
 {
     soc_info_t *si = bcmsw_sw->si;
 
-    port_info_t *pport = si->ports[port];
+    port_info_t *pport = &si->ports[port];
 
-    return phy_bcm542xx_enable_set(pport, port, pp_port->ext_phy_addr, enable);
+    return phy_bcm542xx_enable_set(pport, port, pport->ext_phy_addr, enable);
 }
 
 static int 
-_bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int flags, int enable)
+_bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
 {
-    if (flags & PORTMOD_PORT_ENABLE_PHY) {
+    //if (flags & PORTMOD_PORT_ENABLE_PHY) {
         //portmod_port_enable_set();
         _pm4x10_qtc_port_enable_set(bcmsw_sw, port, 1);
-    }
+    //}
 
     //Check if MAC needs to be modified based on whether
     //(portmod_port_mac_reset_check(unit, pport,
@@ -3192,19 +3192,20 @@ int
 bcm_esw_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
 {
    //bcmi_esw_portctrl_enable_set
-   if (enable) {
+   //if (enable) {
       // enable PHY
-      rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_PHY, TRUE);
+      //rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_PHY, TRUE);
 
       /* Get link status after PHY state has been set */
       //rv = bcm_esw_port_link_status_get(unit, port, &link);
 
       // enable MAC
-      rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_MAC, TRUE);
-   } else {
+      //rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_MAC, TRUE);
+   //} else {
 
 
-   }
+   //}
+   return _bcm_esw_portctrl_enable_set(bcmsw_sw, port, enable);
 }
 
 static int
