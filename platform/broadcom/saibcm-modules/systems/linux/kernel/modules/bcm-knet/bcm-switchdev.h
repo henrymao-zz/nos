@@ -26,6 +26,10 @@
 #define COMPILER_64_SET(dst, src_hi, src_lo)                \
     ((dst) = (((uint64) ((uint32)(src_hi))) << 32) | ((uint64) ((uint32)(src_lo))))
 
+#define COMPILER_64_AND(dst, src)    ((dst) &= (src))
+#define COMPILER_64_OR(dst, src)    ((dst) |= (src))
+#define COMPILER_64_XOR(dst, src)    ((dst) ^= (src))
+#define COMPILER_64_NOT(dst)        ((dst) = ~(dst))
 
 typedef enum {
     SOC_E_NONE                  = 0,
@@ -1559,6 +1563,21 @@ typedef union miim_ring_control_s {
 } miim_ring_control_t;
 
 /*****************************************************************************************/
+/*                            MMU related                                                */
+/*****************************************************************************************/
+#define WRED_REFRESH_CONTROLr      0x22000600
+#define MMU_1DBG_Cr                0x15808000
+#define MMU_2DBG_C_1r              0x15808300
+
+#define THDU_OUTPUT_PORT_RX_ENABLE_SPLIT0r            0x39807400
+#define THDU_OUTPUT_PORT_RX_ENABLE_SPLIT1r            0x39807500
+#define MMU_THDM_DB_PORT_RX_ENABLE_64_SPLIT0r         0x3d807400
+#define MMU_THDM_DB_PORT_RX_ENABLE_64_SPLIT1r         0x3d807600
+#define MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT0r       0x41807400
+#define MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT1r       0x41807600
+
+
+/*****************************************************************************************/
 /*                            PHY related                                                */
 /*****************************************************************************************/
 
@@ -1799,6 +1818,9 @@ typedef struct port_cb_s {
 
 #define SOC_TD3_MMU_PORT_STRIDE          0x7f  /* MMU Port number space per pipe */
 #define SOC_TD3_MMU_PORT_PER_PIPE        128
+
+#define _HX5_PORTS_PER_PMQ_PBLK          16
+#define _HX5_PORTS_PER_PBLK              4 
 
 
 /****************************     phy_ctrl.flags    **************************************/

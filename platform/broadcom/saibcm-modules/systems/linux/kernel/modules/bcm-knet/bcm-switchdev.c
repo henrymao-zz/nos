@@ -70,7 +70,7 @@ static const port_config_t n3248te_ports[] = {
     { 6,   6,  1, 0x5, 0x0105, BCMSW_PORT_TYPE_GXPORT, "Ethernet5",  {6, -1, -1, -1}}, 
     { 7,   7,  1, 0x6, 0x0106, BCMSW_PORT_TYPE_GXPORT, "Ethernet6",  {7, -1, -1, -1}}, 
     { 8,   8,  1, 0x7, 0x0107, BCMSW_PORT_TYPE_GXPORT, "Ethernet7",  {8, -1, -1, -1}}, 
-    { 9,   0,  1, 0x9, 0x0900, BCMSW_PORT_TYPE_GXPORT, "Ethernet8",  {9, -1, -1, -1}}, 
+    { 9,   9,  1, 0x9, 0x0900, BCMSW_PORT_TYPE_GXPORT, "Ethernet8",  {9, -1, -1, -1}}, 
     { 10,  10, 1, 0xa, 0x0901, BCMSW_PORT_TYPE_GXPORT, "Ethernet9",  {10, -1, -1, -1}}, 
     { 11,  11, 1, 0xb, 0x0902, BCMSW_PORT_TYPE_GXPORT, "Ethernet10", {11, -1, -1, -1}}, 
     { 12,  12, 1, 0xc, 0x0903, BCMSW_PORT_TYPE_GXPORT, "Ethernet11", {12, -1, -1, -1}}, 
@@ -501,7 +501,7 @@ _soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, vo
 /*                             SCHAN Reg Read/Write                                      */
 /*****************************************************************************************/
 static int
-_reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *data)
+_schan_reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *data, uint8_t acc_type )
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -519,7 +519,7 @@ _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *dat
     //setup command header
     schan_msg.header.v4.opcode = READ_REGISTER_CMD_MSG;
     schan_msg.header.v4.dst_blk = dst_blk;
-    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.acc_type = acc_type;
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
@@ -544,12 +544,18 @@ _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *dat
     return rv;
 }
 
+static int
+_reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *data)
+{
+    return _schan_reg32_read(dev, dst_blk, address, data, 0);
+}
+
 
 /*
  * Write an internal SOC register through S-Channel messaging buffer.
  */
 static int
-_reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t data)
+_schan_reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t data, uint8_t acc_type)
 {
     schan_msg_t schan_msg;
     int rv = 0;
@@ -564,7 +570,7 @@ _reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t dat
     //setup command header
     schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG; 
     schan_msg.header.v4.dst_blk = dst_blk;
-    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.acc_type = acc_type;
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
@@ -578,6 +584,13 @@ _reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t dat
 
     return rv;
 }
+
+static int
+_reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t data)
+{
+    return _schan_reg32_write(dev, dst_blk, address, data, 0);
+}
+
 
 static int
 _reg64_read(struct net_device *dev, int dst_blk, uint32_t address, uint64_t *data)
@@ -1891,6 +1904,8 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 
     si->bandwidth = 2048000;
 
+    //reset array to default
+    //HX5 has 72 ports(NUM_PORT=72)
     for (phy_port = 0; phy_port < num_phy_port; phy_port++) {
         si->port_p2l_mapping[phy_port] = -1;
         si->port_p2m_mapping[phy_port] = -1;
@@ -1906,13 +1921,13 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_type[index] = -1;
         si->ports[index].valid = FALSE;
         si->ports[index].probed = FALSE;
-	    si->ports[index].ext_phy_addr = -1;
+        si->ports[index].ext_phy_addr = -1;
         si->ports[index].primary_and_offset = -1;
         si->ports[index].eth_port_type = 0;
     }
     for (mmu_port = 0; mmu_port < num_mmu_port; mmu_port++) {
         si->port_m2p_mapping[mmu_port] = -1;
-    }
+    }    
 /*
     SOC_PBMP_CLEAR(si->eq_pbm);
     SOC_PBMP_CLEAR(si->management_pbm);
@@ -1951,7 +1966,11 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[port] = 0;
         si->port_speed_max[port] = n3248te_ports[index].bandwidth * 1000;
         si->port_init_speed[port] = n3248te_ports[index].bandwidth * 1000;
-        si->port_serdes[port] = phy_port - 1; //?
+	if (phy_port <= 48) {
+            si->port_serdes[port] = (phy_port - 1) / _HX5_PORTS_PER_PMQ_PBLK;
+        } else {
+            si->port_serdes[port] = ((phy_port - 1) / _HX5_PORTS_PER_PBLK) - 9;
+	}
 
         if (n3248te_ports[index].bandwidth <= 10) {
             si->port_num_lanes[port] = 1;
@@ -1973,8 +1992,10 @@ static void bcmsw_soc_info_init(soc_info_t *si)
     }
     si->cpu_hg_index = 72;
     //TODO flex port init
+    //
+    _soc_hx5_mmu_idb_ports_assign(si);
 
-    //DUMP SOC INFO
+#if 0
     printk("helix5 port config ------------------------\n");
     for (index =0; index< 79; index++) {
         printk(" %i %i %i %i %i %i %i\n",
@@ -1986,6 +2007,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
                 si->port_pipe[index],
                 si->port_serdes[index]);
     }
+#endif
 }
 
 
@@ -3251,11 +3273,11 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
         _pm4x10_qtc_port_enable_set(bcmsw_sw, port, 1);
     //}
 
-    portmod_ext_to_int_cmd_set() 
+    //portmod_ext_to_int_cmd_set() 
 
-    unimac_reset_check
+    //unimac_reset_check
 
-    _soc_link_update
+    //_soc_link_update
     //Check if MAC needs to be modified based on whether
     //(portmod_port_mac_reset_check(unit, pport,
     //    enable, &mac_reset));
@@ -3530,16 +3552,6 @@ static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
     int max_ports;
     int err;
     int i;
-    soc_info_t *si;
-
-
-    si = kzalloc(sizeof(soc_info_t), GFP_KERNEL);
-    if (!si) {
-        return -ENOMEM;
-    }
-    // initializa soc_info according to hardware information,soc_info_config & soc_helix5_port_config_init
-    bcmsw_soc_info_init(si);
-    bcmsw_sw->si = si;
 
     // initialize port configuration according to soc info. bcm_esw_port_init bcm_td3_port_cfg_init
     err = _port_init(bcmsw_sw);
@@ -3853,21 +3865,12 @@ static int _misc_init(struct bcmsw_switch *bcmsw_sw)
 }
 
 
-int
-soc_trident3_xpe_reg_get(int unit, soc_reg_t reg, int xpe, int base_index,
-                         int index, uint64 *data)
-{
-    return _soc_trident3_xpe_reg_access(unit, reg, xpe, base_index,
-                                        index, data, FALSE);
-}
-
-
 static int 
 _soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
 {
-    uint64 rval64, rval64_tmp;
-    int pipe, i;
-    int split, pos, mmu_port;
+    uint64_t rval64, rval64_tmp;
+    int i;
+    int split, pos, phy_port, mmu_port;
     soc_info_t *si = bcmsw_sw->si;
 
     uint32_t reg[3][2] = {
@@ -3885,7 +3888,6 @@ _soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
     }
     };
     
-    pipe = si->port_pipe[port];
     phy_port = si->port_l2p_mapping[port];
     mmu_port = si->port_p2m_mapping[phy_port];
     /* Reg config is per pipe, get local MMU port. */
@@ -3902,21 +3904,27 @@ _soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
 
     for (i = 0; i < 3; i++) {
         rval64 = 0;
-        rval64_tmp  = 1 << pos;
+
+       if (pos < 32) {
+            COMPILER_64_SET(rval64_tmp, 0, (1 << pos));
+        } else {
+            COMPILER_64_SET(rval64_tmp, (1 << (pos - 32)), 0);
+        }
 
         _reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], &rval64);                                  
-        printk("_soc_hx5_thdo_hw_set 0x%x\n",rval64);
 
         if (enable) {
-            rval64 |= rval64_tmp;
+	    COMPILER_64_OR(rval64, rval64_tmp);
         } else {
-            rval64 &= (~rval64_tmp);
+	    COMPILER_64_NOT(rval64_tmp);
+	    COMPILER_64_AND(rval64, rval64_tmp);
         }
+	//printk("_soc_hx5_thdo_hw_set port %d pos %d reg 0x%x 0x%llx\n",port, pos, reg[i][split], rval64);
+
         _reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], rval64);
     }
-}
-
-return SOC_E_NONE;
+   
+    return SOC_E_NONE;
 }
 
 //_soc_helix5_mmu_init
@@ -3927,7 +3935,7 @@ static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
     soc_info_t *si = bcmsw_sw->si;
 
     for (port = 0; port < num_port; port++) {
-       if(si->port_type[port] != -1) {
+       if(si->port_l2p_mapping[port] != -1) {
            _soc_hx5_thdo_hw_set(bcmsw_sw, port, 1);
        }
     }
@@ -3944,26 +3952,26 @@ static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
 
     //readback
     _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, &val);
-    printk("_mmu_init WRED_REFRESH_CONTROLr = 0x%x\n", val);
+    //printk("_mmu_init WRED_REFRESH_CONTROLr = 0x%x\n", val);
 
 
     //soc_trident3_sc_reg32_get(unit, MMU_1DBG_Cr, 0, 0, 0, &rval));
     //soc_reg_field_set(unit, MMU_1DBG_Cr, &rval, FIELD_Af, 1);
     //soc_trident3_sc_reg32_set(unit, MMU_1DBG_Cr, -1, -1, 0, rval));
     val = 0x29;
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, val);
+    _schan_reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, val, 20);
 
     //readback
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, &val);
-    printk("_mmu_init MMU_1DBG_Cr = 0x%x\n", val);
+    _schan_reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, &val, 20);
+    //printk("_mmu_init MMU_1DBG_Cr = 0x%x\n", val);
     
     // (soc_trident3_sc_reg32_set(unit, MMU_2DBG_C_1r, -1, -1, 0, 0x4));
     val = 0x4;
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, val);
+    _schan_reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, val, 20);
 
     //readback
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, &val);
-    printk("_mmu_init MMU_2DBG_C_1r = 0x%x\n", val);
+    _schan_reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, &val, 20);
+    //printk("_mmu_init MMU_2DBG_C_1r = 0x%x\n", val);
 
 
     return 0;
@@ -4382,7 +4390,7 @@ int bcmsw_switch_init(void)
     struct bcmsw_switch *bcmsw_sw;
     int err = 0;
     lport_tab_entry_t lport_entry;
-
+    soc_info_t *si;
         
     bcmsw_sw = kzalloc(sizeof(*bcmsw_sw), GFP_KERNEL);
     if (!bcmsw_sw)
@@ -4400,8 +4408,17 @@ int bcmsw_switch_init(void)
         return -ENODEV;
     }
 
+    si = kzalloc(sizeof(soc_info_t), GFP_KERNEL);
+    if (!si) {
+        return -ENOMEM;
+    }
+ 
+    // initializa soc_info according to hardware information,soc_info_config & soc_helix5_port_config_init
+    bcmsw_soc_info_init(si);
+    bcmsw_sw->si = si;
+
     //switch initialization 
-    //BCM: init soc
+    //BCM: init soc, schan is initialized 
     _switch_do_init(bcmsw_sw);
 
     //load m0 firmware
@@ -4415,7 +4432,7 @@ int bcmsw_switch_init(void)
     //     cancun load cih
 
     //misc_init
-    //BCM: init misc
+    //BCM: init misc, miim is initialized
     _misc_init(bcmsw_sw);
 
     //init mmu
