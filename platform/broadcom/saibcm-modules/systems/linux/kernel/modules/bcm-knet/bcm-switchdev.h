@@ -628,6 +628,12 @@ typedef union schan_msg_u {
 #define SCHAN_BLK_XLPORT2   23
 #define SCHAN_BLK_XLPORT6   30
 
+#define SCHAN_BLK_GXPORT0   16
+#define SCHAN_BLK_GXPORT1   17
+#define SCHAN_BLK_GXPORT2   20
+#define SCHAN_BLK_GXPORT3   21
+#define SCHAN_BLK_GXPORT4   24
+#define SCHAN_BLK_GXPORT5   25
 
 #define TOP_SOFT_RESET_REGr            0x02000100
 #define CHIP_CONFIGr                   0x2020000
@@ -1753,6 +1759,122 @@ typedef enum _mac_mode_e {
     SOC_MAC_MODE_10000,                 /* 10G MAC selected */
     SOC_MAC_MODE_100000                 /* 100G MAC selected */
 } mac_mode_t;
+
+
+#define  COMMAND_CONFIGr                0x10200  // 0x10200 - 0x10207
+
+/*
+soc_field_info_t soc_COMMAND_CONFIG_BCM53400_A0r_fields[] = {
+    { CNTL_FRM_ENAf, 1, 23, 0 },
+    { CRC_FWDf, 1, 6, 0 },
+    { ENA_EXT_CONFIGf, 1, 22, SOCF_RES },
+    { EN_INTERNAL_TX_CRSf, 1, 21, 0 },
+    { ETH_SPEEDf, 2, 2, SOCF_LE },
+    { FCS_CORRUPT_URUN_ENf, 1, 14, 0 },
+    { FD_TX_URUN_FIX_ENf, 1, 27, 0 },
+    { HD_ENAf, 1, 10, 0 },
+    { IGNORE_TX_PAUSEf, 1, 28, 0 },
+    { LINE_LOOPBACKf, 1, 25, 0 },
+    { LOOP_ENAf, 1, 15, 0 },
+    { MAC_LOOP_CONf, 1, 16, 0 },
+    { NO_LGTH_CHECKf, 1, 24, 0 },
+    { OOB_EFC_ENf, 1, 29, 0 },
+    { OVERFLOW_ENf, 1, 12, 0 },
+    { PAD_ENf, 1, 5, 0 },
+    { PAUSE_FWDf, 1, 7, 0 },
+    { PAUSE_IGNOREf, 1, 8, 0 },
+    { PROMIS_ENf, 1, 4, 0 },
+    { RUNT_FILTER_DISf, 1, 30, 0 },
+    { RX_ENAf, 1, 1, 0 },
+    { RX_ERR_DISCf, 1, 26, 0 },
+    { RX_LOW_LATENCY_ENf, 1, 11, 0 },
+    { SW_OVERRIDE_RXf, 1, 18, 0 },
+    { SW_OVERRIDE_TXf, 1, 17, 0 },
+    { SW_RESETf, 1, 13, SOCF_RES },
+    { TX_ADDR_INSf, 1, 9, 0 },
+    { TX_ENAf, 1, 0, 0 }
+};
+*/
+typedef union command_config_s {
+    struct _command_config_ {
+#if defined(LE_HOST)
+    uint32_t  TX_ENAf:1,
+              RX_ENAf:1,
+              ETH_SPEEDf:2,
+              PROMIS_ENf:1,
+              PAD_ENf:1,
+              CRC_FWDf:1,
+              PAUSE_FWDf:1,
+              PAUSE_IGNOREf:1,
+              TX_ADDR_INSf:1,
+              HD_ENAf:1,
+              RX_LOW_LATENCY_ENf:1,
+              OVERFLOW_ENf:1,
+              SW_RESETf:1,
+              FCS_CORRUPT_URUN_ENf:1,
+              LOOP_ENAf:1,
+              MAC_LOOP_CONf:1,
+              SW_OVERRIDE_TXf:1,
+              SW_OVERRIDE_RXf:1,
+              r0:2,
+              EN_INTERNAL_TX_CRSf:1,
+              ENA_EXT_CONFIGf:1,
+              CNTL_FRM_ENAf:1,
+              NO_LGTH_CHECKf:1,
+              LINE_LOOPBACKf:1,
+              RX_ERR_DISCf:1,
+              FD_TX_URUN_FIX_ENf:1,
+              IGNORE_TX_PAUSEf:1,
+              OOB_EFC_ENf:1,
+              RUNT_FILTER_DISf:1,
+              r1:1;
+
+#else
+    uint32_t  r1:1,
+              RUNT_FILTER_DISf:1,
+              OOB_EFC_ENf:1,
+              IGNORE_TX_PAUSEf:1,
+              FD_TX_URUN_FIX_ENf:1,
+              RX_ERR_DISCf:1,
+              LINE_LOOPBACKf:1,
+              NO_LGTH_CHECKf:1,
+              CNTL_FRM_ENAf:1,
+              ENA_EXT_CONFIGf:1,
+              EN_INTERNAL_TX_CRSf:1,
+              r0:2,
+              SW_OVERRIDE_RXf:1,
+              SW_OVERRIDE_TXf:1,
+              MAC_LOOP_CONf:1,
+              LOOP_ENAf:1,
+              FCS_CORRUPT_URUN_ENf:1,
+              SW_RESETf:1,
+              OVERFLOW_ENf:1,
+              RX_LOW_LATENCY_ENf:1,
+              HD_ENAf:1,
+              TX_ADDR_INSf:1,
+              PAUSE_IGNOREf:1,
+              PAUSE_FWDf:1,
+              CRC_FWDf:1,
+              PAD_ENf:1,
+              PROMIS_ENf:1,
+              ETH_SPEEDf:2,
+              RX_ENAf:1,
+              TX_ENAf:1;
+#endif
+    }reg;
+    uint32_t word;
+} command_config_t;
+
+
+
+#define  GPORT_RSV_MASKr                0x2020600
+
+#define  CLMAC_RX_CTRLr                 0x60600
+#define  XLPORT_ENABLE_REG              0x2020b00
+
+#define  CLPORT_CONFIG                  0x20000
+#define  CLPORT_MODE_REG                0x2020a00
+#define  CLPORT_ENABLE_REG              0x2020b00
 
 
 /*****************************************************************************************/
