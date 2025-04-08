@@ -2476,7 +2476,6 @@ phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
                        uint8_t reg_addr, uint16_t data)
 {
     int     rv = SOC_E_NONE;
-    uint16  val;
 
     //if ( SOC_WARM_BOOT(unit) || SOC_IS_RELOADING(unit) ) {
     //    return SOC_E_NONE;
@@ -2694,15 +2693,15 @@ static int unimac_reset_check(struct bcmsw_switch *bcmsw_sw, int port, int enabl
     *reset = 1;
 
     if (port > 48) {
-        return;
+        return -1;
     }
     index = (port-1)%8;
     blk_no = blk[(port-1)/8];
 
-    _reg32_read(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+    _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
     octrl.word = ctrl.word;
 
-    printf("unimac_reset_check port ctrl 0x%x\n", port, ctrl.word);
+    printk("unimac_reset_check port %d ctrl 0x%x\n", port, ctrl.word);
     ctrl.reg.TX_ENAf = enable ? 1:0;
     ctrl.reg.RX_ENAf = enable ? 1:0;
 
@@ -2727,10 +2726,9 @@ int
 _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 {
     int i;
-    uint64 rval64;
-    uint32 rval32;
+    uint64_t rval64;
+    uint32_t rval32;
     int phy_port;
-    int port;
     int subp;
     int mode;
     int speed_100g;
@@ -2741,12 +2739,13 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     int qmode;
     int inst;
     int blk_no, index;
-	int speed_mode;
-	int hdr_mode;
+    int speed_mode;
+    int hdr_mode;
     command_config_t ctrl;
-    static const int clport_mode_values[SOC_HX5_PORT_RATIO_COUNT] = {
-        4, 3, 3, 3, 2, 2, 1, 1, 0
-    };
+    //static const int clport_mode_values[SOC_HX5_PORT_RATIO_COUNT] = {
+    //    4, 3, 3, 3, 2, 2, 1, 1, 0
+    //};
+    struct net_device *dev;
         
     uint32_t gxblk[6] = {
         SCHAN_BLK_GXPORT0,
@@ -2759,10 +2758,12 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     strict_preamble = 0;
 
+    dev = bcmsw_sw->dev;
+
     /*Disable TSC lanes: */
 
     /*CLMAC_RX_CTRL */
-    phy_port = port_schedule_state->out_port_map.port_l2p_mapping[port];
+    phy_port = bcmsw_sw->si->port_l2p_mapping[port];
     strict_preamble = 0;
 
     if(phy_port < 49) {
@@ -2774,26 +2775,23 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
             blk_no = SCHAN_BLK_PMQPORT2;
         }
 
-        _reg32_read(dev, blk_no, CHIP_CONFIGr, &val);
-        qmode = val & 0x1;
+        _reg32_read(dev, blk_no, CHIP_CONFIGr, &rval32);
+        qmode = rval32 & 0x1;
         index = (phy_port -1)%8;
     } else {
         qmode = 0;
     }
     printk("_helix5_flex_mac_port_up port %d qmode %d\n", port, qmode);
 
-	if(phy_port < 65) {
-	    if((phy_port < 49) && (qmode)){
-	        /* configured thru API:  bcm_port_frame_max_set */
-            blk_no = gxport_blk[(phy_port-1)/8];
-            _reg64_read(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, &rval64);
-
-            rval64 = 120;
-            _reg64_write(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, &rval64);
-
-            _reg64_read(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, &rval64)
-            printk("_helix5_flex_mac_port_up port %d GPORT_RSV_MASK index %d val 0x%llx\n",port, index, rval64);
-	    }  else {
+    if(phy_port < 65) {
+        if((phy_port < 49) && (qmode)){
+            /* configured thru API:  bcm_port_frame_max_set */
+            blk_no = gxblk[(phy_port-1)/8];
+            _reg32_read(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, &rval32);
+    
+            rval32 = 120;
+            _reg32_write(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, rval32);
+        }  else {
 #if 0
 	        printk("Bringing Eagle mac rx port %0d up\n", phy_port);
 
@@ -2823,8 +2821,9 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     /*CLPORT_CONFIG */
     if(phy_port < 65) { 
-	    if ( qmode != 1 ){
-		    printk("Setting Eagle mac xl port %0d up\n", phy_port);
+        if ( qmode != 1 ){
+	  printk("Setting Eagle mac xl port %0d up\n", phy_port);
+#if 0
             _reg32_read(bcmsw_sw->dev, blk_no, XLPORT_CONFIGr+index, &rval32);
 
             soc_reg_field_set(unit, XLPORT_CONFIGr, &rval32, HIGIG2_MODEf,
@@ -2833,9 +2832,10 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
                               higig_mode);
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_set(unit, XLPORT_CONFIGr,
                                                       phy_port, 0, rval32));
+#endif
         }
     } else {	
-         	LOG_DEBUG(BSL_LS_SOC_PORT, (BSL_META_U(unit, "Setting Falcon mac cl port %0d up\n"), phy_port));
+        printk("Setting Falcon mac cl port %0d up\n", phy_port);
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, CLPORT_CONFIGr,
                                                       phy_port, 0, &rval32));
@@ -2850,8 +2850,8 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     /*CLPORT Enable: */	   
     if(phy_port < 65) { 
-	    if( qmode != 1 ) {
-			printk("Setting Eagle enable port %0d up\n", phy_port));
+        if( qmode != 1 ) {
+	    printk("Setting Eagle enable port %0d up\n", phy_port);
 #if 0            
             _reg32_read(bcmsw_sw->dev, blk_no, XLPORT_ENABLE_REGr+index, &rval32);
 
@@ -2869,7 +2869,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 #endif                                                      
 	    }
 	} else {
-			printk("Setting Falcon enable port %0d up\n", phy_port));
+            printk("Setting Falcon enable port %0d up\n", phy_port);
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, CLPORT_ENABLE_REGr,
                                                       phy_port, 0, &rval32));
@@ -2887,10 +2887,10 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 #endif                                                      
 	}
 
-    usleep(100);
+    msleep(1);
 
     /*CLPORT mode: */
-    if (si->port_init_speed[port] = 100000) {
+    if (bcmsw_sw->si->port_init_speed[port] == 100000) {
         speed_100g = 1;
     } else {
         speed_100g = 0;
@@ -2932,14 +2932,14 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     /* Release soft reset */
     if(phy_port <65) {
-	    if((phy_port < 49) && (qmode)){
+        if((phy_port < 49) && (qmode)){
             index = (phy_port-1)%8;
             blk_no = gxblk[(phy_port-1)/8];
-
-            _reg32_read(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+    
+            _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             ctrl.reg.SW_RESETf = 0;
-            _reg32_write(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, ctrl.word);
-	    } else {
+            _reg32_write(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
+        } else {
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, XLMAC_CTRLr, phy_port,
                                                     0, &rval64));
@@ -2970,11 +2970,11 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
                 soc_reg64_field32_set(unit, CLMAC_CTRLr, &rval64, LOCAL_LPBKf, 1);
                 SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, CLMAC_CTRLr, phy_port,
                                                         0, rval64));
-#endif                                                        
-            }
+        }
+#endif
     }
 
-    usleep(100);
+    msleep(1);
 
     /* Enable MAC RX_EN & TX_EN */
     if(phy_port < 65) {
@@ -2982,17 +2982,17 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
             index = (phy_port-1)%8;
             blk_no = gxblk[(phy_port-1)/8];
 
-            _reg32_read(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+            _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             ctrl.reg.RX_ENAf = 1;
             ctrl.reg.TX_ENAf = 1;
-            _reg32_write(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, ctrl.word);
+            _reg32_write(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
 
             //TODO
             //SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, FLUSH_CONTROLr, phy_port,
             //                                        0, &rval64));
             //soc_reg64_field32_set(unit, FLUSH_CONTROLr, &rval64, FLUSHf, 0);
             //SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, FLUSH_CONTROLr, phy_port,
-                                                    0, rval64));
+            //                                        0, rval64));
 						    
 	    } else {
 #if 0            
@@ -3036,7 +3036,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     // case 1000 : speed_mode = 2; 
     // case 2500 : speed_mode = 3;
     // default   : speed_mode = 4;
-    if (si->port_init_speed[port] = 1000) {
+    if (bcmsw_sw->si->port_init_speed[port] == 1000) {
         speed_mode = 2;
     } else {
         speed_mode = 4;
@@ -3047,11 +3047,11 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
             index = (phy_port-1)%8;
             blk_no = gxblk[(phy_port-1)/8];
 
-            _reg32_read(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+            _reg32_read(dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             ctrl.reg.ETH_SPEEDf = speed_mode;
-            _reg32_write(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, ctrl.word);
+            _reg32_write(dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
 
-            _reg32_read(bcmsw_sw->dev, ,blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+            _reg32_read(dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             printk("soc_helix5_flex_mac_port_up port %d command_config 0x%x\n", phy_port, ctrl.word);
 	    } else {
 #if 0            
@@ -3886,13 +3886,13 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
 
     //enable ports
     // if ((rv = bcm_esw_port_enable_set(unit, p, port_enable)) < 0) {
-    bcm_esw_port_enable_set(bcmsw_sw, port, TRUE);
+    for (port =1; port < num_port; port++) {
+	if(si->ports[port].valid == TRUE) {
+            bcm_esw_port_enable_set(bcmsw_sw, port, TRUE);
+	}
+    }
     return 0;
 }
-
-#define HX5_NUM_PHY_PORT                (79)
-#define HX5_NUM_PORT                    (72)
-#define HX5_NUM_MMU_PORT                (72)
 
 
 static int bcmsw_port_create(struct bcmsw_switch *bcmsw_sw, int port_index, const char *name)
