@@ -112,6 +112,19 @@ typedef int soc_mem_t;
 #define SOC_WARM_BOOT(unit)             0 
 
 /* TD3 specific defines */
+#define HELIX5_PORTS_PER_PBLK             4
+#define HELIX5_PBLKS_PER_PIPE             19
+#define HELIX5_PBLKS_PER_HPIPE            9
+#define HELIX5_PIPES_PER_DEV              1
+#define HELIX5_XPES_PER_DEV               1
+#define HELIX5_GPHY_PORTS_PER_PIPE        \
+    (HELIX5_PORTS_PER_PBLK * HELIX5_PBLKS_PER_PIPE)
+#define HELIX5_PHY_PORTS_PER_PIPE         (HELIX5_GPHY_PORTS_PER_PIPE + 3)
+#define HELIX5_PBLKS_PER_DEV              \
+    (HELIX5_PBLKS_PER_PIPE * HELIX5_PIPES_PER_DEV)
+#define HELIX5_PHY_PORTS_PER_DEV          \
+    (HELIX5_PHY_PORTS_PER_PIPE * HELIX5_PIPES_PER_DEV)
+
 #define HELIX5_TDM_PORTS_PER_PBLK         4
 #define HELIX5_TDM_PBLKS_PER_PIPE         19
 #define HELIX5_TDM_PBLKS_PER_HPIPE        8
@@ -126,6 +139,13 @@ typedef int soc_mem_t;
                  (HELIX5_TDM_PORTS_PER_PBLK * HELIX5_TDM_PBLKS_PER_PIPE)
 #define HELIX5_TDM_GPORTS_PER_DEV         \
                  (HELIX5_TDM_GPORTS_PER_PIPE * HELIX5_TDM_PIPES_PER_DEV)
+
+/* Physical port */
+/* 64 General device port + 1 CPU + 1 FAE + 1 Loopback */
+#define HELIX5_TDM_PHY_PORTS_PER_PIPE     \
+                 (HELIX5_TDM_GPORTS_PER_PIPE + 3)
+#define HELIX5_TDM_PHY_PORTS_PER_DEV      \
+                 (HELIX5_TDM_PHY_PORTS_PER_PIPE * HELIX5_TDM_PIPES_PER_DEV)
 
 #define HELIX5_PHY_IS_FRONT_PANEL_PORT(p)        ((p>=1)&& (p<=76))
 #define HELIX5_PHY_PORT_CPU                      0
@@ -1379,7 +1399,7 @@ typedef union ing_device_port_entry_s {
 
 #define ING_DEST_PORT_ENABLEm     0x84500000
 
-#define EPC_LINK_BMAP             0x84240000
+#define EPC_LINK_BMAPm            0x84240000
 
 
 /*****************************************************************************************/
@@ -2091,7 +2111,7 @@ soc_field_info_t soc_IDB_CA_CPU_CONTROLr_fields[] = {
 */
 
 typedef union idb_lpbk_ca_s {
-    struct _obm_q_ca_control_ {
+    struct _idb_lpbk_ca_ {
 #if defined(LE_HOST)
     uint32_t  PORT_RESETf:1,
               RESERVED_BUBBLE_MOP_DISABLEf:1,
@@ -2107,7 +2127,7 @@ typedef union idb_lpbk_ca_s {
 
 #define IDB_CA_LPBK_CONTROL_PIPE0r      0x02000700
  
-typedef idb_lpbk_ca_t idb_ca_cpu_t
+typedef idb_lpbk_ca_t idb_ca_cpu_t;
 
 #define IDB_CA_CPU_CONTROL_PIPE0r       0x02000200
 
