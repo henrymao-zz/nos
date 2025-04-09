@@ -394,7 +394,7 @@ _soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, vo
        return rv;
     }
     memcpy(entry_data,
-           schan_msg.genresp.data,
+           schan_msg.readresp.data,
            size * sizeof (uint32));
 
     return rv;
@@ -3309,8 +3309,8 @@ _helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
 
     _soc_mem_write(bcmsw_sw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 3, ing_entry); 
 
-    printk("Enable ING_DEST_PORT_ENABLE write:: 0x%8x 0x%8x 0x%8x\n",
-           ing_entry[0],ing_entry[1], ing_entry[2]);
+    //printk("Enable ING_DEST_PORT_ENABLE write:: 0x%08x 0x%08x 0x%08x\n",
+    //       ing_entry[0],ing_entry[1], ing_entry[2]);
 
     /* EPC_LINK_BMAP read, field modify and write. */
     _soc_mem_read(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
@@ -3319,8 +3319,8 @@ _helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
 
     _soc_mem_write(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
 
-    printk("Enable EPC_LINK_BITMAP write:: 0x%8x 0x%8x 0x%8x\n",
-            epc_entry[0],epc_entry[1], epc_entry[2]);
+    //printk("Enable EPC_LINK_BITMAP write:: 0x%08x 0x%08x 0x%08x\n",
+    //        epc_entry[0],epc_entry[1], epc_entry[2]);
 
     return SOC_E_NONE;
 }
