@@ -1897,7 +1897,7 @@ _soc_hx5_mmu_idb_ports_assign(soc_info_t *si)
 
 static void bcmsw_soc_info_init(soc_info_t *si)
 {
-    int index, port, pipe, phy_port, mmu_port;
+    int index, port, pipe, phy_port, mmu_port, pm_num;
     int num_port = HX5_NUM_PORT; 
     int num_phy_port = HX5_NUM_PHY_PORT;
     int num_mmu_port = HX5_NUM_MMU_PORT;
@@ -1966,11 +1966,11 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[port] = 0;
         si->port_speed_max[port] = n3248te_ports[index].bandwidth * 1000;
         si->port_init_speed[port] = n3248te_ports[index].bandwidth * 1000;
-	if (phy_port <= 48) {
+	    if (phy_port <= 48) {
             si->port_serdes[port] = (phy_port - 1) / _HX5_PORTS_PER_PMQ_PBLK;
         } else {
             si->port_serdes[port] = ((phy_port - 1) / _HX5_PORTS_PER_PBLK) - 9;
-	}
+	    }
 
         if (n3248te_ports[index].bandwidth <= 10) {
             si->port_num_lanes[port] = 1;
@@ -1992,7 +1992,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
     }
     si->cpu_hg_index = 72;
     //TODO flex port init
-    //
+
     _soc_hx5_mmu_idb_ports_assign(si);
 
 #if 0
@@ -2007,7 +2007,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
                 si->port_pipe[index],
                 si->port_serdes[index]);
     }
-#endif
+#endif                
 }
 
 
@@ -2720,6 +2720,243 @@ static int unimac_reset_check(struct bcmsw_switch *bcmsw_sw, int port, int enabl
 
     return SOC_E_NONE;
 }
+//soc_helix5_idb_obm_reset_buffer
+static const uint32_t obm_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
+     IDB_OBM0_Q_CONTROLr, 
+     IDB_OBM1_Q_CONTROLr, 
+     IDB_OBM2_Q_CONTROLr,
+     IDB_OBM0_CONTROLr,
+     IDB_OBM1_CONTROLr, 
+     IDB_OBM2_CONTROLr, 
+     IDB_OBM3_CONTROLr,
+     IDB_OBM0_48_CONTROLr,
+     IDB_OBM1_48_CONTROLr, 
+     IDB_OBM2_48_CONTROLr
+};
+
+si->ports[index].pm_num   = -1;
+si->ports[index].subp     = -1;
+for (index = 1; index < HX5_NUM_PORT; index++) {
+    phy_port = si->port_l2p_mapping[index];
+
+    if (phy_port == -1) break;
+
+    si->ports[index].subp = (phy_port-1)&0x3;
+
+    pm_num = phy_port - 1;
+    if (pm_num <= 48) {
+        si->ports[index].pm_num = pm_num/16;
+    } else if(pm_num <= HELIX5_TDM_GPORTS_PER_PIPE) { 
+        si->ports[index].pm_num = pm_num/4 - 9;
+    } else	{
+        si->ports[index].pm_num = HX5_NUM_EXT_PORTS;
+    } 
+}
+
+static int
+_helix5_get_pm_from_phynum(int phy_port, int *pm_num)
+{
+    pm_num = phy_port - 1;
+    if (pm_num <= 49) {
+        pm_num = pm_num/16;
+        offset = (phy_port - 1)%16;
+        offset = offset/4;        
+    } else if (pnum <= HELIX5_TDM_PHY_PORTS_PER_PIPE) { 
+        pm_num = (pm_num/4)-9;
+    } else {
+        return -1;
+    }
+
+    retrun 0;
+}
+
+int
+_helix5_idb_obm_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_buffer)
+{
+    uint32_t reg;
+    uint32_t rval;
+    uint32_t offset = 0;
+    int32_t phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    int pm_num, subp;
+    obm_q_control_t reg_obm;
+
+    _helix5_get_pm_from_phynum(phy_port, &pm_num);
+    subp = (phy_port -1)&0x3;
+
+    reg = obm_ctrl_regs[pm_num];
+    
+
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
+    printk("IDB port Up rval %1d pm_num %1d subp=%1d reset_buffer=%1d offset=%1d  \n",
+           reg_obm.word, pm_num, subp,reset_buffer,offset);
+    if (subp == 0) {
+        reg_obm.reg.PORT0_RESETf = reset_buffer;
+    } else if (subp == 1) {
+        reg_obm.reg.PORT1_RESETf = reset_buffer;
+    } else if (subp == 2) {
+        reg_obm.reg.PORT2_RESETf = reset_buffer;
+    } else {
+        reg_obm.reg.PORT3_RESETf = reset_buffer;
+    }
+
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), reg_obm.word);
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
+
+    printk("IDB port Up rval_update %1d pm_num %1d sbup=%1d reset_buffer=%1d offset=%1d \n",
+           reg_obm.word, pm_num, subp,reset_buffer,offset);
+
+    return SOC_E_NONE;
+}
+
+static const soc_reg_t soc_helix5_obm_ca_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
+    IDB_OBM0_Q_CA_CONTROLr, 
+    IDB_OBM1_Q_CA_CONTROLr,
+    IDB_OBM2_Q_CA_CONTROLr, 
+    IDB_OBM0_CA_CONTROLr,
+    IDB_OBM1_CA_CONTROLr, 
+    IDB_OBM2_CA_CONTROLr,
+    IDB_OBM3_CA_CONTROLr, 
+    IDB_OBM0_48_CA_CONTROLr,
+    IDB_OBM1_48_CA_CONTROLr, 
+    IDB_OBM2_48_CA_CONTROLr
+};
+// soc_helix5_idb_ca_reset_buffer
+int
+_helix5_idb_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_buffer)
+{
+    uint32_t reg;
+    obm_q_ca_control_t val32;
+    int32_t phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    int pm_num, subp;
+
+    _helix5_get_pm_from_phynum(phy_port, &pm_num);
+
+    if(phy_port < 49) {
+        subp = (phy_port-1)%16;
+    }
+
+    reg = soc_helix5_obm_ca_ctrl_regs[pm_num];
+
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg, &val32.word);
+
+    if (subp == 0) {
+        val32.reg.PORT0_RESETf = reset_buffer;
+    } else if (subp == 1) {
+        val32.reg.PORT1_RESETf = reset_buffer;
+    } else if (subp == 2) {
+        val32.reg.PORT2_RESETf = reset_buffer;
+    } else if (subp == 3) {
+        val32.reg.PORT3_RESETf = reset_buffer;
+    } else if (subp == 4) {
+        val32.reg.PORT4_RESETf = reset_buffer;
+    } else if (subp == 5) {
+        val32.reg.PORT5_RESETf = reset_buffer;
+    } else if (subp == 6) {
+        val32.reg.PORT6_RESETf = reset_buffer;
+    } else if (subp == 7) {
+        val32.reg.PORT7_RESETf = reset_buffer;
+    } else if (subp == 8) {
+        val32.reg.PORT8_RESETf = reset_buffer;
+    } else if (subp == 9) {
+        val32.reg.PORT9_RESETf = reset_buffer;
+    } else if (subp == 10) {
+        val32.reg.PORT10_RESETf = reset_buffer;
+    } else if (subp == 11) {
+        val32.reg.PORT11_RESETf = reset_buffer;
+    } else if (subp == 12) {
+        val32.reg.PORT12_RESETf = reset_buffer;
+    } else if (subp == 13) {
+        val32.reg.PORT13_RESETf = reset_buffer;
+    } else if (subp == 14) {
+        val32.reg.PORT14_RESETf = reset_buffer;
+    } else if (subp == 15) {
+        val32.reg.PORT15_RESETf = reset_buffer;
+    } else {
+        val32.reg.PORT0_RESETf = reset_buffer;
+    }
+
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg, val32.word);
+
+    printk("_helix5_idb_ca_reset_buffer port %d %1d pm_num %1d sbup=%1d reset_buffer=%1d  \n",
+            port, val32.word, pm_num, subp,reset_buffer);
+    return SOC_E_NONE;
+}
+
+//soc_helix5_idb_lpbk_ca_reset_buffer
+static int
+_helix5_idb_lpbk_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int reset_buffer)
+{
+    idb_lpbk_ca_t val32;
+
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, &val32.word);
+         
+    val32.reg.PORT_RESETf = reset_buffer;
+
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, val32.word);
+
+    printk("_helix5_idb_lpbk_ca_reset_buffer reset_buffer=%1d", reset_buffer);
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_idb_cpu_ca_reset_buffer
+static  int
+_helix5_idb_cpu_ca_reset_buffer(int unit, int pipe_num, int reset_buffer)
+{
+    idb_ca_cpu_t val32;
+
+    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, &val32.word);
+
+    val32.reg.PORT_RESETf = reset_buffer;
+
+    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, val32.word);
+    
+    printk("_helix5_idb_cpu_ca_reset_buffer reset_buffer=%1d", reset_buffer);
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_flex_idb_port_up
+static int
+_helix5_flex_idb_port_up(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    int reset_buffer;
+    int phy_port;
+
+    phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+
+    /* Release IDB buffers from reset state for all the ports going up */
+
+    reset_buffer = 1;
+    if (HELIX5_PHY_IS_FRONT_PANEL_PORT(phy_port)) {
+        _helix5_idb_obm_reset_buffer(bcmsw_sw, port, reset_buffer);
+
+	    if(phy_port <49)
+            _helix5_idb_ca_reset_buffer(bcmsw_sw, port, reset_buffer);
+        } else if(phy_port==HELIX5_PHY_PORT_LPBK0) {
+            _helix5_idb_lpbk_ca_reset_buffer(bcmsw_sw, reset_buffer);
+        } else if(phy_port==HELIX5_PHY_PORT_CPU) {
+            _helix5_idb_cpu_ca_reset_buffer(bcmsw_sw, reset_buffer);
+        }
+    }
+
+    msleep(1);
+
+    reset_buffer = 0;
+    if (HELIX5_PHY_IS_FRONT_PANEL_PORT(phy_port)) {
+        _helix5_idb_obm_reset_buffer(bcmsw_sw, port, reset_buffer);
+	    if(phy_port <49) {
+            _helix5_idb_ca_reset_buffer(bcmsw_sw, port, reset_buffer);
+        }else if(phy_port==HELIX5_PHY_PORT_LPBK0) {
+            _helix5_idb_lpbk_ca_reset_buffer(bcmsw_sw, reset_buffer);
+        }else if(phy_port==HELIX5_PHY_PORT_CPU) {
+            _helix5_idb_cpu_ca_reset_buffer(bcmsw_sw, reset_buffer);
+        }
+    }
+    return SOC_E_NONE;
+}
+
+
 
 //soc_helix5_flex_mac_port_up
 int
@@ -3075,6 +3312,40 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     }
 
 	printk("END soc_helix5_flex_mac_port_up\n");
+    return SOC_E_NONE;
+}
+
+//soc_helix5_flex_en_forwarding_traffic
+int
+_helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    uint8_t ing_entry[9]; //72 bit
+    uint8_t epc_entry[9]; //72 bit
+
+    sal_memset(entry, 0, sizeof(entry));
+    sal_memset(memfld, 0, sizeof(memfld));
+
+    _soc_mem_read(bcmsw_sw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 9, ing_entry); 
+
+    ing_entry[port>>3] |= (0x1<<(port&0x7));
+
+    _soc_mem_write(bcmsw_sw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 9, ing_entry); 
+
+    printk("Enable ING_DEST_PORT_ENABLE write:: %x %x %x %x %x %x %x %x %x\n",
+        ing_entry[0],ing_entry[1], ing_entry[2],ing_entry[3],ing_entry[4], 
+        ing_entry[5],ing_entry[6], ing_entry[7],ing_entry[8]);
+
+    /* EPC_LINK_BMAP read, field modify and write. */
+    _soc_mem_read(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 9, epc_entry); 
+
+    epc_entry[port>>3] |= (0x1<<(port&0x7));
+
+    _soc_mem_write(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 9, epc_entry); 
+
+    printk("Enable EPC_LINK_BITMAP write:: %x %x %x %x %x %x %x %x %x\n",
+            epc_entry[0],epc_entry[1], epc_entry[2],epc_entry[3],epc_entry[4], 
+            epc_entry[5],epc_entry[6], epc_entry[7],epc_entry[8]);
+
     return SOC_E_NONE;
 }
 
@@ -3688,9 +3959,21 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
 
     if(mac_reset) {
         //if (flags & PORTMOD_PORT_ENABLE_MAC ) {
-        //(BCM_ESW_PORT_DRV(unit)->port_enable_set(unit,
+        //(BCM_ESW_PORT_DRV(unit)->port_enable_set(unit, -> bcmi_hx5_port_enable ->soc_helix5_flex_top_port_up
         printk("_bcm_esw_portctrl_enable_set port %d mac_reset\n", port);
+        
+        /* soc_helix5_flex_top_port_up*/
+        // 1 soc_helix5_flex_mmu_port_up_top
+        // 2 soc_helix5_flex_ep_port_up
+        // 3 soc_helix5_flex_idb_port_up()
+
+        _helix5_flex_idb_port_up(bcmsw_sw, port);
+ 
+        // 4 soc_helix5_flex_mac_port_up
         _helix5_flex_mac_port_up(bcmsw_sw, port);
+
+        // 5 soc_helix5_flex_en_forwarding_traffic
+        _helix5_flex_en_forwarding_traffic(bcmsw_sw, port);
 
     }
 

@@ -107,9 +107,31 @@ typedef int soc_mem_t;
 #define SOC_MAX_MEM_WORDS               BYTES2WORDS(SOC_MAX_MEM_BYTES)
 
 
-#define    MEM_BLOCK_ALL                -1
+#define MEM_BLOCK_ALL                  -1
 
 #define SOC_WARM_BOOT(unit)             0 
+
+/* TD3 specific defines */
+#define HELIX5_TDM_PORTS_PER_PBLK         4
+#define HELIX5_TDM_PBLKS_PER_PIPE         19
+#define HELIX5_TDM_PBLKS_PER_HPIPE        8
+#define HELIX5_TDM_PIPES_PER_DEV          1
+#define HELIX5_TDM_HPIPES_PER_PIPE        2
+
+#define HELIX5_TDM_PBLKS_PER_DEV          \
+                 (HELIX5_TDM_PBLKS_PER_PIPE * HELIX5_TDM_PIPES_PER_DEV)
+#define HELIX5_TDM_GPORTS_PER_HPIPE       \
+                 (HELIX5_TDM_PORTS_PER_PBLK * HELIX5_TDM_PBLKS_PER_HPIPE)
+#define HELIX5_TDM_GPORTS_PER_PIPE        \
+                 (HELIX5_TDM_PORTS_PER_PBLK * HELIX5_TDM_PBLKS_PER_PIPE)
+#define HELIX5_TDM_GPORTS_PER_DEV         \
+                 (HELIX5_TDM_GPORTS_PER_PIPE * HELIX5_TDM_PIPES_PER_DEV)
+
+#define HELIX5_PHY_IS_FRONT_PANEL_PORT(p)        ((p>=1)&& (p<=76))
+#define HELIX5_PHY_PORT_CPU                      0
+#define HELIX5_PHY_PORT_LPBK0                    77
+
+#define HX5_NUM_EXT_PORTS                        79
 
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
@@ -1344,7 +1366,7 @@ typedef union ing_device_port_entry_s {
     uint8_t  bytes[18];
 }ing_device_port_entry_t;
 
-#define ING_DEVICE_PORTm    0x4c000000
+#define ING_DEVICE_PORTm          0x4c000000
 
 /* Add an entry to field-value array for multiple fields write */
 #define _mem_set_field_value_array(_fa, _f, _va, _v, _p) \
@@ -1354,6 +1376,10 @@ typedef union ing_device_port_entry_s {
         _p++;           \
         } while (0);    \
 
+
+#define ING_DEST_PORT_ENABLEm     0x84500000
+
+#define EPC_LINK_BMAP             0x84240000
 
 
 /*****************************************************************************************/
@@ -1876,6 +1902,214 @@ typedef union command_config_s {
 #define  CLPORT_MODE_REG                0x2020a00
 #define  CLPORT_ENABLE_REG              0x2020b00
 
+/*****************************************************************************************/
+/*                              FLEXPORT related                                         */
+/*****************************************************************************************/
+
+/*
+soc_field_info_t soc_IDB_OBM0_Q_CONTROLr_fields[] = {
+    { PORT0_BUBBLE_MOP_DISABLEf, 1, 16, SOCF_RES },
+    { PORT0_BYPASS_ENABLEf, 1, 1, SOCF_RES },
+    { PORT0_CA_SOPf, 1, 20, SOCF_RES },
+    { PORT0_FLUSHf, 1, 2, SOCF_RES },
+    { PORT0_OVERSUB_ENABLEf, 1, 0, SOCF_RES },
+    { PORT0_RESETf, 1, 3, SOCF_RES },
+    { PORT1_BUBBLE_MOP_DISABLEf, 1, 17, SOCF_RES },
+    { PORT1_BYPASS_ENABLEf, 1, 5, SOCF_RES },
+    { PORT1_CA_SOPf, 1, 21, SOCF_RES },
+    { PORT1_FLUSHf, 1, 6, SOCF_RES },
+    { PORT1_OVERSUB_ENABLEf, 1, 4, SOCF_RES },
+    { PORT1_RESETf, 1, 7, SOCF_RES },
+    { PORT2_BUBBLE_MOP_DISABLEf, 1, 18, SOCF_RES },
+    { PORT2_BYPASS_ENABLEf, 1, 9, SOCF_RES },
+    { PORT2_CA_SOPf, 1, 22, SOCF_RES },
+    { PORT2_FLUSHf, 1, 10, SOCF_RES },
+    { PORT2_OVERSUB_ENABLEf, 1, 8, SOCF_RES },
+    { PORT2_RESETf, 1, 11, SOCF_RES },
+    { PORT3_BUBBLE_MOP_DISABLEf, 1, 19, SOCF_RES },
+    { PORT3_BYPASS_ENABLEf, 1, 13, SOCF_RES },
+    { PORT3_CA_SOPf, 1, 23, SOCF_RES },
+    { PORT3_FLUSHf, 1, 14, SOCF_RES },
+    { PORT3_OVERSUB_ENABLEf, 1, 12, SOCF_RES },
+    { PORT3_RESETf, 1, 15, SOCF_RES }
+};
+*/
+typedef union obm_q_control_s {
+    struct _obm_q_control_ {
+#if defined(LE_HOST)
+    uint32_t  PORT0_OVERSUB_ENABLEf:1,
+              PORT0_BYPASS_ENABLEf:1,
+              PORT0_FLUSHf:1,
+              PORT0_RESETf:1,
+              PORT1_OVERSUB_ENABLEf:1,
+              PORT1_BYPASS_ENABLEf:1,
+              PORT1_FLUSHf:1,
+              PORT1_RESETf:1,
+              PORT2_OVERSUB_ENABLEf:1,
+              PORT2_BYPASS_ENABLEf:1,
+              PORT2_FLUSHf:1,
+              PORT2_RESETf:1,
+              PORT3_OVERSUB_ENABLEf:1,
+              PORT3_BYPASS_ENABLEf:1,
+              PORT3_FLUSHf:1,
+              PORT3_RESETf:1,
+              PORT0_BUBBLE_MOP_DISABLEf:1,  
+              PORT1_BUBBLE_MOP_DISABLEf:1,
+              PORT2_BUBBLE_MOP_DISABLEf:1,
+              PORT3_BUBBLE_MOP_DISABLEf:1,
+              PORT0_CA_SOPf:1,
+              PORT1_CA_SOPf:1,
+              PORT2_CA_SOPf:1,
+              PORT3_CA_SOPf:1,
+              r0:8;
+#else
+    uint32_t  r0:8,
+              PORT3_CA_SOPf:1,
+              PORT2_CA_SOPf:1,
+              PORT1_CA_SOPf:1,
+              PORT0_CA_SOPf:1,
+              PORT3_BUBBLE_MOP_DISABLEf:1,
+              PORT2_BUBBLE_MOP_DISABLEf:1,
+              PORT1_BUBBLE_MOP_DISABLEf:1,
+              PORT0_BUBBLE_MOP_DISABLEf:1,  
+              PORT3_RESETf:1,
+              PORT3_FLUSHf:1,
+              PORT3_BYPASS_ENABLEf:1,
+              PORT3_OVERSUB_ENABLEf:1,
+              PORT2_RESETf:1,
+              PORT2_FLUSHf:1,
+              PORT2_BYPASS_ENABLEf:1,
+              PORT2_OVERSUB_ENABLEf:1,
+              PORT1_RESETf:1,
+              PORT1_FLUSHf:1,
+              PORT1_BYPASS_ENABLEf:1,
+              PORT1_OVERSUB_ENABLEf:1,
+              PORT0_RESETf:1,
+              PORT0_FLUSHf:1,
+              PORT0_BYPASS_ENABLEf:1,
+              PORT0_OVERSUB_ENABLEf:1;
+#endif
+    }reg;
+    uint32_t word;
+} obm_q_control_t;
+
+#define  IDB_OBM0_Q_CONTROLr            0x0a000100  // 0x0a000200 0x0a000300 0x0a000400
+#define  IDB_OBM1_Q_CONTROLr            0x0e000100
+#define  IDB_OBM2_Q_CONTROLr            0x12000100
+#define  IDB_OBM0_CONTROLr              0x16000000
+#define  IDB_OBM1_CONTROLr              0x1a000000
+#define  IDB_OBM2_CONTROLr              0x1e000000
+#define  IDB_OBM3_CONTROLr              0x22000000
+#define  IDB_OBM0_48_CONTROLr           0x26000000
+#define  IDB_OBM1_48_CONTROLr           0x2a000000
+#define  IDB_OBM2_48_CONTROLr           0x2e000000
+
+
+/*
+soc_field_info_t soc_IDB_OBM0_Q_CA_CONTROLr_fields[] = {
+    { PORT0_RESETf, 1, 0, SOCF_RES },
+    { PORT10_RESETf, 1, 10, SOCF_RES },
+    { PORT11_RESETf, 1, 11, SOCF_RES },
+    { PORT12_RESETf, 1, 12, SOCF_RES },
+    { PORT13_RESETf, 1, 13, SOCF_RES },
+    { PORT14_RESETf, 1, 14, SOCF_RES },
+    { PORT15_RESETf, 1, 15, SOCF_RES },
+    { PORT1_RESETf, 1, 1, SOCF_RES },
+    { PORT2_RESETf, 1, 2, SOCF_RES },
+    { PORT3_RESETf, 1, 3, SOCF_RES },
+    { PORT4_RESETf, 1, 4, SOCF_RES },
+    { PORT5_RESETf, 1, 5, SOCF_RES },
+    { PORT6_RESETf, 1, 6, SOCF_RES },
+    { PORT7_RESETf, 1, 7, SOCF_RES },
+    { PORT8_RESETf, 1, 8, SOCF_RES },
+    { PORT9_RESETf, 1, 9, SOCF_RES },
+    { PORT_MODEf, 4, 16, SOCF_LE }
+};
+*/
+
+typedef union obm_q_ca_control_s {
+    struct _obm_q_ca_control_ {
+#if defined(LE_HOST)
+    uint32_t  PORT0_RESETf:1,
+              PORT1_RESETf:1,
+              PORT2_RESETf:1,
+              PORT3_RESETf:1,
+              PORT4_RESETf:1,
+              PORT5_RESETf:1,
+              PORT6_RESETf:1,
+              PORT7_RESETf:1,
+              PORT8_RESETf:1,
+              PORT9_RESETf:1,
+              PORT10_RESETf:1,
+              PORT11_RESETf:1,
+              PORT12_RESETf:1,
+              PORT13_RESETf:1,
+              PORT14_RESETf:1,
+              PORT15_RESETf:1,  
+              PORT_MODEf:4,
+              r0:12;
+#else
+    uint32_t  r0:8,
+              PORT_MODEf:4,
+              PORT15_RESETf:1, 
+              PORT14_RESETf:1,
+              PORT13_RESETf:1,
+              PORT12_RESETf:1,
+              PORT11_RESETf:1,
+              PORT10_RESETf:1,
+              PORT9_RESETf:1,
+              PORT8_RESETf:1,
+              PORT7_RESETf:1,
+              PORT6_RESETf:1,
+              PORT5_RESETf:1,
+              PORT4_RESETf:1,
+              PORT3_RESETf:1,
+              PORT2_RESETf:1,
+              PORT1_RESETf:1,
+              PORT0_RESETf:1;
+#endif
+    }reg;
+    uint32_t word;
+} obm_q_ca_control_t;
+
+#define  IDB_OBM0_Q_CA_CONTROLr         0x0a006d00
+#define  IDB_OBM1_Q_CA_CONTROLr         0x0e006d00
+#define  IDB_OBM2_Q_CA_CONTROLr         0x12006d00
+#define  IDB_OBM0_CA_CONTROLr           0x16006900
+#define  IDB_OBM1_CA_CONTROLr           0x1a006900
+#define  IDB_OBM2_CA_CONTROLr           0x1e006900
+#define  IDB_OBM3_CA_CONTROLr           0x22006900
+#define  IDB_OBM0_48_CA_CONTROLr        0x26006900
+#define  IDB_OBM1_48_CA_CONTROLr        0x2a006900
+#define  IDB_OBM2_48_CA_CONTROLr        0x2e006900
+
+/*
+soc_field_info_t soc_IDB_CA_CPU_CONTROLr_fields[] = {
+    { PORT_RESETf, 1, 0, SOCF_RES },
+    { RESERVED_BUBBLE_MOP_DISABLEf, 1, 1, SOCF_RES }
+};
+*/
+
+typedef union idb_lpbk_ca_s {
+    struct _obm_q_ca_control_ {
+#if defined(LE_HOST)
+    uint32_t  PORT_RESETf:1,
+              RESERVED_BUBBLE_MOP_DISABLEf:1,
+              r0:30;
+#else
+    uint32_t  r0:30,
+              RESERVED_BUBBLE_MOP_DISABLEf:1,
+              PORT_RESETf:1;
+#endif
+    }reg;
+    uint32_t word;
+} idb_lpbk_ca_t;
+
+#define IDB_CA_LPBK_CONTROL_PIPE0r      0x02000700
+ 
+typedef idb_lpbk_ca_t idb_ca_cpu_t
+
+#define IDB_CA_CPU_CONTROL_PIPE0r       0x02000200
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -1924,6 +2158,9 @@ typedef struct port_cb_s {
     uint32_t  int_phy_addr;
     uint32_t  phy_flags;
     uint32_t  primary_and_offset;
+    int32_t   pm_num;
+    int32_t   subp;
+    int32_t   pipe_num;
 
     struct phy_ctrl_ {
        uint32_t flags; 
