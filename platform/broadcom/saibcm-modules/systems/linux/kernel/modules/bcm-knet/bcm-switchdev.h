@@ -1401,6 +1401,18 @@ typedef union ing_device_port_entry_s {
 
 #define EPC_LINK_BMAPm            0x84240000
 
+//Memory: EGR_ENABLE.epipe0 alias EDB_ENABLE address 0x28200000
+//Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
+/*
+soc_field_info_t soc_EGR_ENABLE_BCM53400_A0m_fields[] = {
+    { PRT_ENABLEf, 1, 0, 0 | SOCF_GLOBAL }
+};
+*/
+#define EGR_ENABLEm                     0x28200000
+
+//Memory: EGR_PER_PORT_BUFFER_SFT_RESET.epipe0 alias EDB_PER_PORT_BUFFER_SFT_RESET address 0x28300000
+//Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
+#define EGR_PER_PORT_BUFFER_SFT_RESETm  0x28300000
 
 /*****************************************************************************************/
 /*                           Registers (IPROC)  BCM56370                                 */

@@ -2937,7 +2937,26 @@ _helix5_flex_idb_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     return SOC_E_NONE;
 }
 
+// only valid for phy_port 1~49
+static int 
+_helix5_get_qmode(struct bcmsw_switch *bcmsw_sw, int phy_port)
+{
+    int qmode;
+    int blk_no;
 
+    if (phy_port <= 16) {
+        blk_no = SCHAN_BLK_PMQPORT0;
+    } else if (phy_port <= 32) {
+        blk_no = SCHAN_BLK_PMQPORT1; 
+    } else {
+        blk_no = SCHAN_BLK_PMQPORT2;
+    }
+
+    _reg32_read(bcmsw_sw->dev, blk_no, CHIP_CONFIGr, &rval32);
+    qmode = rval32 & 0x1;
+
+    return qmode;
+}
 
 //soc_helix5_flex_mac_port_up
 int
@@ -2956,7 +2975,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     //int higig_mode;
     int qmode;
     //int inst;
-    int blk_no, index;
+    int index;
     int speed_mode;
     //int hdr_mode;
     command_config_t ctrl;
@@ -2985,16 +3004,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     //strict_preamble = 0;
 
     if(phy_port < 49) {
-        if (phy_port <= 16) {
-            blk_no = SCHAN_BLK_PMQPORT0;
-        } else if (phy_port <= 32) {
-            blk_no = SCHAN_BLK_PMQPORT1; 
-        } else {
-            blk_no = SCHAN_BLK_PMQPORT2;
-        }
-
-        _reg32_read(dev, blk_no, CHIP_CONFIGr, &rval32);
-        qmode = rval32 & 0x1;
+        qmode = _helix5_get_qmode(dev, phy_port);
         index = (phy_port -1)%8;
     } else {
         qmode = 0;
@@ -3321,6 +3331,113 @@ _helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
 
     //printk("Enable EPC_LINK_BITMAP write:: 0x%08x 0x%08x 0x%08x\n",
     //        epc_entry[0],epc_entry[1], epc_entry[2]);
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_ep_flexport_sft_rst_ports
+static int
+_helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int rst_on)
+{
+    int physical_port;
+    uint32 entry;
+    int qmode;
+
+    //int port_rst_serviced[HELIX5_PHY_PORTS_PER_DEV];
+
+    if (rst_on == 1) {
+        entry = 1;
+    } else {
+        entry = 0;
+    }
+
+    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+
+    /* For ports going DOWN  or UP do:
+     * Assert(rst_on=1)/De-assert(rst_on=0) per port sft reset
+     */
+
+    sal_memset(port_rst_serviced, 0, sizeof(port_rst_serviced));
+	/* need to implement skipping edatbuff reset if the buffer is for
+	 * gport as credits will not be re-issued due flex 
+	 */
+	if(physical_port < 49) {
+        qmode = _helix5_get_qmode(bcmsw_sw, physical_port);                           
+	} else {
+	    qmode = 0;
+	}
+
+    if((physical_port < 49) && (qmode)) {
+        entry = 0;
+    }
+
+    /* If physical_port index was written once don't do it again
+     * Note that there may be two writes to the same physical port
+     * More sbus efficiency by tracking which phy indexes thar are
+     * already written
+     */
+    //if (0 == port_rst_serviced[physical_port]) {
+    //        port_rst_serviced[physical_port] = 1;
+    //}
+
+    //soc_mem_field_set(unit, mem, entry, ENABLEf, &memfld);
+    _soc_mem_write(bcmsw_sw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
+
+    //readback for verification
+    entry = 0;
+    _soc_mem_write(bcmsw_sw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
+    printk("_helix5_ep_flexport_sft_rst_ports port %d entry %d\n", port, entry);
+
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_ep_enable_disable
+static int
+_helix5_ep_enable_disable(struct bcmsw_switch *bcmsw_sw, int port, int down_or_up)
+{
+    uint32 entry;
+    int physical_port;
+
+    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+
+    entry = (0 == down_or_up)?0:1;
+
+    _soc_mem_write(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
+
+    _soc_mem_read(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
+    printk("_helix5_ep_enable_disable port %d entry %d\n", port, entry);
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_flex_ep_port_up
+static int
+_helix5_flex_ep_port_up(struct bcmsw_switch *bcmsw_sw, int port)
+{
+    int rst_on, down_or_up;
+    int physical_port;
+
+    /*
+     * Release EDB port buffer reset and enable cell request generation in EP
+     * Set EGR_PER_PORT_BUFFER_SFT_RESET[device_port] to 0
+     * Set EGR_ENABLE[device_port].PRT_ENABLE to 1
+     */
+
+    /* De-assert PM intf sft_reset */
+    rst_on = 0;
+    _helix5_ep_flexport_sft_rst_ports(bcmsw_sw, port, rst_on);
+
+    /* Enable Ports going up after PM sft_rst is de-asserted */
+    /* For ports going UP do:
+     * 1. Enable port; write EGR_ENABLEm
+     */
+    down_or_up = 1; /* that is, port UP */
+    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    if (-1 != physical_port) { /* that is, port UP */
+        /* Enable port; write EGR_ENABLEm */
+        _helix5_ep_enable_disable(bcmsw_sw, port, down_or_up);
+    }
 
     return SOC_E_NONE;
 }
@@ -3942,8 +4059,9 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
         /* soc_helix5_flex_top_port_up*/
         // 1 soc_helix5_flex_mmu_port_up_top
         // 2 soc_helix5_flex_ep_port_up
-        // 3 soc_helix5_flex_idb_port_up()
+        _helix5_flex_ep_port_up(bcmsw_sw, port);
 
+        // 3 soc_helix5_flex_idb_port_up()
         _helix5_flex_idb_port_up(bcmsw_sw, port);
  
         // 4 soc_helix5_flex_mac_port_up
