@@ -31,6 +31,26 @@
 #define COMPILER_64_XOR(dst, src)    ((dst) ^= (src))
 #define COMPILER_64_NOT(dst)        ((dst) = ~(dst))
 
+#define COMPILER_64_SHL(dst, bits)    ((dst) <<= (bits))
+#define COMPILER_64_SHR(dst, bits)    ((dst) >>= (bits))
+
+#define COMPILER_64_BITSET(dst, n)              \
+        do {                                    \
+            uint64 temp64;                      \
+            COMPILER_64_SET(temp64, 0, 1);      \
+            COMPILER_64_SHL(temp64, n);         \
+            COMPILER_64_OR(dst, temp64);        \
+        } while(0)
+
+#define COMPILER_64_BITCLR(dst, n)              \
+        do {                                    \
+            uint64 temp64;                      \
+            COMPILER_64_SET(temp64, 0, 1);      \
+            COMPILER_64_SHL(temp64, n);         \
+            COMPILER_64_NOT(temp64);            \
+            COMPILER_64_AND(dst, temp64);       \
+        } while(0)
+
 typedef enum {
     SOC_E_NONE                  = 0,
     SOC_E_INTERNAL              = -1,
@@ -1646,6 +1666,9 @@ typedef union miim_ring_control_s {
 
 #define Q_SCHED_PORT_FLUSH_SPLIT0r                    0x11800100
 #define Q_SCHED_PORT_FLUSH_SPLIT1r                    0x11800200
+
+#define MTRO_PORT_ENTITY_DISABLE_SPLIT0r              0x15800200
+#define MTRO_PORT_ENTITY_DISABLE_SPLIT1r              0x15800300 
 
 
 /*

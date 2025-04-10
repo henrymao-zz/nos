@@ -3413,9 +3413,9 @@ _helix5_ep_enable_disable(struct bcmsw_switch *bcmsw_sw, int port, int down_or_u
 
     entry = (0 == down_or_up)?0:1;
 
-    _soc_mem_write(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_write(bcmsw_sw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
 
-    _soc_mem_read(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_read(bcmsw_sw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
     //printk("_helix5_ep_enable_disable port %d entry %d\n", port, entry);
 
     return SOC_E_NONE;
@@ -3456,13 +3456,13 @@ _helix5_flex_ep_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 static int
 _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_val)
 {
-    soc_reg_t reg1, reg2;
-    uint64 enable_val_0,enable_val_1;
+    uint32_t reg1, reg2;
+    uint64_t enable_val_0,enable_val_1;
     int physical_port;
     int mmu_port, lcl_mmu_port;
     int update0,update1;
-    uint64 new_val_0,new_val_1;
-    uint64 temp64;
+    uint64_t new_val_0,new_val_1;
+    uint64_t temp64;
 
     reg1 = Q_SCHED_PORT_FLUSH_SPLIT0r;
     reg2 = Q_SCHED_PORT_FLUSH_SPLIT1r;
@@ -3471,9 +3471,9 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     /* READ MODIFY WRITE IN SW ... Hence get Register
        Value and Then Write ... */
 
-    COMPILER_64_ZERO(rval_0);
-    COMPILER_64_ZERO(rval_1);
-	COMPILER_64_ZERO(temp64);
+    COMPILER_64_ZERO(enable_val_0);
+    COMPILER_64_ZERO(enable_val_1);
+    COMPILER_64_ZERO(temp64);
     
     //acc_type = 20
     _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
@@ -3483,8 +3483,8 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     update0 = 0;
     update1 = 0;
     
-	COMPILER_64_SET(new_val_0, 0, 1);
-	COMPILER_64_SET(new_val_1, 0, 1);
+    COMPILER_64_SET(new_val_0, 0, 1);
+    COMPILER_64_SET(new_val_1, 0, 1);
 
     physical_port = bcmsw_sw->si->port_l2p_mapping[port];
     if (physical_port != -1) {
@@ -3494,40 +3494,41 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     }
 
     lcl_mmu_port = mmu_port % HX5_MMU_PORT_PIPE_OFFSET;
-    COMPILER_64_ADD_32(temp64, HX5_MMU_FLUSH_ON);
+    temp64 += HX5_MMU_FLUSH_ON;
 
     if (lcl_mmu_port < 64) {
-        COMPILER_64_SHL(new_val_0, lcl_mmu_port);
+        //COMPILER_64_SHL(new_val_0, lcl_mmu_port);
+	new_val_0 <<= lcl_mmu_port;
 
-        if (COMPILER_64_EQ(set_val,temp64)) {
-		    if (physical_port == -1) {
-	           COMPILER_64_OR(enable_val_0, new_val_0);
-	           update0 = 1;
+        if (set_val == temp64) {
+	    if (physical_port == -1) {
+                COMPILER_64_OR(enable_val_0, new_val_0);
+                update0 = 1;
             }
-	    } else {
-		    if (physical_port != -1){
-			   COMPILER_64_NOT(new_val_0);
-			   COMPILER_64_AND(enable_val_0, new_val_0);
-	           update0 = 1;
-	        }
-	    }   
-    } else {
-	    COMPILER_64_SHL(new_val_1, (lcl_mmu_port - 64));
-	        
-	    if (COMPILER_64_EQ(set_val,temp64)) {
-		    if (physical_port == -1){
-	           COMPILER_64_OR(enable_val_1, new_val_1);
-	           update1 = 1; 
-	        }
-	    } else {
-		    if (physical_port != -1){
-			   COMPILER_64_NOT(new_val_1);
-			   COMPILER_64_AND(enable_val_1, new_val_1);
-	           update1 = 1; 
-	        }
+        } else {
+	    if (physical_port != -1){
+                COMPILER_64_NOT(new_val_0);
+	        COMPILER_64_AND(enable_val_0, new_val_0);
+	        update0 = 1;
 	    }
-	}
-
+        }   
+    } else {
+        //COMPILER_64_SHL(new_val_1, (lcl_mmu_port - 64));
+	new_val_1 <<= (lcl_mmu_port - 64);
+	        
+        if (set_val == temp64) {
+	    if (physical_port == -1){
+                COMPILER_64_OR(enable_val_1, new_val_1);
+                update1 = 1; 
+            }
+        } else {
+	    if (physical_port != -1){
+ 	       COMPILER_64_NOT(new_val_1);
+	       COMPILER_64_AND(enable_val_1, new_val_1);
+	       update1 = 1; 
+	    }
+        }
+    }
 
     if(update0 == 1) {
         _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
@@ -3551,8 +3552,7 @@ _helix5_mmu_rqe_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     //acc_type = 20
     _schan_reg32_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, &reg_rqe.word, 20);
 
-    reg_rqe.reg.INITIATEf = set_val
-    soc_reg64_field_set(unit, reg, &rval, INITIATEf, set_val);
+    reg_rqe.reg.INITIATEf = set_val;
     _schan_reg32_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, reg_rqe.word, 20);
 
     while (1) {
@@ -3562,7 +3562,7 @@ _helix5_mmu_rqe_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
             break;
         }
         msleep(1);
-	    count++;
+        count++;
         if (count > 60) {
             printk("Initiate isn't reset even after 60ms port %d \n", port);
             return SOC_E_FAIL;
@@ -3573,14 +3573,13 @@ _helix5_mmu_rqe_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
 
 //soc_helix5_mmu_mtro_port_flush
 static int
-_helix5_mmu_mtro_port_flush(int unit,soc_port_resource_t *port_resource_t,
-                                  uint64 set_val)
+_helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_val)
 {
     uint32_t reg1,reg2;
     int mmu_port, lcl_mmu_port;
     int physical_port;
-    uint64 enable_val_0;
-    uint64 enable_val_1;
+    uint64_t enable_val_0;
+    uint64_t enable_val_1;
 
     reg1 = MTRO_PORT_ENTITY_DISABLE_SPLIT0r;
     reg2 = MTRO_PORT_ENTITY_DISABLE_SPLIT1r;
@@ -3601,7 +3600,7 @@ _helix5_mmu_mtro_port_flush(int unit,soc_port_resource_t *port_resource_t,
         //acc_type = 20
         _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
 
-        if (COMPILER_64_IS_ZERO(set_val) == 1) {
+        if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_0, lcl_mmu_port);
         }
         else {
@@ -3612,13 +3611,12 @@ _helix5_mmu_mtro_port_flush(int unit,soc_port_resource_t *port_resource_t,
         //acc_type = 20
         _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg2, &enable_val_1, 20);
 
-        if (COMPILER_64_IS_ZERO(set_val) == 1) {
+        if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_1, lcl_mmu_port - 64);
         }
         else {
             COMPILER_64_BITSET(enable_val_1, lcl_mmu_port - 64);
         }
-        COMPILER_64_ZERO(rval_1);
         _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
@@ -3646,8 +3644,8 @@ _helix5_flex_mmu_port_up_top(struct bcmsw_switch *bcmsw_sw, int port)
 	//    unit, port_schedule_state_t, pipe, &pipe_flexed);
 	    
 	//if (pipe_flexed == 1) {
-	_helix5_mmu_vbs_port_flush(bcmsw_sw, temp64);
-	_helix5_mmu_rqe_port_flush(bcmsw_sw, temp64);
+    _helix5_mmu_vbs_port_flush(bcmsw_sw, port, temp64);
+    _helix5_mmu_rqe_port_flush(bcmsw_sw, port, temp64);
 	//}
     //}
 
@@ -3666,7 +3664,7 @@ _helix5_flex_mmu_port_up_top(struct bcmsw_switch *bcmsw_sw, int port)
         //        unit, &port_schedule_state_t->resource[port]);
     }
 
-    _helix5_mmu_mtro_port_flush(bcmsw_sw, temp64);
+    _helix5_mmu_mtro_port_flush(bcmsw_sw, port, temp64);
 	        
     return SOC_E_NONE;
 }
@@ -4422,7 +4420,7 @@ bcm_esw_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
 static int
 bcm_port_settings_init(struct bcmsw_switch *bcmsw_sw, int port)
 {
-    int             val, rc;
+    int         rc;
     soc_info_t *si = bcmsw_sw->si;
 
     rc = bcm_esw_port_speed_set(bcmsw_sw, port, si->port_init_speed[port]);
