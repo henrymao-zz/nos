@@ -2943,6 +2943,7 @@ _helix5_get_qmode(struct bcmsw_switch *bcmsw_sw, int phy_port)
 {
     int qmode;
     int blk_no;
+    int32_t rval32;
 
     if (phy_port <= 16) {
         blk_no = SCHAN_BLK_PMQPORT0;
@@ -2978,6 +2979,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     int index;
     int speed_mode;
     //int hdr_mode;
+    int blk_no;
     command_config_t ctrl;
     //static const int clport_mode_values[SOC_HX5_PORT_RATIO_COUNT] = {
     //    4, 3, 3, 3, 2, 2, 1, 1, 0
@@ -3004,7 +3006,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     //strict_preamble = 0;
 
     if(phy_port < 49) {
-        qmode = _helix5_get_qmode(dev, phy_port);
+        qmode = _helix5_get_qmode(bcmsw_sw, phy_port);
         index = (phy_port -1)%8;
     } else {
         qmode = 0;
@@ -3357,17 +3359,17 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
      * Assert(rst_on=1)/De-assert(rst_on=0) per port sft reset
      */
 
-    sal_memset(port_rst_serviced, 0, sizeof(port_rst_serviced));
-	/* need to implement skipping edatbuff reset if the buffer is for
-	 * gport as credits will not be re-issued due flex 
-	 */
-	if(physical_port < 49) {
+    //sal_memset(port_rst_serviced, 0, sizeof(port_rst_serviced));
+    /* need to implement skipping edatbuff reset if the buffer is for
+     * gport as credits will not be re-issued due flex 
+     */
+    if (physical_port < 49) {
         qmode = _helix5_get_qmode(bcmsw_sw, physical_port);                           
-	} else {
-	    qmode = 0;
-	}
+    } else {
+        qmode = 0;
+    }
 
-    if((physical_port < 49) && (qmode)) {
+    if ((physical_port < 49) && (qmode)) {
         entry = 0;
     }
 
@@ -3386,8 +3388,7 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
     //readback for verification
     entry = 0;
     _soc_mem_write(bcmsw_sw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
-    printk("_helix5_ep_flexport_sft_rst_ports port %d entry %d\n", port, entry);
-
+    //printk("_helix5_ep_flexport_sft_rst_ports port %d entry %d\n", port, entry);
 
     return SOC_E_NONE;
 }
@@ -3406,7 +3407,7 @@ _helix5_ep_enable_disable(struct bcmsw_switch *bcmsw_sw, int port, int down_or_u
     _soc_mem_write(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
 
     _soc_mem_read(bcmsw_sw->dev, EGR_ENABLEm+port, SCHAN_BLK_EPIPE, 1, &entry); 
-    printk("_helix5_ep_enable_disable port %d entry %d\n", port, entry);
+    //printk("_helix5_ep_enable_disable port %d entry %d\n", port, entry);
 
     return SOC_E_NONE;
 }
@@ -3953,6 +3954,7 @@ static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
     /* Set LED Modes and Control */      
     
     //_phy_bcm542xx_medium_config_update
+    return 0;
 }
 
 /*****************************************************************************************/
