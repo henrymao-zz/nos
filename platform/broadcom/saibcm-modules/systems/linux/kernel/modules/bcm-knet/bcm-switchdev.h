@@ -153,6 +153,10 @@ typedef int soc_mem_t;
 
 #define HX5_NUM_EXT_PORTS                        79
 
+#define HX5_MMU_PORT_PIPE_OFFSET                 72
+#define HX5_MMU_FLUSH_OFF                        0
+#define HX5_MMU_FLUSH_ON                         1
+
 /*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
@@ -1640,6 +1644,31 @@ typedef union miim_ring_control_s {
 #define MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT0r       0x41807400
 #define MMU_THDM_MCQE_PORT_RX_ENABLE_64_SPLIT1r       0x41807600
 
+#define Q_SCHED_PORT_FLUSH_SPLIT0r                    0x11800100
+#define Q_SCHED_PORT_FLUSH_SPLIT1r                    0x11800200
+
+
+/*
+soc_field_info_t soc_Q_SCHED_RQE_SNAPSHOTr_fields[] = {
+    { INITIATEf, 1, 0, SOCF_RWBW|SOCF_RES },
+    { SNAPSHOT_DONE_DELAYf, 2, 1, SOCF_LE|SOCF_RES }
+};
+*/
+typedef union q_sched_rqe_s {
+    struct _q_sched_rqe_ {
+    #if defined(LE_HOST)
+    uint32_t  INITIATEf:1,
+              SNAPSHOT_DONE_DELAYf:2,
+              r0:29;
+    #else
+    uint32_t  r0:29,
+              SNAPSHOT_DONE_DELAYf:2,
+              INITIATEf:1;
+    #endif
+    }reg;
+    uint32_t word;
+} q_sched_rqe_t;
+#define Q_SCHED_RQE_SNAPSHOTr                         0x11800500
 
 /*****************************************************************************************/
 /*                            PHY related                                                */
