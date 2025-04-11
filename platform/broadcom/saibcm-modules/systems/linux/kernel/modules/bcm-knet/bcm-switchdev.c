@@ -566,14 +566,14 @@ _mem_field_set(uint32_t *entry,
  * flags      : 
  */
 void
-_meminfo_field_get(uint32_t *entry,
+_mem_field_get(uint32_t *entry,
                    int entry_bytes,
                    int bp, 
                    int field_len,
                    uint32_t *val,
                    uint32_t flags)                      
 {
-    int  i, wp, bp, len;
+    int  i, wp, len;
 
     if (field_len == 1) {     /* special case single bits */
         wp = bp / 32;
@@ -3978,7 +3978,7 @@ _bcm_port_ability_local_get(struct bcmsw_switch *bcmsw_sw, int port,
     }
 
     ability_mask->encap = encap_ability;
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 #endif
 
@@ -5145,7 +5145,9 @@ static int
 _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
 {
     int       isGport;
+    int       int_pri_max;
     int32_t   val  = 0;
+    uint16_t  vlan;
     uint32_t  mac_field[2];
     
     if ((_BCM_VPN_IS_SET(l2caddr->vlan) != _BCM_VPN_IS_SET(l2caddr->vlan_mask)) && (l2caddr->vlan_mask)) {
@@ -5187,69 +5189,69 @@ _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
     //soc_L2_USER_ENTRY_BCM56370_A0m_fields
     val = 1; 
     //VALIDf bit start 0, len 1
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 0, 1, &val, 0);
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 0, 1, &val, 0);
 
     vlan = l2caddr->vlan;
     if (_BCM_VPN_IS_SET(l2caddr->vlan)) {
         //KEY_TYPEf bit start 63, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 63, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 63, 1, &val, 0);
 
         _BCM_VPN_GET(vlan, _BCM_VPN_TYPE_VFI, l2caddr->vlan);
     }
     
     //KEY_TYPE_MASKf  bit start 143, len 1
     val = 1;
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 143, 1, &val, 0);
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 143, 1, &val, 0);
 
     if (l2caddr->flags & BCM_L2_CACHE_PROTO_PKT) {
         //L2_PROTOCOL_PKTf bit start 207, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 207, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 207, 1, &val, 0);
     }
 
     //VLAN_IDf bit start 49, len 12
-    val = l2caddr->vlan;;
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 49, 12, &val, SOCF_LE);
+    val = vlan;;
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 49, 12, &val, SOCF_LE);
 
     //VLAN_ID_MASKf start 129, len 12
     val = l2caddr->vlan_mask;
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 129, 12, &val, SOCF_LE);
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 129, 12, &val, SOCF_LE);
 
 
     //MAC_ADDRf start 1, len 48
     MAC_ADDR_TO_UINT32(l2caddr->mac, mac_field);
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 1, 48, mac_field, SOCF_LE);
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 1, 48, mac_field, SOCF_LE);
 
     //MAC_ADDR_MASKf start 81, len 48
     MAC_ADDR_TO_UINT32(l2caddr->mac_mask, mac_field);
-    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 81, 48, mac_field, SOCF_LE);
+    _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 81, 48, mac_field, SOCF_LE);
 
     if (l2caddr->flags & BCM_L2_CACHE_SETPRI) {
         //PRIf bit start 169, len 4
         val = l2caddr->prio;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 169, 4, &val, SOCF_LE);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 169, 4, &val, SOCF_LE);
         //RPEf bit start 174, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 174, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 174, 1, &val, 0);
     }
 
     if (l2caddr->flags & BCM_L2_CACHE_CPU) {
         //CPUf bit start 175, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 175, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 175, 1, &val, 0);
     }
 
     if (l2caddr->flags & BCM_L2_CACHE_BPDU) {
         //BPDUf bit start 206, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 206, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 206, 1, &val, 0);
     }
 
     if (l2caddr->flags & BCM_L2_CACHE_DISCARD) {
         //DST_DISCARDf bit start 176, len 1
         val = 1;
-        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 176, 1, &val, 0);
+        _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 176, 1, &val, 0);
     }
 
 #if 0
@@ -5322,10 +5324,10 @@ _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
         if (l2caddr->flags & BCM_L2_CACHE_L3) {
             //RESERVED_0f start 173, len 1
             val = 1;
-            _mem_field_set(l2u_entry, sizeof (*l2u_entry), 173, 1, &val, 0);
+            _mem_field_set((uint32_t *)l2u_entry, sizeof (*l2u_entry), 173, 1, &val, 0);
         }
 
-        return BCM_E_NONE;
+        return SOC_E_NONE;
 
 }
 
@@ -5336,17 +5338,18 @@ _soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *f
     l2u_entry_t entry, free_mask;
     int index, i, entry_words, rv;
     int start, end, step;
-    uint32_t mask[2];
+    uint32_t val;
+    uint32_t mask[5];
 
     entry_words = 7; //soc_mem_entry_words(unit, L2_USER_ENTRYm);
 
     memset(&free_mask, 0, sizeof(free_mask));
     val = 1;
     //VALIDf start 0, len 1
-    _mem_field_set(free_mask, sizeof (*l2u_entry), 0, 1, &val, 0);
+    _mem_field_set((uint32_t *)&free_mask, sizeof (free_mask), 0, 1, &val, 0);
 
     //MASKf start 81, len 80
-    _mem_field_get(key, sizeof (*l2u_entry), 81, 80, &val, SOCF_LE);
+    _mem_field_get((uint32_t *)key, sizeof (*key), 81, 80, mask, SOCF_LE);
 
     if (mask[0] == 0xffffffff && (mask[1] & 0xffff) == 0xffff) {
         /* Search from high priority end */
@@ -5359,7 +5362,7 @@ _soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *f
         step = -1;
     }
     for (index = start; index != end; index += step) {
-        rv = _soc_mem_write(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
+        rv = _soc_mem_read(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, &entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -5443,13 +5446,13 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
     bcm_l2_cache_addr_t addr;
     l2u_entry_t entry;
     int index;
+    uint32_t val;
 
         //if (!SAL_BOOT_QUICKTURN && !SAL_BOOT_XGSSIM) {
         //    SOC_IF_ERROR_RETURN
         //        (soc_mem_clear(unit, L2_USER_ENTRYm, COPYNO_ALL, TRUE));
         //}
 
-    COMPILER_64_ZERO(regval64);
     /* Enable L2 entry used as my station hit */
     //TODO CCH register
     //my_station_config = 0;
@@ -5461,13 +5464,13 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
     //                         L2_ENTRY_USED_AS_MY_STATIONf, my_station_config));
     //}
 
-    memset(addr, 0, sizeof(bcm_l2_cache_addr_t));
+    memset(&addr, 0, sizeof(bcm_l2_cache_addr_t));
 
     addr.flags = BCM_L2_CACHE_CPU | BCM_L2_CACHE_BPDU;
 
     /* Set default BPDU addresses (01:80:c2:00:00:00) */
-    memcpy(addr.mac, _mac_spanning_tree, sizeof(bcm_mac_t));
-    memcpy(addr.mac_mask, _mac_all_ones, sizeof(bcm_mac_t));
+    memcpy(addr.mac, _mac_spanning_tree, sizeof(_mac_t));
+    memcpy(addr.mac_mask, _mac_all_ones, sizeof(_mac_t));
 
     addr.dest_modid = 0;
     addr.dest_port = 0; //CMIC_PORT(unit);
@@ -5478,16 +5481,16 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
 
     //L2_PROTOCOL_PKTf start 207, len 1
     val = 1;
-    _mem_field_set(entry, sizeof (*l2u_entry), 207, 1, &val, 0);
+    _mem_field_set((uint32_t *)&entry, sizeof (entry), 207, 1, &val, 0);
 
     //KEY_TYPEf start 63, len 1
     val = 1;
-    _mem_field_set(entry, sizeof (*l2u_entry), 63, 1, &val, 0);
+    _mem_field_set((uint32_t *)&entry, sizeof (entry), 63, 1, &val, 0);
 
     //VFI_MASKf start 129, len 12
     val = 0;
-    _mem_field_set(entry, sizeof (*l2u_entry), 129, 12, &val, 0);
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index));
+    _mem_field_set((uint32_t *)&entry, sizeof (entry), 129, 12, &val, 0);
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
 
     /* Set 01:80:c2:00:00:10 */
     addr.mac[5] = 0x10;
@@ -5505,7 +5508,7 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
     _bcm_l2_cache_to_l2u(&entry, &addr);
     _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
 
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 
 
@@ -5520,7 +5523,7 @@ _esw_l2_init(struct bcmsw_switch *bcmsw_sw)
      */
     rv = _bcm_esw_l2_cache_init(bcmsw_sw);
     
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 
 

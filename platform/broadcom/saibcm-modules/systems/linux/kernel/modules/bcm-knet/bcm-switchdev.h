@@ -2331,7 +2331,7 @@ const _mac_t _mac_all_ones =
 	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 typedef struct {
-    entry_data[35];
+    uint32_t entry_data[35];
 }l2u_entry_t;
     
 //typedef int bcm_module_t;
@@ -2475,11 +2475,11 @@ typedef struct {
 
 #define _SHR_GPORT_TYPE_SHIFT                           26
 #define _SHR_GPORT_TYPE_MASK                            0x3f
+#define _SHR_GPORT_TYPE_MAX                             51
 
 #define BCM_GPORT_IS_SET(_gport)    \
         (((((_gport) >> _SHR_GPORT_TYPE_SHIFT) & _SHR_GPORT_TYPE_MASK) > 0) && \
          ((((_gport) >> _SHR_GPORT_TYPE_SHIFT) & _SHR_GPORT_TYPE_MASK) <= _SHR_GPORT_TYPE_MAX))
-
 
 
 /*
