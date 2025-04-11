@@ -51,6 +51,14 @@
             COMPILER_64_AND(dst, temp64);       \
         } while(0)
 
+
+#define SOCF_LE                              0x01    /* little endian */
+#define SOC_MEM_FLAG_BE                      0x08000000 /* Big endian */
+
+#define FIX_MEM_ORDER_E(v, bytes, flags) ((flags & SOC_MEM_FLAG_BE) ? \
+                                bytes-1-(v) : \
+                                (v))
+
 typedef enum {
     SOC_E_NONE                  = 0,
     SOC_E_INTERNAL              = -1,
@@ -2194,6 +2202,326 @@ typedef union idb_lpbk_ca_s {
 typedef idb_lpbk_ca_t idb_ca_cpu_t;
 
 #define IDB_CA_CPU_CONTROL_PIPE0r       0x02000200
+
+
+/*****************************************************************************************/
+/*                              L2  related                                              */
+/*****************************************************************************************/
+/*
+
+*/
+
+typedef union ing_config64_s {
+    struct _ing_config64_ {
+#if defined(LE_HOST)
+    uint32_t  PORT_RESETf:1,
+              RESERVED_BUBBLE_MOP_DISABLEf:1,
+              r0:30;
+#else
+    uint32_t  r0:30,
+              RESERVED_BUBBLE_MOP_DISABLEf:1,
+              PORT_RESETf:1;
+#endif
+    }reg;
+    uint64_t dword;
+} ing_config64_t;
+
+//SOC_REG_FLAG_CCH
+#define ING_CONFIG_64r                 0x4e018000
+
+
+/* bcm_mac_t */
+typedef uint8 _mac_t[6];
+
+#define BCM_MAC_IS_MCAST(_mac_)  \
+    (_mac_[0] & 0x1) 
+
+#define BCM_MAC_IS_ZERO(_mac_)  \
+    (((_mac_)[0] | (_mac_)[1] | (_mac_)[2] | \
+      (_mac_)[3] | (_mac_)[4] | (_mac_)[5]) == 0) 
+
+#define BCM_VLAN_NONE           ((bcm_vlan_t)0x0000) 
+#define BCM_VLAN_ALL            ((bcm_vlan_t)0xffff) 
+#define BCM_VLAN_DEFAULT        ((bcm_vlan_t)0x0001) 
+#define BCM_VLAN_INVALID        ((bcm_vlan_t)0x1000) 
+
+#define BCM_VLAN_VALID(id)      \
+    ((id) >= BCM_VLAN_DEFAULT && \
+     (id) < BCM_VLAN_INVALID) 
+
+#define BCM_VLAN_CTRL(prio, cfi, id)  \
+    (((prio) & 0x007) << 13 | \
+     ((cfi ) & 0x001) << 12 | \
+     ((id  ) & 0xfff) << 0) 
+
+#define BCM_VLAN_CTRL_PRIO(c)   ((c) >> 13 & 0x007) 
+#define BCM_VLAN_CTRL_CFI(c)    ((c) >> 12 & 0x001) 
+#define BCM_VLAN_CTRL_ID(c)     ((c) >>  0 & 0xfff) 
+
+/* Flags for device-independent L2 cache address. */
+#define BCM_L2_CACHE_CPU            0x00000001 /* Packet is copied to CPU. */
+#define BCM_L2_CACHE_DISCARD        0x00000002 /* Packet is not switched. */
+#define BCM_L2_CACHE_MIRROR         0x00000004 /* Packet is mirrored. */
+#define BCM_L2_CACHE_L3             0x00000008 /* Packet is to be L3 routed. */
+#define BCM_L2_CACHE_BPDU           0x00000010 /* Packet is BPDU. */
+#define BCM_L2_CACHE_SETPRI         0x00000020 /* Internal prio from prio field. */
+#define BCM_L2_CACHE_TRUNK          0x00000040 /* Destination is a trunk. */
+#define BCM_L2_CACHE_REMOTE_LOOKUP  0x00000080 /* Remote L2 lookup requested. */
+#define BCM_L2_CACHE_LEARN_DISABLE  0x00000100 /* Packet source address is not
+                                                  learned for this destination
+                                                  address. */
+#define BCM_L2_CACHE_TUNNEL         0x00000200 /* Tunnel termination address. */
+#define BCM_L2_CACHE_DESTPORTS      0x00000400 /* Packet is forwarded by
+                                                  multiport L2 address. */
+#define BCM_L2_CACHE_SUBTYPE        0x00000800 /* Slow protocol subtype to
+                                                  match. */
+#define BCM_L2_CACHE_LOOKUP         0x00001000 /* L2 lookup requested. */
+#define BCM_L2_CACHE_MULTICAST      0x00002000 /* Destination is (flood)
+                                                  multicast group. */
+#define BCM_L2_CACHE_PROTO_PKT      0x00004000 /* Packet is protocol packets. */
+
+/* Adjust justification for uint32 writes to fields */
+/* dst is an array name of type uint32 [] */
+#define MAC_ADDR_TO_UINT32(mac, dst) do {  \
+    (dst)[0] = (((uint32)(mac)[2]) << 24 | \
+                ((uint32)(mac)[3]) << 16 | \
+                ((uint32)(mac)[4]) << 8 |  \
+                ((uint32)(mac)[5]));       \
+    (dst)[1] = (((uint32)(mac)[0]) << 8 |  \
+                ((uint32)(mac)[1]));       \
+} while (0)
+
+
+/* Device-independent L2 cache address structure. */
+typedef struct bcm_l2_cache_addr_s {
+    uint32_t   flags;               /* BCM_L2_CACHE_xxx flags.               */
+    uint32_t   station_flags;       /* BCM_L2_STATION_xxx flags.             */
+    _mac_t     mac;                 /* Destination MAC address to match.     */
+    _mac_t     mac_mask;            /* MAC address mask.                     */
+    uint16_t   vlan;                /* VLAN to match.                        */
+    uint16_t   vlan_mask;           /* VLAN mask.                            */
+    int        src_port;            /* Ingress port to match (BCM5660x).     */
+    int        src_port_mask;       /* Ingress port mask (must be 0 if not
+                                       BCM5660x).                            */
+    int        dest_modid;          /* Switch destination module ID.         */
+    int        dest_port;           /* Switch destination port.              */
+    int        dest_trunk;          /* Switch destination trunk ID.          */
+    int        prio;                /* Internal priority, use -1 to not set. */
+    uint32_t   dest_ports;          /* Destination ports for Multiport L2
+                                       address forwarding.                   */
+    int        lookup_class;        /* Classification class ID.              */
+    uint8_t    subtype;             /* Slow protocol subtype to match.       */
+    int        encap_id;            /* Encapsulation index.                  */
+    int        group;               /* Flood domain for L2CP.                */
+    uint16_t   ethertype;           /* EtherType to match.                   */
+    uint16_t   ethertype_mask;      /* Mask.                                 */
+} bcm_l2_cache_addr_t;
+
+
+const _mac_t _mac_spanning_tree =
+	{0x01, 0x80, 0xc2, 0x00, 0x00, 0x00};
+
+const _mac_t _mac_all_routers =
+	{0x01, 0x00, 0x5e, 0x00, 0x00, 0x02};
+
+const _mac_t _mac_all_zeroes =
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+const _mac_t _mac_all_ones =
+	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+
+typedef struct {
+    entry_data[35];
+}l2u_entry_t;
+    
+//typedef int bcm_module_t;
+//typedef int bcm_trunk_t;
+//typedef uint16 bcm_vlan_t;
+
+/* VPN types */
+#define BCM_VPN_TYPE_MPLS_L3    1          
+#define BCM_VPN_TYPE_MPLS_VPWS  3          
+#define BCM_VPN_TYPE_MPLS_VPLS  7          
+#define BCM_VPN_TYPE_VXLAN      7          
+#define BCM_VPN_TYPE_L2GRE      7          
+#define BCM_VPN_TYPE_MIM        7          
+#define BCM_VPN_TYPE_FLOW       7          
+
+/* Set VPN ID */
+#define BCM_VPN_MPLS_L3_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = (((_id) & 0x1fff) + (BCM_VPN_TYPE_MPLS_L3 << 12))) 
+#define BCM_VPN_MPLS_VPWS_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = (((_id) & 0x3fff) + (BCM_VPN_TYPE_MPLS_VPWS << 12))) 
+#define BCM_VPN_MPLS_VPLS_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = ((_id) & 0x8000) ? \
+        ((((_id) & 0xfff) | 0x8000) + (BCM_VPN_TYPE_MPLS_VPLS << 12)) : \
+        (((_id) & 0x7fff) + (BCM_VPN_TYPE_MPLS_VPLS << 12))) 
+#define BCM_VPN_VXLAN_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = ((_id) & 0x8000) ? \
+        ((((_id) & 0xfff) | 0x8000) + (BCM_VPN_TYPE_VXLAN << 12)) : \
+        (((_id) & 0x7fff) + (BCM_VPN_TYPE_VXLAN << 12))) 
+#define BCM_VPN_L2GRE_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = ((_id) & 0x8000) ? \
+        ((((_id) & 0xfff) | 0x8000) + (BCM_VPN_TYPE_L2GRE << 12)) : \
+        (((_id) & 0x7fff) + (BCM_VPN_TYPE_L2GRE << 12))) 
+#define BCM_VPN_MIM_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = ((_id) & 0x8000) ? \
+        ((((_id) & 0xfff) | 0x8000) + (BCM_VPN_TYPE_MIM << 12)) : \
+        (((_id) & 0x7fff) + (BCM_VPN_TYPE_MIM << 12))) 
+#define BCM_VPN_FLOW_VPN_ID_SET(_vpn, _id)  \
+        ((_vpn) = ((_id) & 0x8000) ? \
+        ((((_id) & 0xfff) | 0x8000) + (BCM_VPN_TYPE_FLOW << 12)) : \
+        (((_id) & 0x7fff) + (BCM_VPN_TYPE_FLOW << 12))) 
+
+/* Get Real ID */
+#define BCM_VPN_MPLS_L3_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_MPLS_L3 << 12))) 
+#define BCM_VPN_MPLS_VPWS_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_MPLS_VPWS << 12))) 
+#define BCM_VPN_MPLS_VPLS_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_MPLS_VPLS << 12))) 
+#define BCM_VPN_VXLAN_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_VXLAN << 12))) 
+#define BCM_VPN_L2GRE_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_L2GRE << 12))) 
+#define BCM_VPN_MIM_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_MIM << 12))) 
+#define BCM_VPN_FLOW_VPN_ID_GET(_vpn, _id)  \
+        ((_id) = ((_vpn) - (BCM_VPN_TYPE_FLOW << 12))) 
+
+#define _BCM_VPN_TYPE_L3        BCM_VPN_TYPE_MPLS_L3
+#define _BCM_VPN_TYPE_VPWS      BCM_VPN_TYPE_MPLS_VPWS
+#define _BCM_VPN_TYPE_VFI       BCM_VPN_TYPE_MPLS_VPLS
+
+
+#define _BCM_VPN_SET(_vpn_, _type_, _id_) \
+        do { \
+            if (BCM_VPN_TYPE_MPLS_L3 == (_type_)) { \
+                BCM_VPN_MPLS_L3_VPN_ID_SET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MPLS_VPWS == (_type_)) { \
+                BCM_VPN_MPLS_VPWS_VPN_ID_SET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MPLS_VPLS == (_type_)) { \
+                BCM_VPN_MPLS_VPLS_VPN_ID_SET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_VXLAN == (_type_)) { \
+                BCM_VPN_VXLAN_VPN_ID_SET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_L2GRE == (_type_)) { \
+                BCM_VPN_L2GRE_VPN_ID_SET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MIM == (_type_)) { \
+                BCM_VPN_MIM_VPN_ID_SET(_vpn_, _id_); \
+            } \
+        } while (0)
+
+#define _BCM_VPN_GET(_id_, _type_,  _vpn_) \
+        do { \
+            if (BCM_VPN_TYPE_MPLS_L3 == (_type_)) { \
+                BCM_VPN_MPLS_L3_VPN_ID_GET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MPLS_VPWS == (_type_)) { \
+                BCM_VPN_MPLS_VPWS_VPN_ID_GET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MPLS_VPLS == (_type_)) { \
+                BCM_VPN_MPLS_VPLS_VPN_ID_GET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_VXLAN == (_type_)) { \
+                BCM_VPN_VXLAN_VPN_ID_GET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_L2GRE == (_type_)) { \
+                BCM_VPN_L2GRE_VPN_ID_GET(_vpn_, _id_); \
+            } else if (BCM_VPN_TYPE_MIM == (_type_)) { \
+                BCM_VPN_MIM_VPN_ID_GET(_vpn_, _id_); \
+            } \
+        } while (0)
+
+#define _BCM_VPN_IS_L3(_vpn_) \
+        (((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_MPLS_L3) \
+        && ((((_vpn_) >> 12) & 0xf) < BCM_VPN_TYPE_MPLS_VPWS))
+
+#define _BCM_VPN_IS_VPLS(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_MPLS_VPLS)
+
+#define _BCM_VPN_IS_VPWS(_vpn_) \
+        (((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_MPLS_VPWS) \
+        && ((((_vpn_) >> 12) & 0xf) < BCM_VPN_TYPE_MPLS_VPLS))
+
+#define _BCM_VPN_IS_MIM(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_MIM)
+
+#define _BCM_VPN_IS_L2GRE_ELINE(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_L2GRE)
+
+#define _BCM_VPN_IS_L2GRE_ELAN(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_L2GRE)
+
+#define _BCM_VPN_IS_VXLAN_ELINE(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_VXLAN)
+
+#define _BCM_VPN_IS_VXLAN_ELAN(_vpn_) \
+        ((((_vpn_) >> 12) & 0xf) >= BCM_VPN_TYPE_VXLAN)
+
+#define _BCM_VPN_VFI_IS_SET(_vpn_) \
+        (_BCM_VPN_IS_VPLS(_vpn_) \
+        || _BCM_VPN_IS_MIM(_vpn_) \
+        || _BCM_VPN_IS_L2GRE_ELINE(_vpn_) \
+        || _BCM_VPN_IS_L2GRE_ELAN(_vpn_) \
+        || _BCM_VPN_IS_VXLAN_ELINE(_vpn_) \
+        || _BCM_VPN_IS_VXLAN_ELAN(_vpn_))
+
+#define _BCM_VPN_IS_SET(_vpn_) \
+        (_BCM_VPN_IS_L3(_vpn_) \
+        || _BCM_VPN_IS_VPWS(_vpn_) \
+        || _BCM_VPN_VFI_IS_SET(_vpn_))
+
+
+#define VLAN_CHK_ID(vid) do { \
+        if (vid > 4095) return SOC_E_PARAM; \
+        } while (0)        
+
+
+#define _SHR_GPORT_TYPE_SHIFT                           26
+#define _SHR_GPORT_TYPE_MASK                            0x3f
+
+#define BCM_GPORT_IS_SET(_gport)    \
+        (((((_gport) >> _SHR_GPORT_TYPE_SHIFT) & _SHR_GPORT_TYPE_MASK) > 0) && \
+         ((((_gport) >> _SHR_GPORT_TYPE_SHIFT) & _SHR_GPORT_TYPE_MASK) <= _SHR_GPORT_TYPE_MAX))
+
+
+
+/*
+#if defined(BCM_56370_A0)
+soc_field_info_t soc_L2_USER_ENTRY_BCM56370_A0m_fields[] = {
+    { BPDUf, 1, 206, 0 | SOCF_GLOBAL },
+    { CLASS_IDf, 10, 196, SOCF_LE | SOCF_GLOBAL },
+    { CPUf, 1, 175, 0 | SOCF_GLOBAL },
+    { DESTINATIONf, 18, 177, SOCF_LE | SOCF_GLOBAL },
+    { DO_NOT_LEARN_MACSAf, 1, 195, 0 | SOCF_GLOBAL },
+    { DST_DISCARDf, 1, 176, 0 | SOCF_GLOBAL },
+    { DUMMY_0f, 1, 61, 0 | SOCF_GLOBAL },
+    { DUMMY_1f, 1, 62, 0 | SOCF_GLOBAL },
+    { ECCf, 6, 208, SOCF_LE | SOCF_GLOBAL },
+    { ECCPf, 7, 208, SOCF_LE | SOCF_GLOBAL },
+    { ECC_DATAf, 39, 169, SOCF_LE | SOCF_GLOBAL },
+    { KEYf, 80, 1, SOCF_LE | SOCF_GLOBAL },
+    { KEY_TYPEf, 1, 63, 0 | SOCF_GLOBAL },
+    { KEY_TYPE_MASKf, 1, 143, 0 | SOCF_GLOBAL },
+    { L2_PROTOCOL_PKTf, 1, 207, 0 | SOCF_GLOBAL },
+    { MAC_ADDRf, 48, 1, SOCF_LE | SOCF_GLOBAL },
+    { MAC_ADDR_MASKf, 48, 81, SOCF_LE | SOCF_GLOBAL },
+    { MASKf, 80, 81, SOCF_LE | SOCF_GLOBAL },
+    { PARITYf, 1, 214, 0 | SOCF_GLOBAL },
+    { PRIf, 4, 169, SOCF_LE | SOCF_GLOBAL },
+    { RESERVED_0f, 1, 173, SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_KEYf, 17, 64, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_MASKf, 17, 144, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RPEf, 1, 174, 0 | SOCF_GLOBAL },
+    { TCAM_PARITY_KEYf, 4, 161, SOCF_LE | SOCF_GLOBAL },
+    { TCAM_PARITY_MASKf, 4, 165, SOCF_LE | SOCF_GLOBAL },
+    { VALIDf, 1, 0, 0 | SOCF_GLOBAL },
+    { VFIf, 12, 49, SOCF_LE | SOCF_GLOBAL },
+    { VFI_MASKf, 12, 129, SOCF_LE | SOCF_GLOBAL },
+    { VLAN_IDf, 12, 49, SOCF_LE | SOCF_GLOBAL },
+    { VLAN_ID_MASKf, 12, 129, SOCF_LE | SOCF_GLOBAL }
+};
+#endif
+*/    
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 512 with indices 0-511 (0x0-0x1ff), each 27 bytes 7 words
+#define L2_USER_ENTRYm                  0x68400000
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */

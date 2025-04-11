@@ -493,6 +493,139 @@ _soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, vo
     return rv;
 }
 
+/*
+ * entry      : mem to set
+ * entry_bytes: total bytes of entry
+ * bp         : start bit
+ * len        : len of bit
+ * val        : value to set
+ * flags      : 
+ */
+void
+_mem_field_set(uint32_t *entry,
+               int entry_bytes,
+               int bp, 
+               int field_len,
+               uint32_t *val,
+               uint32_t flags)
+{
+    uint32_t    mask;
+    int         i, wp, len;
+
+    if (flags & SOCF_LE) {
+        wp = bp / 32;
+        bp = bp & (32 - 1);
+        i = 0;
+
+        for (len = field_len; len > 0; len -= 32) {
+            if (bp) {
+                if (len < 32) {
+                    mask = (1 << len) - 1;
+                } else {
+                    mask = -1;
+                }
+
+                entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] &= ~(mask << bp);
+                entry[FIX_MEM_ORDER_E(wp++, entry_bytes, 0)] |= val[i] << bp;
+                if (len > (32 - bp)) {
+                    entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] &= ~(mask >> (32 - bp));
+                    entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] |=
+                    val[i] >> (32 - bp) & (((uint32)1 << bp) - 1);
+                }
+            } else {
+                if (len < 32) {
+                    mask = (1 << len) - 1;
+                    entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] &= ~mask;
+                    entry[FIX_MEM_ORDER_E(wp++, entry_bytes, 0)] |= val[i] << bp;
+                } else {
+                    entry[FIX_MEM_ORDER_E(wp++, entry_bytes, 0)] = val[i];
+                }
+            }
+
+            i++;
+        }
+    } else {                           /* Big endian: swap bits */
+        len = field_len;
+
+        while (len > 0) {
+            len--;
+            entry[FIX_MEM_ORDER_E(bp / 32, entry_bytes, 0)] &= ~(1 << (bp & (32-1)));
+            entry[FIX_MEM_ORDER_E(bp / 32, entry_bytes, 0)] |=
+                (val[len / 32] >> (len & (32-1)) & 1) << (bp & (32-1));
+            bp++;
+        }
+    }
+}
+
+/*
+ * entry      : mem to get
+ * entry_bytes: total bytes of entry
+ * bp         : start bit
+ * len        : len of bit
+ * val        : value to get
+ * flags      : 
+ */
+void
+_meminfo_field_get(uint32_t *entry,
+                   int entry_bytes,
+                   int bp, 
+                   int field_len,
+                   uint32_t *val,
+                   uint32_t flags)                      
+{
+    int  i, wp, bp, len;
+
+    if (field_len == 1) {     /* special case single bits */
+        wp = bp / 32;
+        bp = bp & (32 - 1);
+        if (entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] & (1<<bp)) {
+            val[0] = 1;
+        } else {
+            val[0] = 0;
+        }
+        return val;
+    }
+
+    if (flags & SOCF_LE) {
+        wp = bp / 32;
+        bp = bp & (32 - 1);
+        i = 0;
+
+        for (len = field_len; len > 0; len -= 32) {
+            if (bp) {
+                val[i] =
+                entry[FIX_MEM_ORDER_E(wp++, entry_bytes, 0)] >> bp &
+                    ((1 << (32 - bp)) - 1);
+                if ( len > (32 - bp) ) {
+                    val[i] |= entry[FIX_MEM_ORDER_E(wp, entry_bytes, 0)] << (32 - bp);
+                }
+            } else {
+                val[i] = entry[FIX_MEM_ORDER_E(wp++, entry_bytes, 0)];
+            }
+
+            if (len < 32) {
+                val[i] &= ((1 << len) - 1);
+            }
+            i++;
+        }
+    } else {
+        i = (field_len - 1) / 32;
+        len = field_len;
+        while (len > 0) {
+            val[i] = 0;
+            do {
+                val[i] =
+                    (val[i] << 1) |
+                    ((entry[FIX_MEM_ORDER_E(bp / 32, entry_bytes, 0)] >> (bp & (32 - 1))) & 1);
+                len--;
+                bp++;
+            } while (len & (32 - 1));
+            i--;
+        }
+    }
+
+    return val;
+}
 
 /*****************************************************************************************/
 /*                             SCHAN Reg Read/Write                                      */
@@ -4992,6 +5125,408 @@ static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
     return 0;
 }
 
+/*****************************************************************************************/
+/*                             switch   L2                                               */
+/*****************************************************************************************/
+
+/*
+ * Function:
+ *      _bcm_fb_l2_to_l2u
+ * Purpose:
+ *      Convert a hardware-independent L2 cache entry to a L2 User table entry.
+ * Parameters:
+ *      unit - Unit number
+ *      l2u_entry - (OUT) Firebolt L2 User entry
+ *      l2caddr - Hardware-independent L2 entry
+ * Returns:
+ *      BCM_E_XXX
+ */
+static int
+_bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
+{
+    int       isGport;
+    int32_t   val  = 0;
+    uint32_t  mac_field[2];
+    
+    if ((_BCM_VPN_IS_SET(l2caddr->vlan) != _BCM_VPN_IS_SET(l2caddr->vlan_mask)) && (l2caddr->vlan_mask)) {
+        return SOC_E_PARAM;
+    }
+
+    /* If VPN specified do not perform vlan id check */
+    if (!_BCM_VPN_IS_SET(l2caddr->vlan)) {
+        VLAN_CHK_ID(l2caddr->vlan);
+        VLAN_CHK_ID(l2caddr->vlan_mask);
+    }
+
+    if (l2caddr->flags & BCM_L2_CACHE_SETPRI) {
+        int_pri_max = 15; //Trident3
+        if (l2caddr->prio < 0 || l2caddr->prio > int_pri_max) {
+                return SOC_E_PARAM;
+        }
+
+        // /SOC_IS_TRIDENT3X
+        if ((l2caddr->flags & BCM_L2_CACHE_BPDU) &&
+            !(l2caddr->flags & BCM_L2_CACHE_CPU) &&
+            !(l2caddr->flags & BCM_L2_CACHE_DISCARD)) {
+                printk("L2Cache: SETPRI is not supported for BPDU packet in this device, please use FP\n");
+            }
+    }
+
+    if (BCM_GPORT_IS_SET(l2caddr->dest_port) ||
+        BCM_GPORT_IS_SET(l2caddr->src_port)) {
+        //TODO
+        //BCM_IF_ERROR_RETURN(_bcm_l2_cache_gport_resolve(unit, l2caddr));
+        printk("_bcm_l2_cache_to_l2u isGport\n");
+        isGport = 1;
+    } else {
+        isGport = 0;
+    }
+
+    memset(l2u_entry, 0, sizeof (*l2u_entry));
+
+    //soc_L2_USER_ENTRY_BCM56370_A0m_fields
+    val = 1; 
+    //VALIDf bit start 0, len 1
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 0, 1, &val, 0);
+
+    vlan = l2caddr->vlan;
+    if (_BCM_VPN_IS_SET(l2caddr->vlan)) {
+        //KEY_TYPEf bit start 63, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 63, 1, &val, 0);
+
+        _BCM_VPN_GET(vlan, _BCM_VPN_TYPE_VFI, l2caddr->vlan);
+    }
+    
+    //KEY_TYPE_MASKf  bit start 143, len 1
+    val = 1;
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 143, 1, &val, 0);
+
+    if (l2caddr->flags & BCM_L2_CACHE_PROTO_PKT) {
+        //L2_PROTOCOL_PKTf bit start 207, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 207, 1, &val, 0);
+    }
+
+    //VLAN_IDf bit start 49, len 12
+    val = l2caddr->vlan;;
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 49, 12, &val, SOCF_LE);
+
+    //VLAN_ID_MASKf start 129, len 12
+    val = l2caddr->vlan_mask;
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 129, 12, &val, SOCF_LE);
+
+
+    //MAC_ADDRf start 1, len 48
+    MAC_ADDR_TO_UINT32(l2caddr->mac, mac_field);
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 1, 48, mac_field, SOCF_LE);
+
+    //MAC_ADDR_MASKf start 81, len 48
+    MAC_ADDR_TO_UINT32(l2caddr->mac_mask, mac_field);
+    _mem_field_set(l2u_entry, sizeof (*l2u_entry), 81, 48, mac_field, SOCF_LE);
+
+    if (l2caddr->flags & BCM_L2_CACHE_SETPRI) {
+        //PRIf bit start 169, len 4
+        val = l2caddr->prio;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 169, 4, &val, SOCF_LE);
+        //RPEf bit start 174, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 174, 1, &val, 0);
+    }
+
+    if (l2caddr->flags & BCM_L2_CACHE_CPU) {
+        //CPUf bit start 175, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 175, 1, &val, 0);
+    }
+
+    if (l2caddr->flags & BCM_L2_CACHE_BPDU) {
+        //BPDUf bit start 206, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 206, 1, &val, 0);
+    }
+
+    if (l2caddr->flags & BCM_L2_CACHE_DISCARD) {
+        //DST_DISCARDf bit start 176, len 1
+        val = 1;
+        _mem_field_set(l2u_entry, sizeof (*l2u_entry), 176, 1, &val, 0);
+    }
+
+#if 0
+        if (soc_feature(unit, soc_feature_trunk_group_overlay)) {
+            if (l2caddr->flags & BCM_L2_CACHE_TRUNK) {
+                if (soc_feature(unit, soc_feature_generic_dest)) {
+                    soc_mem_field32_dest_set(unit, L2_USER_ENTRYm, l2u_entry,
+                        DESTINATIONf, SOC_MEM_FIF_DEST_LAG, l2caddr->dest_trunk);
+                } else {
+                    _l2u_field32_set(unit, l2u_entry, Tf, 1);
+                    _l2u_field32_set(unit, l2u_entry, TGIDf, l2caddr->dest_trunk);
+                }
+            } else {
+                port_field = PORT_NUMf;
+            }
+        } else {
+                if (l2caddr->flags & BCM_L2_CACHE_TRUNK) {
+                    _l2u_field32_set(unit, l2u_entry, MODULE_IDf,
+                                     BCM_TRUNK_TO_MODIDf(unit,
+                                                         l2caddr->dest_trunk));
+                    _l2u_field32_set(unit, l2u_entry, PORT_TGIDf,
+                                     BCM_TRUNK_TO_TGIDf(unit,
+                                                        l2caddr->dest_trunk));
+                } else {
+                    port_field = PORT_TGIDf;
+                }
+        }
+
+        if (!((l2caddr->flags & BCM_L2_CACHE_TRUNK) ||
+            (l2caddr->flags & BCM_L2_CACHE_MULTICAST))) {
+            mod_in = l2caddr->dest_modid;
+            port_in = l2caddr->dest_port;
+            if (!isGport) {
+                //PORT_DUALMODID_VALID(unit, port_in);
+            }
+            BCM_IF_ERROR_RETURN
+                (_bcm_esw_stk_modmap_map(unit, BCM_STK_MODMAP_SET,
+                                        mod_in, port_in, &mod_out, &port_out));
+            if (!SOC_MODID_ADDRESSABLE(unit, mod_out)) {
+                return BCM_E_BADID;
+            }
+            if (!SOC_PORT_ADDRESSABLE(unit, port_out)) {
+                return BCM_E_PORT;
+            }
+
+            if (soc_feature(unit, soc_feature_generic_dest)) {
+                soc_mem_field32_dest_set(unit, L2_USER_ENTRYm, l2u_entry,
+                    DESTINATIONf, SOC_MEM_FIF_DEST_DGPP,
+                    mod_out << SOC_MEM_FIF_DGPP_MOD_ID_SHIFT_BITS | port_out);
+            } else {
+                _l2u_field32_set(unit, l2u_entry, MODULE_IDf, mod_out);
+                _l2u_field32_set(unit, l2u_entry, port_field, port_out);
+            }
+        }
+        
+
+        if ((l2caddr->flags & BCM_L2_CACHE_MULTICAST) &&
+            !_BCM_VPN_IS_SET(l2caddr->vlan)) {
+            if (_BCM_MULTICAST_IS_SET(l2caddr->group)) {
+                if (_BCM_MULTICAST_IS_L2(l2caddr->group)) {
+                        soc_mem_field32_dest_set(unit, L2_USER_ENTRYm, l2u_entry,
+                                DESTINATIONf, SOC_MEM_FIF_DEST_L2MC,
+                                _BCM_MULTICAST_ID_GET(l2caddr->group));
+                } else {
+                    return BCM_E_PARAM;
+                }
+            }
+        }
+#endif    
+        if (l2caddr->flags & BCM_L2_CACHE_L3) {
+            //RESERVED_0f start 173, len 1
+            val = 1;
+            _mem_field_set(l2u_entry, sizeof (*l2u_entry), 173, 1, &val, 0);
+        }
+
+        return BCM_E_NONE;
+
+}
+
+// soc_l2u_find_free_entry
+static int 
+_soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *free_index)
+{
+    l2u_entry_t entry, free_mask;
+    int index, i, entry_words, rv;
+    int start, end, step;
+    uint32_t mask[2];
+
+    entry_words = 7; //soc_mem_entry_words(unit, L2_USER_ENTRYm);
+
+    memset(&free_mask, 0, sizeof(free_mask));
+    val = 1;
+    //VALIDf start 0, len 1
+    _mem_field_set(free_mask, sizeof (*l2u_entry), 0, 1, &val, 0);
+
+    //MASKf start 81, len 80
+    _mem_field_get(key, sizeof (*l2u_entry), 81, 80, &val, SOCF_LE);
+
+    if (mask[0] == 0xffffffff && (mask[1] & 0xffff) == 0xffff) {
+        /* Search from high priority end */
+        start = 0;
+        end = 512;
+        step = 1;
+    } else {
+        start = 511;
+        end = -1;
+        step = -1;
+    }
+    for (index = start; index != end; index += step) {
+        rv = _soc_mem_write(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
+        if (rv == 0) {
+            for (i = 0; i < entry_words; i++) {
+                if (entry.entry_data[i] & free_mask.entry_data[i]) {
+                    break;
+                }
+            }
+            if (i == entry_words) {
+                *free_index = index;
+                return SOC_E_NONE;
+            }
+        }
+    }
+
+    return SOC_E_FULL;
+}
+
+/*
+ * Function:
+ *      soc_l2u_insert
+ * Purpose:
+ *      Add entry to L2 User table
+ */
+//soc_l2u_insert
+static int 
+_soc_l2u_insert(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *entry, int index, int *index_used)
+{
+    int i, i_max, i_min, rv;
+
+    //BCM56370 0 - 511
+    i_min = 0;
+    i_max = 0x1ff;
+
+    if (index == -1) {
+
+        //soc_mem_lock(unit, L2_USER_ENTRYm);
+
+        /* Avoid duplicates */
+        //rv = soc_l2u_search(unit, entry, &l2u_entry, &i);
+        //if (rv != SOC_E_NOT_FOUND) {
+        //    soc_mem_unlock(unit, L2_USER_ENTRYm);
+        //    *index_used = i;
+        //    return rv;
+        //}
+
+        rv = _soc_l2u_find_free_entry(bcmsw_sw, entry, &i);
+        //soc_mem_unlock(unit, L2_USER_ENTRYm);
+        if (rv) {
+            printk("_soc_l2u_insert failed to find free entry\n");
+            return rv;
+        }
+        index = i;
+
+    } else if (index < i_min || index > i_max) {
+        return SOC_E_PARAM;
+    }
+
+    printk("_soc_l2u_insert free entry = %d\n", index);
+    //soc_mem_lock(unit, L2_USER_ENTRYm);
+
+    //sal_memcpy(&l2u_entry, entry, sizeof(l2u_entry));
+    //rv = WRITE_L2_USER_ENTRYm(unit, MEM_BLOCK_ALL, index, &l2u_entry);
+    // size = (27 byte +3)/4
+    _soc_mem_write(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
+
+    //soc_mem_unlock(unit, L2_USER_ENTRYm);
+
+    *index_used = index;
+
+    return rv;
+}
+
+/*
+ * Function:
+ *      bcm_esw_l2_cache_init
+ * Purpose:
+ *      Initialize the L2 cache
+ */
+int
+_bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
+{
+    bcm_l2_cache_addr_t addr;
+    l2u_entry_t entry;
+    int index;
+
+        //if (!SAL_BOOT_QUICKTURN && !SAL_BOOT_XGSSIM) {
+        //    SOC_IF_ERROR_RETURN
+        //        (soc_mem_clear(unit, L2_USER_ENTRYm, COPYNO_ALL, TRUE));
+        //}
+
+    COMPILER_64_ZERO(regval64);
+    /* Enable L2 entry used as my station hit */
+    //TODO CCH register
+    //my_station_config = 0;
+    //SOC_IF_ERROR_RETURN(READ_ING_CONFIG_64r(unit, &regval64));
+    //if (my_station_config != soc_reg64_field32_get(unit, ING_CONFIG_64r,
+    //            regval64, L2_ENTRY_USED_AS_MY_STATIONf)) {
+    //            BCM_IF_ERROR_RETURN
+    //               (soc_reg_field32_modify(unit, ING_CONFIG_64r, REG_PORT_ANY,
+    //                         L2_ENTRY_USED_AS_MY_STATIONf, my_station_config));
+    //}
+
+    memset(addr, 0, sizeof(bcm_l2_cache_addr_t));
+
+    addr.flags = BCM_L2_CACHE_CPU | BCM_L2_CACHE_BPDU;
+
+    /* Set default BPDU addresses (01:80:c2:00:00:00) */
+    memcpy(addr.mac, _mac_spanning_tree, sizeof(bcm_mac_t));
+    memcpy(addr.mac_mask, _mac_all_ones, sizeof(bcm_mac_t));
+
+    addr.dest_modid = 0;
+    addr.dest_port = 0; //CMIC_PORT(unit);
+
+    _bcm_l2_cache_to_l2u(&entry, &addr);
+
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+
+    //L2_PROTOCOL_PKTf start 207, len 1
+    val = 1;
+    _mem_field_set(entry, sizeof (*l2u_entry), 207, 1, &val, 0);
+
+    //KEY_TYPEf start 63, len 1
+    val = 1;
+    _mem_field_set(entry, sizeof (*l2u_entry), 63, 1, &val, 0);
+
+    //VFI_MASKf start 129, len 12
+    val = 0;
+    _mem_field_set(entry, sizeof (*l2u_entry), 129, 12, &val, 0);
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index));
+
+    /* Set 01:80:c2:00:00:10 */
+    addr.mac[5] = 0x10;
+    _bcm_l2_cache_to_l2u(&entry, &addr);
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    
+    /* Set 01:80:c2:00:00:0x */
+    addr.mac[5] = 0x00;
+    addr.mac_mask[5] = 0xf0;
+    _bcm_l2_cache_to_l2u(&entry, &addr);
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+
+    /* Set 01:80:c2:00:00:2x */
+    addr.mac[5] = 0x20;
+    _bcm_l2_cache_to_l2u(&entry, &addr);
+    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+
+    return BCM_E_NONE;
+}
+
+
+//bcm_esw_l2_init
+int
+_esw_l2_init(struct bcmsw_switch *bcmsw_sw)
+{
+    int rv; 
+
+    /*
+     * Init L2 cache
+     */
+    rv = _bcm_esw_l2_cache_init(bcmsw_sw);
+    
+    return BCM_E_NONE;
+}
+
+
+
+
+
 static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
 {
     int err = 0;
@@ -5002,6 +5537,17 @@ static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
     	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
     	goto err_ports_create;
     }      
+
+
+    //bcm_esw_l2_init
+    _esw_l2_init(bcmsw_sw);
+
+    //bcm_esw_vlan_init
+
+    /* RX init is done in phases during early attach */
+    //bcm_esw_rx_init
+    //bcm_esw_tx_init
+
 
 err_ports_create:
     return err;
