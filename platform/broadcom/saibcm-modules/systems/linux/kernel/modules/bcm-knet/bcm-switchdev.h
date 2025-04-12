@@ -2523,6 +2523,131 @@ soc_field_info_t soc_L2_USER_ENTRY_BCM56370_A0m_fields[] = {
 //Entries: 512 with indices 0-511 (0x0-0x1ff), each 27 bytes 7 words
 #define L2_USER_ENTRYm                  0x68400000
 
+
+/*****************************************************************************************/
+/*                            VLAN                                                       */
+/*****************************************************************************************/
+
+//typedef uint16 bcm_vlan_t;
+//typedef _shr_pbmp_t bcm_pbmp_t;
+//typedef uint32 _shr_pbmp_t;
+
+typedef struct _pbmp {
+	uint32	pbits[8];
+} _pbmp_t;
+
+/* Initialize a VLAN data information structure. */
+typedef struct _vlan_data_s {
+    uint16_t vlan_tag; 
+    _pbmp_t  port_bitmap; 
+    _pbmp_t  ut_port_bitmap; 
+} vlan_data_t;
+
+/*
+soc_field_info_t soc_EGR_VLAN_BCM56370_A0m_fields[] = {
+    { DOT1P_MAPPING_PTRf, 4, 12, SOCF_LE | SOCF_GLOBAL },
+    { ECCf, 7, 72, SOCF_LE | SOCF_GLOBAL },
+    { ECCPf, 8, 72, SOCF_LE | SOCF_GLOBAL },
+    { EN_EFILTERf, 1, 68, 0 | SOCF_GLOBAL },
+    { FLEX_CTR_BASE_COUNTER_IDXf, 11, 34, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_OFFSET_MODEf, 2, 52, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_POOL_NUMBERf, 2, 48, SOCF_LE | SOCF_GLOBAL },
+    { MEMBERSHIP_PROFILE_PTRf, 12, 56, SOCF_LE | SOCF_GLOBAL },
+    { OUTER_TPID_INDEXf, 2, 10, SOCF_LE | SOCF_GLOBAL },
+    { PARITYf, 1, 79, 0 | SOCF_GLOBAL },
+    { REMARK_CFIf, 1, 16, 0 | SOCF_GLOBAL },
+    { REMARK_DOT1Pf, 1, 17, 0 | SOCF_GLOBAL },
+    { RESERVED_0f, 4, 18, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_1f, 2, 54, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_2f, 3, 69, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_BASE_COUNTER_IDXf, 3, 45, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_POOL_NUMBERf, 2, 50, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { STGf, 9, 1, SOCF_LE | SOCF_GLOBAL },
+    { UNTAG_PROFILE_PTRf, 12, 22, SOCF_LE | SOCF_GLOBAL },
+    { VALIDf, 1, 0, 0 | SOCF_GLOBAL }
+};
+ */
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 10 bytes 3 words
+#define EGR_VLANm                       0x090c0000
+#define EGR_VLANm_BYTES                 10
+
+/*
+soc_field_info_t soc_VLAN_ATTRS_1_BCM56370_A0m_fields[] = {
+    { ACTIVE_L3_IIF_PROFILE_INDEXf, 10, 48, SOCF_LE | SOCF_GLOBAL },
+    { ECCf, 7, 59, SOCF_LE | SOCF_GLOBAL },
+    { ECCPf, 8, 59, SOCF_LE | SOCF_GLOBAL },
+    { ECC_DATAf, 59, 0, SOCF_LE | SOCF_GLOBAL },
+    { EN_IFILTERf, 1, 23, 0 | SOCF_GLOBAL },
+    { FID_IDf, 12, 24, SOCF_LE | SOCF_GLOBAL },
+    { MEMBERSHIP_PROFILE_PTRf, 12, 11, SOCF_LE | SOCF_GLOBAL },
+    { MIM_TERM_ENABLEf, 1, 1, 0 | SOCF_GLOBAL },
+    { MPLS_ENABLEf, 1, 0, 0 | SOCF_GLOBAL },
+    { PARITYf, 1, 66, 0 | SOCF_GLOBAL },
+    { RESERVED_47_36f, 12, 36, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { STGf, 9, 2, SOCF_LE | SOCF_GLOBAL },
+    { VALIDf, 1, 58, 0 | SOCF_GLOBAL },
+    { VLAN_CTRL_IDf, 4, 36, SOCF_LE | SOCF_GLOBAL }
+};
+ */
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 9 bytes 3 words
+#define VLAN_ATTRS_1m                   0x580c0000
+#define VLAN_ATTRS_1m_BYTES             9
+
+
+/*
+soc_field_info_t soc_VLAN_TAB_BCM56370_A0m_fields[] = {
+    { BC_DESTINATIONf, 18, 187, SOCF_LE | SOCF_GLOBAL },
+    { ECCP_0f, 8, 348, SOCF_LE | SOCF_GLOBAL },
+    { ECCP_1f, 8, 356, SOCF_LE | SOCF_GLOBAL },
+    { ECCP_2f, 8, 364, SOCF_LE | SOCF_GLOBAL },
+    { ECC_0f, 7, 348, SOCF_LE | SOCF_GLOBAL },
+    { ECC_1f, 7, 356, SOCF_LE | SOCF_GLOBAL },
+    { ECC_2f, 7, 364, SOCF_LE | SOCF_GLOBAL },
+    { ECC_DATA_0f, 116, 0, SOCF_LE | SOCF_GLOBAL },
+    { ECC_DATA_1f, 116, 116, SOCF_LE | SOCF_GLOBAL },
+    { ECC_DATA_2f, 116, 232, SOCF_LE | SOCF_GLOBAL },
+    { EN_IFILTERf, 1, 296, 0 | SOCF_GLOBAL },
+    { FID_IDf, 12, 172, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_BASE_COUNTER_IDXf, 10, 252, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_OFFSET_MODEf, 2, 250, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_POOL_NUMBERf, 3, 245, SOCF_LE | SOCF_GLOBAL },
+    { HIGIG_TRUNK_OVERRIDE_PROFILE_PTRf, 8, 157, SOCF_LE | SOCF_GLOBAL },
+    { L2_ENTRY_KEY_TYPEf, 2, 151, SOCF_LE | SOCF_GLOBAL },
+    { L3_IIFf, 13, 318, SOCF_LE | SOCF_GLOBAL },
+    { MEMBERSHIP_PROFILE_PTRf, 12, 297, SOCF_LE | SOCF_GLOBAL },
+    { PARITY_0f, 1, 355, 0 | SOCF_GLOBAL },
+    { PARITY_1f, 1, 363, 0 | SOCF_GLOBAL },
+    { PARITY_2f, 1, 371, 0 | SOCF_GLOBAL },
+    { PHB_CTRL_IDf, 4, 223, SOCF_LE | SOCF_GLOBAL },
+    { PORT_BITMAPf, 72, 0, SOCF_LE | SOCF_GLOBAL },
+    { RESERVED_140f, 69, 72, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_186_184f, 3, 184, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_243_227f, 17, 227, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_317_309f, 9, 309, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_BASE_COUNTER_IDXf, 4, 262, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_POOL_NUMBERf, 2, 248, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_L3_IIFf, 1, 331, SOCF_RES | SOCF_GLOBAL },
+    { RSVD_VFIf, 4, 344, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { SRC_PVLAN_PORT_TYPEf, 2, 153, SOCF_LE | SOCF_GLOBAL },
+    { STGf, 9, 141, SOCF_LE | SOCF_GLOBAL },
+    { UMC_DESTINATIONf, 18, 278, SOCF_LE | SOCF_GLOBAL },
+    { UUC_DESTINATIONf, 18, 205, SOCF_LE | SOCF_GLOBAL },
+    { VALIDf, 1, 150, 0 | SOCF_GLOBAL },
+    { VFIf, 12, 332, SOCF_LE | SOCF_GLOBAL },
+    { VIRTUAL_PORT_ENf, 1, 244, 0 | SOCF_GLOBAL },
+    { VLAN_CLASS_IDf, 12, 266, SOCF_LE | SOCF_GLOBAL },
+    { VLAN_PROFILE_PTRf, 7, 165, SOCF_LE | SOCF_GLOBAL },
+    { WIRED_WIRELESSf, 2, 155, SOCF_LE | SOCF_GLOBAL }
+};
+ */
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 47 bytes 12 words
+#define VLAN_TABm                       0x643c0000
+#define VLAN_TABm_BYTES                 47
+
+
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/
@@ -3222,14 +3347,15 @@ struct bcmsw_switchdev {
 	struct notifier_block swdev_nb;
 };
 
-struct bcmsw_switch {
+
+typedef struct _bcmsw_switch_s {
     struct net_device *dev; //bcm0
     soc_info_t *si;
     struct bcmsw_switchdev *swdev;
 
     //soc cancun info
     soc_cancun_t *soc_cancun_info;
-};
+} bcmsw_switch_t;
 
 
 /* Add an entry to field-value array for multiple fields write */

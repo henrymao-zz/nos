@@ -925,7 +925,7 @@ static int _soc_cancun_memcpy_letohl(uint32 *des, uint32 *src, uint32 word_len) 
 }
 
 
-int soc_cancun_file_info_get(struct bcmsw_switch *sw, soc_cancun_file_t* ccf, char *filename,
+int soc_cancun_file_info_get(bcmsw_switch_t *sw, soc_cancun_file_t* ccf, char *filename,
         uint8 *buf, long buf_bytes) {
 
     soc_cancun_t *cc = sw->soc_cancun_info;
@@ -1024,7 +1024,7 @@ int soc_cancun_file_info_get(struct bcmsw_switch *sw, soc_cancun_file_t* ccf, ch
     return SOC_E_NONE;
 }
 
-static int _soc_cancun_file_pio_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) 
+static int _soc_cancun_file_pio_load(bcmsw_switch_t *sw, uint8* buf, int buf_words) 
 {
     long schan_msg_len_words, msg_num, i;
     schan_msg_t* msg;
@@ -1061,7 +1061,7 @@ static int _soc_cancun_file_pio_load(struct bcmsw_switch *sw, uint8* buf, int bu
 
 
 
-static int _soc_cancun_cih_tcam_write(struct bcmsw_switch *sw, uint8 *buf) {
+static int _soc_cancun_cih_tcam_write(bcmsw_switch_t *sw, uint8 *buf) {
 #define SOC_SBUS_V4_BLOCK_ID_BIT_OFFSET     (19)
 #define SOC_SBUS_V4_BLOCK_ID_BIT_MASK       (0x7F)
     //uint32 entry[SOC_MAX_MEM_WORDS];
@@ -1127,7 +1127,7 @@ static int _soc_cancun_cih_tcam_write(struct bcmsw_switch *sw, uint8 *buf) {
     }
 }
 
-static int _soc_cancun_cih_mem_load(struct bcmsw_switch *sw, uint8 *buf) {
+static int _soc_cancun_cih_mem_load(bcmsw_switch_t *sw, uint8 *buf) {
     uint32 entry[SOC_MAX_MEM_WORDS];
     uint32 addr;
     soc_mem_t mem;
@@ -1148,7 +1148,7 @@ static int _soc_cancun_cih_mem_load(struct bcmsw_switch *sw, uint8 *buf) {
     return 0;
 }
 
-static int _soc_cancun_cih_pio_load(struct bcmsw_switch *sw, uint8* buf, int length,
+static int _soc_cancun_cih_pio_load(bcmsw_switch_t *sw, uint8* buf, int length,
                                     uint32 flags) 
 {
     schan_msg_t msg;
@@ -1208,7 +1208,7 @@ static int _soc_cancun_cih_pio_load(struct bcmsw_switch *sw, uint8* buf, int len
 
 }
 
-static int _soc_cancun_cih_load(struct bcmsw_switch *sw, uint8* buf, int num_data_blobs) {
+static int _soc_cancun_cih_load(bcmsw_switch_t *sw, uint8* buf, int num_data_blobs) {
     int i;
     uint32 length, flags;
 
@@ -1281,7 +1281,7 @@ static int _soc_cancun_cmh_list_update(soc_cancun_cmh_t *cmh) {
     return SOC_E_NONE;
 }
 
-static int _soc_cancun_file_cmh_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) {
+static int _soc_cancun_file_cmh_load(bcmsw_switch_t *sw, uint8* buf, int buf_words) {
     soc_cancun_cmh_t *cmh = sw->soc_cancun_info->cmh;
 
     if(cmh == NULL) {
@@ -1307,7 +1307,7 @@ static int _soc_cancun_file_cmh_load(struct bcmsw_switch *sw, uint8* buf, int bu
 }
 
 
-static int _soc_cancun_file_cch_load(struct bcmsw_switch *sw, uint8* buf, int buf_words) {
+static int _soc_cancun_file_cch_load(bcmsw_switch_t *sw, uint8* buf, int buf_words) {
     soc_cancun_cch_t *cch = sw->soc_cancun_info->cch;
 
     if(cch == NULL) {
@@ -1347,7 +1347,7 @@ static int _soc_cancun_file_cch_load(struct bcmsw_switch *sw, uint8* buf, int bu
 
 }
 
-static int _soc_cancun_file_ceh_load(struct bcmsw_switch *sw, uint8* buf, int buf_words)
+static int _soc_cancun_file_ceh_load(bcmsw_switch_t *sw, uint8* buf, int buf_words)
 {
     uint8 *cur_dst;
     uint8 *cur_src;
@@ -1407,7 +1407,7 @@ static int _soc_cancun_file_ceh_load(struct bcmsw_switch *sw, uint8* buf, int bu
     return SOC_E_NONE;
 }
 
-int soc_cancun_file_load(struct bcmsw_switch *sw, uint8* buf, long buf_bytes, uint32* type,
+int soc_cancun_file_load(bcmsw_switch_t *sw, uint8* buf, long buf_bytes, uint32* type,
                           uint32* format) {
     soc_cancun_t *cc;
     soc_cancun_file_t ccf_file, *ccf;
@@ -1567,7 +1567,7 @@ int soc_cancun_file_load(struct bcmsw_switch *sw, uint8* buf, long buf_bytes, ui
 /*
  * Internal Functions
  */
-static int _soc_cancun_alloc(struct bcmsw_switch *sw) 
+static int _soc_cancun_alloc(bcmsw_switch_t *sw) 
 {
     soc_cancun_t* cc;
     sw->soc_cancun_info = kmalloc(sizeof(soc_cancun_t), GFP_KERNEL); // "soc_cancun_info");
@@ -1634,7 +1634,7 @@ _soc_cancun_alloc_error:
 }
 
 
-int soc_cancun_init (struct bcmsw_switch *swdev) 
+int soc_cancun_init (bcmsw_switch_t *swdev) 
 {
     int ret = SOC_E_NONE;
 
@@ -1842,7 +1842,7 @@ err_register_swdev_notifier:
 
 
 
-int bcmsw_switchdev_init(struct bcmsw_switch *sw)
+int bcmsw_switchdev_init(bcmsw_switch_t *sw)
 {
 	struct bcmsw_switchdev *swdev;
 	int err;
@@ -2156,9 +2156,9 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 
 //bcm_esw_port_init bcm_td3_port_cfg_init
 static int 
-_port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
+_port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 {
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
     uint32 port_type;
     int cpu_hg_index = -1;    
 
@@ -2179,11 +2179,11 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 
     /* EGR_LPORT_TABLE config init */
     //read EGR_PORTm
-    _soc_mem_read(bcmsw_sw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
+    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
 
     egr_port_entry.port_type = port_type;
 
-    _soc_mem_write(bcmsw_sw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
+    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
 
     /* initialize the Cancun tag profile entry setup
      * for VT_MISS_UNTAG action. Should be done in Cancun
@@ -2195,7 +2195,7 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
 
     /* PORT_TABLE config init */
     //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
-    _soc_mem_read(bcmsw_sw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
+    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
 
     lport_entry.reg.PORT_VIDf = BCMSW_VLAN_DEFAULT;
     lport_entry.reg.MAC_BASED_VID_ENABLEf = 1;
@@ -2225,13 +2225,13 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
     //lport_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
     lport_entry.reg.TAG_ACTION_PROFILE_PTRf = 1;
 
-    _soc_mem_write(bcmsw_sw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
+    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
 
     if (cpu_hg_index != -1) {
         //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
         /* TD3TBD should be covered by CMH, will remove it after CMH
          * is ready. */
-         _soc_mem_read(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
 
         //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
         //                    cpu_hg_index, PORT_TYPEf, 1));
@@ -2240,7 +2240,7 @@ _port_cfg_init(struct bcmsw_switch *bcmsw_sw, int port, int vid)
         ing_device_port_entry.reg.SYS_PORT_IDf = port;
         ing_device_port_entry.reg.PP_PORT_NUMf = port;
         ing_device_port_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
-        _soc_mem_write(bcmsw_sw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
     }    
 
     return 0;
@@ -2775,11 +2775,11 @@ phy_bcm542xx_qsgmii_reg_write(uint16_t phy_addr,
 /*****************************************************************************************/
 
 static int
-_ext_phy_probe(struct bcmsw_switch *bcmsw_sw, int port)
+_ext_phy_probe(bcmsw_switch_t *bcmsw, int port)
 {
     uint16               phy_addr, phy_id0, phy_id1;
     uint32               id0_addr, id1_addr;
-    soc_info_t           *si = bcmsw_sw->si;
+    soc_info_t           *si = bcmsw->si;
     port_info_t          *p_port;
 
     p_port = &si->ports[port];
@@ -2815,7 +2815,7 @@ _ext_phy_probe(struct bcmsw_switch *bcmsw_sw, int port)
 /*****************************************************************************************/
 
 
-static int unimac_reset_check(struct bcmsw_switch *bcmsw_sw, int port, int enable, int *reset)
+static int unimac_reset_check(bcmsw_switch_t *bcmsw, int port, int enable, int *reset)
 {
     command_config_t ctrl, octrl, swctrl;
     int index, blk_no;
@@ -2837,7 +2837,7 @@ static int unimac_reset_check(struct bcmsw_switch *bcmsw_sw, int port, int enabl
     index = (port-1)%8;
     blk_no = blk[(port-1)/8];
 
-    _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+    _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
     octrl.word = ctrl.word;
 
     printk("unimac_reset_check port %d ctrl 0x%x\n", port, ctrl.word);
@@ -2849,7 +2849,7 @@ static int unimac_reset_check(struct bcmsw_switch *bcmsw_sw, int port, int enabl
         if (enable) {
             *reset = 0;
         } else {
-            _reg32_read(bcmsw_sw->dev,blk_no, COMMAND_CONFIGr+index, &swctrl.word);
+            _reg32_read(bcmsw->dev,blk_no, COMMAND_CONFIGr+index, &swctrl.word);
 
             if (swctrl.reg.SW_RESETf) {
                 *reset = 0;
@@ -2891,11 +2891,11 @@ _helix5_get_pm_from_phynum(int phy_port)
 }
 
 int
-_helix5_idb_obm_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_buffer)
+_helix5_idb_obm_reset_buffer(bcmsw_switch_t *bcmsw, int port, int reset_buffer)
 {
     uint32_t reg;
     uint32_t offset = 0;
-    int32_t phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    int32_t phy_port = bcmsw->si->port_l2p_mapping[port];
     int pm_num, subp;
     obm_q_control_t reg_obm;
 
@@ -2908,7 +2908,7 @@ _helix5_idb_obm_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_
     offset = (phy_port - 1)%16;
     offset = offset/4;
 
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
     printk("IDB port Up rval 0x%x pm_num %1d subp=%1d reset_buffer=%1d offset=%1d  \n",
            reg_obm.word, pm_num, subp,reset_buffer,offset);
     if (subp == 0) {
@@ -2921,8 +2921,8 @@ _helix5_idb_obm_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_
         reg_obm.reg.PORT3_RESETf = reset_buffer;
     }
 
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), reg_obm.word);
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), reg_obm.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
 
     printk("IDB port Up rval_update 0x%x pm_num %1d sbup=%1d reset_buffer=%1d offset=%1d \n",
            reg_obm.word, pm_num, subp,reset_buffer,offset);
@@ -2944,11 +2944,11 @@ static const uint32_t soc_helix5_obm_ca_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
 };
 // soc_helix5_idb_ca_reset_buffer
 int
-_helix5_idb_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_buffer)
+_helix5_idb_ca_reset_buffer(bcmsw_switch_t *bcmsw, int port, int reset_buffer)
 {
     uint32_t reg;
     obm_q_ca_control_t val32;
-    int32_t phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    int32_t phy_port = bcmsw->si->port_l2p_mapping[port];
     int pm_num, subp;
 
     pm_num = _helix5_get_pm_from_phynum(phy_port);
@@ -2959,7 +2959,7 @@ _helix5_idb_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_b
 
     reg = soc_helix5_obm_ca_ctrl_regs[pm_num];
 
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg, &val32.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, reg, &val32.word);
 
     if (subp == 0) {
         val32.reg.PORT0_RESETf = reset_buffer;
@@ -2997,7 +2997,7 @@ _helix5_idb_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_b
         val32.reg.PORT0_RESETf = reset_buffer;
     }
 
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, reg, val32.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, reg, val32.word);
 
     printk("_helix5_idb_ca_reset_buffer port %d 0x%x pm_num %1d sbup=%1d reset_buffer=%1d  \n",
             port, val32.word, pm_num, subp,reset_buffer);
@@ -3006,15 +3006,15 @@ _helix5_idb_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int port, int reset_b
 
 //soc_helix5_idb_lpbk_ca_reset_buffer
 static int
-_helix5_idb_lpbk_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int reset_buffer)
+_helix5_idb_lpbk_ca_reset_buffer(bcmsw_switch_t *bcmsw, int reset_buffer)
 {
     idb_lpbk_ca_t val32;
 
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, &val32.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, &val32.word);
          
     val32.reg.PORT_RESETf = reset_buffer;
 
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, val32.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, val32.word);
 
     printk("_helix5_idb_lpbk_ca_reset_buffer reset_buffer=%1d", reset_buffer);
 
@@ -3023,15 +3023,15 @@ _helix5_idb_lpbk_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int reset_buffer
 
 //soc_helix5_idb_cpu_ca_reset_buffer
 static  int
-_helix5_idb_cpu_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int reset_buffer)
+_helix5_idb_cpu_ca_reset_buffer(bcmsw_switch_t *bcmsw, int reset_buffer)
 {
     idb_ca_cpu_t val32;
 
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, &val32.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, &val32.word);
 
     val32.reg.PORT_RESETf = reset_buffer;
 
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, val32.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, val32.word);
     
     printk("_helix5_idb_cpu_ca_reset_buffer reset_buffer=%1d", reset_buffer);
 
@@ -3040,25 +3040,25 @@ _helix5_idb_cpu_ca_reset_buffer(struct bcmsw_switch *bcmsw_sw, int reset_buffer)
 
 //soc_helix5_flex_idb_port_up
 static int
-_helix5_flex_idb_port_up(struct bcmsw_switch *bcmsw_sw, int port)
+_helix5_flex_idb_port_up(bcmsw_switch_t *bcmsw, int port)
 {
     int reset_buffer;
     int phy_port;
 
-    phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    phy_port = bcmsw->si->port_l2p_mapping[port];
 
     /* Release IDB buffers from reset state for all the ports going up */
 
     reset_buffer = 1;
     if (HELIX5_PHY_IS_FRONT_PANEL_PORT(phy_port)) {
-        _helix5_idb_obm_reset_buffer(bcmsw_sw, port, reset_buffer);
+        _helix5_idb_obm_reset_buffer(bcmsw, port, reset_buffer);
 
         if(phy_port <49) {
-                _helix5_idb_ca_reset_buffer(bcmsw_sw, port, reset_buffer);
+                _helix5_idb_ca_reset_buffer(bcmsw, port, reset_buffer);
         } else if(phy_port==HELIX5_PHY_PORT_LPBK0) {
-            _helix5_idb_lpbk_ca_reset_buffer(bcmsw_sw, reset_buffer);
+            _helix5_idb_lpbk_ca_reset_buffer(bcmsw, reset_buffer);
         } else if(phy_port==HELIX5_PHY_PORT_CPU) {
-            _helix5_idb_cpu_ca_reset_buffer(bcmsw_sw, reset_buffer);
+            _helix5_idb_cpu_ca_reset_buffer(bcmsw, reset_buffer);
         }
     }
 
@@ -3066,14 +3066,14 @@ _helix5_flex_idb_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     reset_buffer = 0;
     if (HELIX5_PHY_IS_FRONT_PANEL_PORT(phy_port)) {
-        _helix5_idb_obm_reset_buffer(bcmsw_sw, port, reset_buffer);
+        _helix5_idb_obm_reset_buffer(bcmsw, port, reset_buffer);
 
         if(phy_port <49) {
-            _helix5_idb_ca_reset_buffer(bcmsw_sw, port, reset_buffer);
+            _helix5_idb_ca_reset_buffer(bcmsw, port, reset_buffer);
         }else if(phy_port==HELIX5_PHY_PORT_LPBK0) {
-            _helix5_idb_lpbk_ca_reset_buffer(bcmsw_sw, reset_buffer);
+            _helix5_idb_lpbk_ca_reset_buffer(bcmsw, reset_buffer);
         }else if(phy_port==HELIX5_PHY_PORT_CPU) {
-            _helix5_idb_cpu_ca_reset_buffer(bcmsw_sw, reset_buffer);
+            _helix5_idb_cpu_ca_reset_buffer(bcmsw, reset_buffer);
         }
     }
     return SOC_E_NONE;
@@ -3081,7 +3081,7 @@ _helix5_flex_idb_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
 // only valid for phy_port 1~49
 static int 
-_helix5_get_qmode(struct bcmsw_switch *bcmsw_sw, int phy_port)
+_helix5_get_qmode(bcmsw_switch_t *bcmsw, int phy_port)
 {
     int qmode;
     int blk_no;
@@ -3095,7 +3095,7 @@ _helix5_get_qmode(struct bcmsw_switch *bcmsw_sw, int phy_port)
         blk_no = SCHAN_BLK_PMQPORT2;
     }
 
-    _reg32_read(bcmsw_sw->dev, blk_no, CHIP_CONFIGr, &rval32);
+    _reg32_read(bcmsw->dev, blk_no, CHIP_CONFIGr, &rval32);
     qmode = rval32 & 0x1;
 
     return qmode;
@@ -3103,7 +3103,7 @@ _helix5_get_qmode(struct bcmsw_switch *bcmsw_sw, int phy_port)
 
 //soc_helix5_flex_mac_port_up
 int
-_helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
+_helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
 {
     int i;
     //uint64_t rval64;
@@ -3139,16 +3139,16 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     //strict_preamble = 0;
 
-    dev = bcmsw_sw->dev;
+    dev = bcmsw->dev;
 
     /*Disable TSC lanes: */
 
     /*CLMAC_RX_CTRL */
-    phy_port = bcmsw_sw->si->port_l2p_mapping[port];
+    phy_port = bcmsw->si->port_l2p_mapping[port];
     //strict_preamble = 0;
 
     if(phy_port < 49) {
-        qmode = _helix5_get_qmode(bcmsw_sw, phy_port);
+        qmode = _helix5_get_qmode(bcmsw, phy_port);
         index = (phy_port -1)%8;
     } else {
         qmode = 0;
@@ -3159,35 +3159,35 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
         if((phy_port < 49) && (qmode)){
             /* configured thru API:  bcm_port_frame_max_set */
             blk_no = gxblk[(phy_port-1)/8];
-            _reg32_read(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, &rval32);
+            _reg32_read(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, &rval32);
     
             rval32 = 120;
-            _reg32_write(bcmsw_sw->dev, blk_no, GPORT_RSV_MASKr+index, rval32);
+            _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, rval32);
         }  else {
 #if 0
 	        printk("Bringing Eagle mac rx port %0d up\n", phy_port);
 
-            _reg64_read(bcmsw_sw->dev, blk_no, XLMAC_RX_CTRLr+index, &rval64);
+            _reg64_read(bcmsw->dev, blk_no, XLMAC_RX_CTRLr+index, &rval64);
             //soc_reg64_field32_set(unit, XLMAC_RX_CTRLr, &rval64, RX_ANY_STARTf, 0);
             //soc_reg64_field32_set(unit, XLMAC_RX_CTRLr, &rval64, STRIP_CRCf, 0);
             //soc_reg64_field32_set(unit, XLMAC_RX_CTRLr, &rval64, STRICT_PREAMBLEf,
             //                    strict_preamble);
             //soc_reg64_field32_set(unit, XLMAC_RX_CTRLr, &rval64, RUNT_THRESHOLDf,
             //                    64);
-            _reg64_write(bcmsw_sw->dev, blk_no, XLMAC_RX_CTRLr+index, rval64);
+            _reg64_write(bcmsw->dev, blk_no, XLMAC_RX_CTRLr+index, rval64);
 #endif            
 	    }
 	} else {
 	    printk("Bringing Falcon mac rx port %0d up\n", phy_port);
 #if 0        
-        _reg64_read(bcmsw_sw->dev, blk_no, CLMAC_RX_CTRLr+index, &rval64);
+        _reg64_read(bcmsw->dev, blk_no, CLMAC_RX_CTRLr+index, &rval64);
         //soc_reg64_field32_set(unit, CLMAC_RX_CTRLr, &rval64, RX_ANY_STARTf, 0);
         //soc_reg64_field32_set(unit, CLMAC_RX_CTRLr, &rval64, STRIP_CRCf, 0);
         //soc_reg64_field32_set(unit, CLMAC_RX_CTRLr, &rval64, STRICT_PREAMBLEf,
         //                        strict_preamble);
         //    soc_reg64_field32_set(unit, CLMAC_RX_CTRLr, &rval64, RUNT_THRESHOLDf,
         //                        64);
-        _reg64_write(bcmsw_sw->dev, blk_no, CLMAC_RX_CTRLr+index, rval64);
+        _reg64_write(bcmsw->dev, blk_no, CLMAC_RX_CTRLr+index, rval64);
 #endif        
 	}
 
@@ -3196,7 +3196,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
         if ( qmode != 1 ){
 	  printk("Setting Eagle mac xl port %0d up\n", phy_port);
 #if 0
-            _reg32_read(bcmsw_sw->dev, blk_no, XLPORT_CONFIGr+index, &rval32);
+            _reg32_read(bcmsw->dev, blk_no, XLPORT_CONFIGr+index, &rval32);
 
             soc_reg_field_set(unit, XLPORT_CONFIGr, &rval32, HIGIG2_MODEf,
                               higig2_mode);
@@ -3225,7 +3225,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
         if( qmode != 1 ) {
 	    printk("Setting Eagle enable port %0d up\n", phy_port);
 #if 0            
-            _reg32_read(bcmsw_sw->dev, blk_no, XLPORT_ENABLE_REGr+index, &rval32);
+            _reg32_read(bcmsw->dev, blk_no, XLPORT_ENABLE_REGr+index, &rval32);
 
             if (subp == 0) {
                 soc_reg_field_set(unit, XLPORT_ENABLE_REGr, &rval32, PORT0f, 1);
@@ -3262,7 +3262,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     msleep(1);
 
     /*CLPORT mode: */
-    if (bcmsw_sw->si->port_init_speed[port] == 100000) {
+    if (bcmsw->si->port_init_speed[port] == 100000) {
         speed_100g = 1;
     } else {
         speed_100g = 0;
@@ -3308,9 +3308,9 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
             index = (phy_port-1)%8;
             blk_no = gxblk[(phy_port-1)/8];
     
-            _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+            _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             ctrl.reg.SW_RESETf = 0;
-            _reg32_write(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
+            _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
         } else {
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, XLMAC_CTRLr, phy_port,
@@ -3354,10 +3354,10 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
             index = (phy_port-1)%8;
             blk_no = gxblk[(phy_port-1)/8];
 
-            _reg32_read(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
+            _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             ctrl.reg.RX_ENAf = 1;
             ctrl.reg.TX_ENAf = 1;
-            _reg32_write(bcmsw_sw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
+            _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
 
             //TODO
             //SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, FLUSH_CONTROLr, phy_port,
@@ -3408,7 +3408,7 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
     // case 1000 : speed_mode = 2; 
     // case 2500 : speed_mode = 3;
     // default   : speed_mode = 4;
-    if (bcmsw_sw->si->port_init_speed[port] == 1000) {
+    if (bcmsw->si->port_init_speed[port] == 1000) {
         speed_mode = 2;
     } else {
         speed_mode = 4;
@@ -3452,26 +3452,26 @@ _helix5_flex_mac_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
 //soc_helix5_flex_en_forwarding_traffic
 int
-_helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
+_helix5_flex_en_forwarding_traffic(bcmsw_switch_t *bcmsw, int port)
 {
     uint32_t ing_entry[3]; //72 bit
     uint32_t epc_entry[3]; //72 bit
 
-    _soc_mem_read(bcmsw_sw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 3, ing_entry); 
+    _soc_mem_read(bcmsw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 3, ing_entry); 
 
     ing_entry[port>>5] |= (0x1<<(port&0x1f));
 
-    _soc_mem_write(bcmsw_sw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 3, ing_entry); 
+    _soc_mem_write(bcmsw->dev, ING_DEST_PORT_ENABLEm, SCHAN_BLK_IPIPE, 3, ing_entry); 
 
     //printk("Enable ING_DEST_PORT_ENABLE write:: 0x%08x 0x%08x 0x%08x\n",
     //       ing_entry[0],ing_entry[1], ing_entry[2]);
 
     /* EPC_LINK_BMAP read, field modify and write. */
-    _soc_mem_read(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
+    _soc_mem_read(bcmsw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
 
     epc_entry[port>>5] |= (0x1<<(port&0x1f));
 
-    _soc_mem_write(bcmsw_sw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
+    _soc_mem_write(bcmsw->dev, EPC_LINK_BMAPm, SCHAN_BLK_IPIPE, 3, epc_entry); 
 
     //printk("Enable EPC_LINK_BITMAP write:: 0x%08x 0x%08x 0x%08x\n",
     //        epc_entry[0],epc_entry[1], epc_entry[2]);
@@ -3481,7 +3481,7 @@ _helix5_flex_en_forwarding_traffic(struct bcmsw_switch *bcmsw_sw, int port)
 
 //soc_helix5_ep_flexport_sft_rst_ports
 static int
-_helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int rst_on)
+_helix5_ep_flexport_sft_rst_ports(bcmsw_switch_t *bcmsw, int port, int rst_on)
 {
     int physical_port;
     uint32 entry;
@@ -3495,7 +3495,7 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
         entry = 0;
     }
 
-    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    physical_port = bcmsw->si->port_l2p_mapping[port];
 
     /* For ports going DOWN  or UP do:
      * Assert(rst_on=1)/De-assert(rst_on=0) per port sft reset
@@ -3506,7 +3506,7 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
      * gport as credits will not be re-issued due flex 
      */
     if (physical_port < 49) {
-        qmode = _helix5_get_qmode(bcmsw_sw, physical_port);                           
+        qmode = _helix5_get_qmode(bcmsw, physical_port);                           
     } else {
         qmode = 0;
     }
@@ -3525,11 +3525,11 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
     //}
 
     //soc_mem_field_set(unit, mem, entry, ENABLEf, &memfld);
-    _soc_mem_write(bcmsw_sw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_write(bcmsw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
 
     //readback for verification
     entry = 0;
-    _soc_mem_write(bcmsw_sw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_write(bcmsw->dev, EGR_PER_PORT_BUFFER_SFT_RESETm, SCHAN_BLK_EPIPE, 1, &entry); 
     //printk("_helix5_ep_flexport_sft_rst_ports port %d entry %d\n", port, entry);
 
     return SOC_E_NONE;
@@ -3537,18 +3537,18 @@ _helix5_ep_flexport_sft_rst_ports(struct bcmsw_switch *bcmsw_sw, int port, int r
 
 //soc_helix5_ep_enable_disable
 static int
-_helix5_ep_enable_disable(struct bcmsw_switch *bcmsw_sw, int port, int down_or_up)
+_helix5_ep_enable_disable(bcmsw_switch_t *bcmsw, int port, int down_or_up)
 {
     uint32 entry;
     int physical_port;
 
-    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    physical_port = bcmsw->si->port_l2p_mapping[port];
 
     entry = (0 == down_or_up)?0:1;
 
-    _soc_mem_write(bcmsw_sw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_write(bcmsw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
 
-    _soc_mem_read(bcmsw_sw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
+    _soc_mem_read(bcmsw->dev, EGR_ENABLEm+physical_port, SCHAN_BLK_EPIPE, 1, &entry); 
     //printk("_helix5_ep_enable_disable port %d entry %d\n", port, entry);
 
     return SOC_E_NONE;
@@ -3556,7 +3556,7 @@ _helix5_ep_enable_disable(struct bcmsw_switch *bcmsw_sw, int port, int down_or_u
 
 //soc_helix5_flex_ep_port_up
 static int
-_helix5_flex_ep_port_up(struct bcmsw_switch *bcmsw_sw, int port)
+_helix5_flex_ep_port_up(bcmsw_switch_t *bcmsw, int port)
 {
     int rst_on, down_or_up;
     int physical_port;
@@ -3569,17 +3569,17 @@ _helix5_flex_ep_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
     /* De-assert PM intf sft_reset */
     rst_on = 0;
-    _helix5_ep_flexport_sft_rst_ports(bcmsw_sw, port, rst_on);
+    _helix5_ep_flexport_sft_rst_ports(bcmsw, port, rst_on);
 
     /* Enable Ports going up after PM sft_rst is de-asserted */
     /* For ports going UP do:
      * 1. Enable port; write EGR_ENABLEm
      */
     down_or_up = 1; /* that is, port UP */
-    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    physical_port = bcmsw->si->port_l2p_mapping[port];
     if (-1 != physical_port) { /* that is, port UP */
         /* Enable port; write EGR_ENABLEm */
-        _helix5_ep_enable_disable(bcmsw_sw, port, down_or_up);
+        _helix5_ep_enable_disable(bcmsw, port, down_or_up);
     }
 
     return SOC_E_NONE;
@@ -3587,7 +3587,7 @@ _helix5_flex_ep_port_up(struct bcmsw_switch *bcmsw_sw, int port)
 
 //soc_helix5_mmu_vbs_port_flush
 static int
-_helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_val)
+_helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
 {
     uint32_t reg1, reg2;
     uint64_t enable_val_0,enable_val_1;
@@ -3609,9 +3609,9 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     COMPILER_64_ZERO(temp64);
     
     //acc_type = 20
-    _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
+    _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
 
-    _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_1, 20);
+    _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_1, 20);
 
     update0 = 0;
     update1 = 0;
@@ -3619,9 +3619,9 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     COMPILER_64_SET(new_val_0, 0, 1);
     COMPILER_64_SET(new_val_1, 0, 1);
 
-    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    physical_port = bcmsw->si->port_l2p_mapping[port];
     if (physical_port != -1) {
-        mmu_port = bcmsw_sw->si->port_p2m_mapping[physical_port];
+        mmu_port = bcmsw->si->port_p2m_mapping[physical_port];
     } else {
         printk("_helix5_mmu_vbs_port_flush invalid phy_port - port %d\n",port);
     }
@@ -3664,10 +3664,10 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
     }
 
     if(update0 == 1) {
-        _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     }
     if(update1 == 1) {
-        _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
     return SOC_E_NONE;
@@ -3677,19 +3677,19 @@ _helix5_mmu_vbs_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
 
 //soc_helix5_mmu_rqe_port_flush
 static int
-_helix5_mmu_rqe_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_val)
+_helix5_mmu_rqe_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
 {
     q_sched_rqe_t reg_rqe;
     int count=0;
 
     //acc_type = 20
-    _schan_reg32_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, &reg_rqe.word, 20);
+    _schan_reg32_read(bcmsw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, &reg_rqe.word, 20);
 
     reg_rqe.reg.INITIATEf = set_val;
-    _schan_reg32_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, reg_rqe.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, reg_rqe.word, 20);
 
     while (1) {
-        _schan_reg32_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, &reg_rqe.word, 20);
+        _schan_reg32_read(bcmsw->dev, SCHAN_BLK_MMU_SC, Q_SCHED_RQE_SNAPSHOTr, &reg_rqe.word, 20);
 
         if (reg_rqe.reg.INITIATEf == 0) {
             break;
@@ -3706,7 +3706,7 @@ _helix5_mmu_rqe_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_v
 
 //soc_helix5_mmu_mtro_port_flush
 static int
-_helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_val)
+_helix5_mmu_mtro_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
 {
     uint32_t reg1,reg2;
     int mmu_port, lcl_mmu_port;
@@ -3717,9 +3717,9 @@ _helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_
     reg1 = MTRO_PORT_ENTITY_DISABLE_SPLIT0r;
     reg2 = MTRO_PORT_ENTITY_DISABLE_SPLIT1r;
 
-    physical_port = bcmsw_sw->si->port_l2p_mapping[port];
+    physical_port = bcmsw->si->port_l2p_mapping[port];
     if (physical_port != -1) {
-        mmu_port = bcmsw_sw->si->port_p2m_mapping[physical_port];
+        mmu_port = bcmsw->si->port_p2m_mapping[physical_port];
     } else {
         printk("_helix5_mmu_mtro_port_flush invalid phy_port - port %d\n",port);
     }
@@ -3731,7 +3731,7 @@ _helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_
 
     if (lcl_mmu_port < 64) {
         //acc_type = 20
-        _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
+        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
 
         if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_0, lcl_mmu_port);
@@ -3739,10 +3739,10 @@ _helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_
         else {
             COMPILER_64_BITSET(enable_val_0, lcl_mmu_port);
         }
-        _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     } else {
         //acc_type = 20
-        _schan_reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg2, &enable_val_1, 20);
+        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, &enable_val_1, 20);
 
         if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_1, lcl_mmu_port - 64);
@@ -3750,7 +3750,7 @@ _helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_
         else {
             COMPILER_64_BITSET(enable_val_1, lcl_mmu_port - 64);
         }
-        _schan_reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
     return SOC_E_NONE;
@@ -3759,7 +3759,7 @@ _helix5_mmu_mtro_port_flush(struct bcmsw_switch *bcmsw_sw, int port, uint64 set_
 
 //soc_helix5_flex_mmu_port_up_top
 static int
-_helix5_flex_mmu_port_up_top(struct bcmsw_switch *bcmsw_sw, int port)
+_helix5_flex_mmu_port_up_top(bcmsw_switch_t *bcmsw, int port)
 {
     int qmode;
     int inst;
@@ -3777,17 +3777,17 @@ _helix5_flex_mmu_port_up_top(struct bcmsw_switch *bcmsw_sw, int port)
 	//    unit, port_schedule_state_t, pipe, &pipe_flexed);
 	    
 	//if (pipe_flexed == 1) {
-    _helix5_mmu_vbs_port_flush(bcmsw_sw, port, temp64);
-    _helix5_mmu_rqe_port_flush(bcmsw_sw, port, temp64);
+    _helix5_mmu_vbs_port_flush(bcmsw, port, temp64);
+    _helix5_mmu_rqe_port_flush(bcmsw, port, temp64);
 	//}
     //}
 
     /* Per-Pipe configuration */
-    phy_port = bcmsw_sw->si->port_l2i_mapping[port];
+    phy_port = bcmsw->si->port_l2i_mapping[port];
 
     /* Clear Previous EP Credits on the port. */
     if(phy_port < 49){
-        qmode = _helix5_get_qmode(bcmsw_sw, phy_port);
+        qmode = _helix5_get_qmode(bcmsw, phy_port);
     } else {
 	    qmode = 0;
     }
@@ -3797,7 +3797,7 @@ _helix5_flex_mmu_port_up_top(struct bcmsw_switch *bcmsw_sw, int port)
         //        unit, &port_schedule_state_t->resource[port]);
     }
 
-    _helix5_mmu_mtro_port_flush(bcmsw_sw, port, temp64);
+    _helix5_mmu_mtro_port_flush(bcmsw, port, temp64);
 	        
     return SOC_E_NONE;
 }
@@ -3920,7 +3920,7 @@ soc_phyctrl_ability_local_get(int unit, soc_port_t port,
 
 //Might not need, verify register read
 static int
-_bcm_port_ability_local_get(struct bcmsw_switch *bcmsw_sw, int port,
+_bcm_port_ability_local_get(bcmsw_switch_t *bcmsw, int port,
                            bcm_port_ability_t *ability_mask)
 {
     soc_port_ability_t             mac_ability, phy_ability;
@@ -4014,10 +4014,10 @@ phy_bcm542xx_reset(int port, uint16_t phy_addr)
     return ( rv );
 }
 
-static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
+static int phy_bcm542xx_dev_init(bcmsw_switch_t *bcmsw, int port)
 {
     //_phy_bcm54282_init
-    soc_info_t  *si = bcmsw_sw->si;
+    soc_info_t  *si = bcmsw->si;
     port_info_t *p_port;
     uint16_t     phy_id;
 
@@ -4092,7 +4092,7 @@ static int phy_bcm542xx_dev_init(struct bcmsw_switch *bcmsw_sw, int port)
 }
 
 static int 
-phy_bcm542xx_reset_setup(struct bcmsw_switch *bcmsw_sw,
+phy_bcm542xx_reset_setup(bcmsw_switch_t *bcmsw,
     int port,
     int automedium,
     int fiber_preferred,
@@ -4106,7 +4106,7 @@ phy_bcm542xx_reset_setup(struct bcmsw_switch *bcmsw_sw,
     int     primary_port;
     int     index;
     //int     oui = 0, model = 0, rev = 0;
-    soc_info_t  *si = bcmsw_sw->si;
+    soc_info_t  *si = bcmsw->si;
     port_info_t *p_port;
     uint32_t     phy_addr;
 
@@ -4215,14 +4215,14 @@ phy_bcm542xx_reset_setup(struct bcmsw_switch *bcmsw_sw,
                                PHY_BCM542XX_LED_GPIO_CTRL_STATUS_REG_OFFSET,
                                0xBC00);
 
-    phy_bcm542xx_dev_init(bcmsw_sw, port);
+    phy_bcm542xx_dev_init(bcmsw, port);
 
     return SOC_E_NONE;
 
 }
 
 static int
-phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
+phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
                          int port,
                          int reset,
                          int automedium,
@@ -4233,7 +4233,7 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
                          int ext_phy_autodetect_en,
                          int ext_phy_fiber_iface)
 {
-    soc_info_t  *si = bcmsw_sw->si;
+    soc_info_t  *si = bcmsw->si;
     port_info_t *p_port;
     uint32_t     phy_id;
     int          dev_port;
@@ -4241,7 +4241,7 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
     p_port = &si->ports[port];
 
     if ( reset ) {
-        phy_bcm542xx_reset_setup(bcmsw_sw, port, automedium,
+        phy_bcm542xx_reset_setup(bcmsw, port, automedium,
                                  fiber_preferred, fiber_detect,
                                  fiber_enable,
                                  copper_enable,
@@ -4288,7 +4288,7 @@ phy_bcm542xx_init_setup( struct bcmsw_switch *bcmsw_sw,
 }
 
 
-static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
+static int phy_bcm542xx_init(bcmsw_switch_t *bcmsw, int port)
 {
     //int  fiber_capable = 0;
     int  automedium = 0;
@@ -4300,7 +4300,7 @@ static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
     int  ext_phy_fiber_iface = -1;
 
     /* Init PHYS and MACs to defaults */
-    phy_bcm542xx_init_setup(bcmsw_sw, port, 
+    phy_bcm542xx_init_setup(bcmsw, port, 
                             TRUE,
                             automedium,
                             fiber_preferred,
@@ -4326,22 +4326,22 @@ static int phy_bcm542xx_init(struct bcmsw_switch *bcmsw_sw, int port)
 
 
 static int 
-_phyctrl_probe(struct bcmsw_switch *bcmsw_sw, int port)
+_phyctrl_probe(bcmsw_switch_t *bcmsw, int port)
 {
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
     // probe for PHY , and dump information
     // Only do ext Phy (N3248TE)
     if (si->ports[port].ext_phy_addr !=  -1) {
-        _ext_phy_probe(bcmsw_sw, port);
+        _ext_phy_probe(bcmsw, port);
     }
 
     return 0;
 }
 
-static int _phyctrl_init(struct bcmsw_switch *bcmsw_sw, int port)
+static int _phyctrl_init(bcmsw_switch_t *bcmsw, int port)
 {
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
     port_info_t *p_port;
 
     p_port = &si->ports[port];
@@ -4350,7 +4350,7 @@ static int _phyctrl_init(struct bcmsw_switch *bcmsw_sw, int port)
 
     if(p_port->probed) {  
        //Call Phy Model specific init -> pd_init = phy_bcm542xx_init
-       phy_bcm542xx_init(bcmsw_sw, port);
+       phy_bcm542xx_init(bcmsw, port);
 
        p_port->phy_flags |= PHY_FLAGS_INIT_DONE;
     }
@@ -4359,19 +4359,19 @@ static int _phyctrl_init(struct bcmsw_switch *bcmsw_sw, int port)
 }
 
 static int 
-_phyctrl_pbm_probe_init(struct bcmsw_switch *bcmsw_sw)
+_phyctrl_pbm_probe_init(bcmsw_switch_t *bcmsw)
 {
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
     int port; 
     int num_port = HX5_NUM_PORT;
 
     for (port = 0; port < num_port; port++) {
         if(si->ports[port].valid == TRUE) {
-            _phyctrl_probe(bcmsw_sw, port);
+            _phyctrl_probe(bcmsw, port);
 
             /* do PHY init pass1 */
             PHYCTRL_INIT_STATE_SET(&(si->ports[port].phy_ctrl), PHYCTRL_INIT_STATE_PASS1);
-            _phyctrl_init(bcmsw_sw, port);
+            _phyctrl_init(bcmsw, port);
 
             // BCM54182 only need init pass 1
             /* do PHY init pass2 - 5  if requested */
@@ -4386,9 +4386,9 @@ _phyctrl_pbm_probe_init(struct bcmsw_switch *bcmsw_sw)
 /*                             Port Ctrl                                                 */
 /*****************************************************************************************/
 
-static int _pm4x10_qtc_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+static int _pm4x10_qtc_port_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
 {
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
     port_info_t *pport = &si->ports[port];
 
@@ -4396,12 +4396,12 @@ static int _pm4x10_qtc_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, 
 }
 
 static int 
-_bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+_bcm_esw_portctrl_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
 {
     int mac_reset;
     //if (flags & PORTMOD_PORT_ENABLE_PHY) {
         //portmod_port_enable_set();
-        _pm4x10_qtc_port_enable_set(bcmsw_sw, port, 1);
+        _pm4x10_qtc_port_enable_set(bcmsw, port, 1);
     //}
 
     //portmod_ext_to_int_cmd_set() ==> Not needed
@@ -4410,7 +4410,7 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
     //Check if MAC needs to be modified based on whether
     //(portmod_port_mac_reset_check(unit, pport,
     //    enable, &mac_reset));
-    unimac_reset_check(bcmsw_sw, port, enable, &mac_reset);
+    unimac_reset_check(bcmsw, port, enable, &mac_reset);
 
     if(mac_reset) {
         //if (flags & PORTMOD_PORT_ENABLE_MAC ) {
@@ -4419,19 +4419,19 @@ _bcm_esw_portctrl_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable
         
         /* soc_helix5_flex_top_port_up*/
         // 1 soc_helix5_flex_mmu_port_up_top
-        _helix5_flex_mmu_port_up_top(bcmsw_sw, port);
+        _helix5_flex_mmu_port_up_top(bcmsw, port);
 
         // 2 soc_helix5_flex_ep_port_up
-        _helix5_flex_ep_port_up(bcmsw_sw, port);
+        _helix5_flex_ep_port_up(bcmsw, port);
 
         // 3 soc_helix5_flex_idb_port_up()
-        _helix5_flex_idb_port_up(bcmsw_sw, port);
+        _helix5_flex_idb_port_up(bcmsw, port);
  
         // 4 soc_helix5_flex_mac_port_up
-        _helix5_flex_mac_port_up(bcmsw_sw, port);
+        _helix5_flex_mac_port_up(bcmsw, port);
 
         // 5 soc_helix5_flex_en_forwarding_traffic
-        _helix5_flex_en_forwarding_traffic(bcmsw_sw, port);
+        _helix5_flex_en_forwarding_traffic(bcmsw, port);
 
     }
 
@@ -4453,7 +4453,7 @@ bcmi_esw_portctrl_probe(void)
 }
 
 static int
-bcmi_esw_portctrl_probe_pbmp(struct bcmsw_switch *bcmsw_sw)
+bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
 {
 
     /*step1: probe Serdes and external PHY core*/
@@ -4474,7 +4474,7 @@ bcmi_esw_portctrl_probe_pbmp(struct bcmsw_switch *bcmsw_sw)
 /*                             Port Init/Setup                                           */
 /*****************************************************************************************/
 static int
-_bcm_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+_bcm_port_speed_set(bcmsw_switch_t *bcmsw, int port, int speed)
 {
     //bcmi_esw_portctrl_speed_set
     //if (enable == TRUE) {
@@ -4494,10 +4494,10 @@ _bcm_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
 
 //Setting the speed for a given port
 int
-bcm_esw_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+bcm_esw_port_speed_set(bcmsw_switch_t *bcmsw, int port, int speed)
 {
     int rv;
-    rv = _bcm_port_speed_set(bcmsw_sw, port, speed);
+    rv = _bcm_port_speed_set(bcmsw, port, speed);
 
     //bcm_esw_port_enable_set
     //bcm_esw_link_change
@@ -4505,7 +4505,7 @@ bcm_esw_port_speed_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
 
     return rv;
 }
-int bcm_esw_port_autoneg_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
+int bcm_esw_port_autoneg_set(bcmsw_switch_t *bcmsw, int port, int speed)
 {
     //bcmi_esw_portctrl_autoneg_set
 #if 0
@@ -4531,32 +4531,32 @@ int bcm_esw_port_autoneg_set(struct bcmsw_switch *bcmsw_sw, int port, int speed)
 
 
 int
-bcm_esw_port_enable_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+bcm_esw_port_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
 {
    //bcmi_esw_portctrl_enable_set
    //if (enable) {
       // enable PHY
-      //rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_PHY, TRUE);
+      //rv = _bcm_esw_portctrl_enable_set(bcmsw, port, PORTMOD_PORT_ENABLE_PHY, TRUE);
 
       /* Get link status after PHY state has been set */
       //rv = bcm_esw_port_link_status_get(unit, port, &link);
 
       // enable MAC
-      //rv = _bcm_esw_portctrl_enable_set(bcmsw_sw, port, PORTMOD_PORT_ENABLE_MAC, TRUE);
+      //rv = _bcm_esw_portctrl_enable_set(bcmsw, port, PORTMOD_PORT_ENABLE_MAC, TRUE);
    //} else {
 
 
    //}
-   return _bcm_esw_portctrl_enable_set(bcmsw_sw, port, enable);
+   return _bcm_esw_portctrl_enable_set(bcmsw, port, enable);
 }
 
 static int
-bcm_port_settings_init(struct bcmsw_switch *bcmsw_sw, int port)
+bcm_port_settings_init(bcmsw_switch_t *bcmsw, int port)
 {
     int         rc;
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
-    rc = bcm_esw_port_speed_set(bcmsw_sw, port, si->port_init_speed[port]);
+    rc = bcm_esw_port_speed_set(bcmsw, port, si->port_init_speed[port]);
 
     //val = soc_property_port_get(unit, port, spn_PORT_INIT_DUPLEX, -1);
     //if (val != -1) {
@@ -4573,23 +4573,23 @@ bcm_port_settings_init(struct bcmsw_switch *bcmsw_sw, int port)
     //}
     //bcm_esw_port_advert_set(unit, port, info->local_advert);
 
-    rc = bcm_esw_port_autoneg_set(bcmsw_sw, port, TRUE);
+    rc = bcm_esw_port_autoneg_set(bcmsw, port, TRUE);
 
     return rc;
 }
 
 
 static int 
-_port_init(struct bcmsw_switch *bcmsw_sw)
+_port_init(bcmsw_switch_t *bcmsw)
 {
     int num_port = HX5_NUM_PORT, port, vid; 
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
     vid = BCMSW_VLAN_DEFAULT;
     for (port = 0; port < num_port; port++) {
        if(si->port_type[port] != -1) {
            //bcm_td3_port_cfg_init
-           _port_cfg_init(bcmsw_sw, port, vid);
+           _port_cfg_init(bcmsw, port, vid);
 	  
        }
     }
@@ -4610,10 +4610,10 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
      * bcm_esw_port_probe(unit, PBMP_PORT_ALL(unit), &okay_ports);
      */
     /* Check for PortMod */
-    bcmi_esw_portctrl_probe_pbmp(bcmsw_sw);
+    bcmi_esw_portctrl_probe_pbmp(bcmsw);
 
     /*soc_phyctrl_pbm_probe_init */
-    _phyctrl_pbm_probe_init(bcmsw_sw);
+    _phyctrl_pbm_probe_init(bcmsw);
 
     // Probe function should leave port disabled 
     //soc_phyctrl_enable_set
@@ -4621,7 +4621,7 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
     // STEP 4
     for (port = 0; port < num_port; port++) {
         if(si->ports[port].valid == TRUE) {
-            bcm_port_settings_init(bcmsw_sw, port);
+            bcm_port_settings_init(bcmsw, port);
         }
      }    
 
@@ -4629,19 +4629,19 @@ _port_init(struct bcmsw_switch *bcmsw_sw)
     // if ((rv = bcm_esw_port_enable_set(unit, p, port_enable)) < 0) {
     for (port =1; port < num_port; port++) {
 	    if(si->ports[port].valid == TRUE) {
-            bcm_esw_port_enable_set(bcmsw_sw, port, TRUE);
+            bcm_esw_port_enable_set(bcmsw, port, TRUE);
 	    }
     }
     return 0;
 }
 
 
-static int bcmsw_port_create(struct bcmsw_switch *bcmsw_sw, int port_index, const char *name)
+static int bcmsw_port_create(bcmsw_switch_t *bcmsw, int port_index, const char *name)
 {
     int len;
     //int qnum;
     kcom_msg_netif_create_t netif_create;
-    //struct bcmsw_port * port = bcmsw_sw->ports[port_index];
+    //struct bcmsw_port * port = bcmsw->ports[port_index];
 
     memset(&netif_create, 0, sizeof(netif_create));
     netif_create.hdr.type = KCOM_MSG_TYPE_CMD;
@@ -4664,7 +4664,7 @@ static int bcmsw_port_create(struct bcmsw_switch *bcmsw_sw, int port_index, cons
     //netif_create.netif.cb_user_data = netif->cb_user_data;
     netif_create.netif.vlan = BCMSW_VLAN_DEFAULT; //netif->vlan;
     netif_create.netif.port = port_index;
-    netif_create.netif.phys_port = bcmsw_sw->si->port_l2p_mapping[port_index];
+    netif_create.netif.phys_port = bcmsw->si->port_l2p_mapping[port_index];
 
     //if (BCM_SUCCESS(soc_esw_hw_qnum_get(unit, netif->port, netif->cosq, &qnum))) {
     //    netif_create.netif.qnum = qnum;
@@ -4688,7 +4688,7 @@ static int bcmsw_port_create(struct bcmsw_switch *bcmsw_sw, int port_index, cons
 
 
 //TODO - this part might need to be moved to userspace 
-static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
+static int bcmsw_ports_init(bcmsw_switch_t *bcmsw)
 {
     //FIX: hardcode for N3248TE  BCM56371
     // soc_helix5_port_config_init
@@ -4702,7 +4702,7 @@ static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
     int i;
 
     // initialize port configuration according to soc info. bcm_esw_port_init bcm_td3_port_cfg_init
-    err = _port_init(bcmsw_sw);
+    err = _port_init(bcmsw);
     if (err) {
         goto err_port_cfg_init;
     }
@@ -4711,7 +4711,7 @@ static int bcmsw_ports_init(struct bcmsw_switch *bcmsw_sw)
     max_ports = COUNTOF(n3248te_ports);
     for (i = 0; i < max_ports; i++) {
         if (n3248te_ports[i].port != -1) {
-    	  err = bcmsw_port_create(bcmsw_sw, n3248te_ports[i].port, n3248te_ports[i].name);
+    	  err = bcmsw_port_create(bcmsw, n3248te_ports[i].port, n3248te_ports[i].name);
     	  if (err)
     		goto err_port_create;
         }
@@ -4727,7 +4727,7 @@ err_port_create:
 /*****************************************************************************************/
 //soc_cmicx_dma_abort
 #if 0
-static int bcmsw_cmicx_dma_abort(struct bcmsw_switch *bcmsw_sw)
+static int bcmsw_cmicx_dma_abort(bcmsw_switch_t *bcmsw)
 {
 
 	    /* abort s-bus DMA in all channels */
@@ -4991,7 +4991,7 @@ static int _trident3_mdio_rate_divisor_set(void)
 
 
 //_soc_helix5_misc_init
-static int _misc_init(struct bcmsw_switch *bcmsw_sw)
+static int _misc_init(bcmsw_switch_t *bcmsw)
 {
     /******************************* soc_reset()****************************/
 
@@ -5014,12 +5014,12 @@ static int _misc_init(struct bcmsw_switch *bcmsw_sw)
 
 
 static int 
-_soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
+_soc_hx5_thdo_hw_set(bcmsw_switch_t *bcmsw, int port, int enable)
 {
     uint64_t rval64, rval64_tmp;
     int i;
     int split, pos, phy_port, mmu_port;
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
     uint32_t reg[3][2] = {
     {
@@ -5059,7 +5059,7 @@ _soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
             COMPILER_64_SET(rval64_tmp, (1 << (pos - 32)), 0);
         }
 
-        _reg64_read(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], &rval64);                                  
+        _reg64_read(bcmsw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], &rval64);                                  
 
         if (enable) {
 	    COMPILER_64_OR(rval64, rval64_tmp);
@@ -5069,22 +5069,22 @@ _soc_hx5_thdo_hw_set(struct bcmsw_switch *bcmsw_sw, int port, int enable)
         }
 	//printk("_soc_hx5_thdo_hw_set port %d pos %d reg 0x%x 0x%llx\n",port, pos, reg[i][split], rval64);
 
-        _reg64_write(bcmsw_sw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], rval64);
+        _reg64_write(bcmsw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], rval64);
     }
    
     return SOC_E_NONE;
 }
 
 //_soc_helix5_mmu_init
-static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
+static int _mmu_init(bcmsw_switch_t *bcmsw)
 {
     uint32 val;
     int num_port = HX5_NUM_PORT, port; 
-    soc_info_t *si = bcmsw_sw->si;
+    soc_info_t *si = bcmsw->si;
 
     for (port = 0; port < num_port; port++) {
        if(si->port_l2p_mapping[port] != -1) {
-           _soc_hx5_thdo_hw_set(bcmsw_sw, port, 1);
+           _soc_hx5_thdo_hw_set(bcmsw, port, 1);
        }
     }
 
@@ -5096,10 +5096,10 @@ static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
     //            REFRESH_PERIODf, time_refresh);
     //    SOC_IF_ERROR_RETURN(WRITE_WRED_REFRESH_CONTROLr(unit, rval));
     val = 0x30;
-    _reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, val);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, val);
 
     //readback
-    _reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, &val);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_MMU_XPE, WRED_REFRESH_CONTROLr, &val);
     //printk("_mmu_init WRED_REFRESH_CONTROLr = 0x%x\n", val);
 
 
@@ -5107,18 +5107,18 @@ static int _mmu_init(struct bcmsw_switch *bcmsw_sw)
     //soc_reg_field_set(unit, MMU_1DBG_Cr, &rval, FIELD_Af, 1);
     //soc_trident3_sc_reg32_set(unit, MMU_1DBG_Cr, -1, -1, 0, rval));
     val = 0x29;
-    _schan_reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, val, 20);
+    _schan_reg32_write(bcmsw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, val, 20);
 
     //readback
-    _schan_reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, &val, 20);
+    _schan_reg32_read(bcmsw->dev,SCHAN_BLK_MMU_SC, MMU_1DBG_Cr, &val, 20);
     //printk("_mmu_init MMU_1DBG_Cr = 0x%x\n", val);
     
     // (soc_trident3_sc_reg32_set(unit, MMU_2DBG_C_1r, -1, -1, 0, 0x4));
     val = 0x4;
-    _schan_reg32_write(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, val, 20);
+    _schan_reg32_write(bcmsw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, val, 20);
 
     //readback
-    _schan_reg32_read(bcmsw_sw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, &val, 20);
+    _schan_reg32_read(bcmsw->dev,SCHAN_BLK_MMU_SC, MMU_2DBG_C_1r, &val, 20);
     //printk("_mmu_init MMU_2DBG_C_1r = 0x%x\n", val);
 
 
@@ -5255,32 +5255,14 @@ _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
     }
 
 #if 0
-        if (soc_feature(unit, soc_feature_trunk_group_overlay)) {
-            if (l2caddr->flags & BCM_L2_CACHE_TRUNK) {
-                if (soc_feature(unit, soc_feature_generic_dest)) {
-                    soc_mem_field32_dest_set(unit, L2_USER_ENTRYm, l2u_entry,
+    if (l2caddr->flags & BCM_L2_CACHE_TRUNK) {
+        soc_mem_field32_dest_set(unit, L2_USER_ENTRYm, l2u_entry,
                         DESTINATIONf, SOC_MEM_FIF_DEST_LAG, l2caddr->dest_trunk);
-                } else {
-                    _l2u_field32_set(unit, l2u_entry, Tf, 1);
-                    _l2u_field32_set(unit, l2u_entry, TGIDf, l2caddr->dest_trunk);
-                }
-            } else {
-                port_field = PORT_NUMf;
-            }
-        } else {
-                if (l2caddr->flags & BCM_L2_CACHE_TRUNK) {
-                    _l2u_field32_set(unit, l2u_entry, MODULE_IDf,
-                                     BCM_TRUNK_TO_MODIDf(unit,
-                                                         l2caddr->dest_trunk));
-                    _l2u_field32_set(unit, l2u_entry, PORT_TGIDf,
-                                     BCM_TRUNK_TO_TGIDf(unit,
-                                                        l2caddr->dest_trunk));
-                } else {
-                    port_field = PORT_TGIDf;
-                }
-        }
+    } else {
+        port_field = PORT_NUMf;
+    }
 
-        if (!((l2caddr->flags & BCM_L2_CACHE_TRUNK) ||
+    if (!((l2caddr->flags & BCM_L2_CACHE_TRUNK) ||
             (l2caddr->flags & BCM_L2_CACHE_MULTICAST))) {
             mod_in = l2caddr->dest_modid;
             port_in = l2caddr->dest_port;
@@ -5333,7 +5315,7 @@ _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
 
 // soc_l2u_find_free_entry
 static int 
-_soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *free_index)
+_soc_l2u_find_free_entry(bcmsw_switch_t *bcmsw, l2u_entry_t *key, int *free_index)
 {
     l2u_entry_t entry, free_mask;
     int index, i, entry_words, rv;
@@ -5362,7 +5344,7 @@ _soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *f
         step = -1;
     }
     for (index = start; index != end; index += step) {
-        rv = _soc_mem_read(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, &entry);
+        rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, &entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -5387,7 +5369,7 @@ _soc_l2u_find_free_entry(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *key, int *f
  */
 //soc_l2u_insert
 static int 
-_soc_l2u_insert(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *entry, int index, int *index_used)
+_soc_l2u_insert(bcmsw_switch_t *bcmsw, l2u_entry_t *entry, int index, int *index_used)
 {
     int i, i_max, i_min, rv;
 
@@ -5407,7 +5389,7 @@ _soc_l2u_insert(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *entry, int index, in
         //    return rv;
         //}
 
-        rv = _soc_l2u_find_free_entry(bcmsw_sw, entry, &i);
+        rv = _soc_l2u_find_free_entry(bcmsw, entry, &i);
         //soc_mem_unlock(unit, L2_USER_ENTRYm);
         if (rv) {
             printk("_soc_l2u_insert failed to find free entry\n");
@@ -5425,7 +5407,7 @@ _soc_l2u_insert(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *entry, int index, in
     //sal_memcpy(&l2u_entry, entry, sizeof(l2u_entry));
     //rv = WRITE_L2_USER_ENTRYm(unit, MEM_BLOCK_ALL, index, &l2u_entry);
     // size = (27 byte +3)/4
-    _soc_mem_write(bcmsw_sw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
+    _soc_mem_write(bcmsw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
 
     //soc_mem_unlock(unit, L2_USER_ENTRYm);
 
@@ -5441,7 +5423,7 @@ _soc_l2u_insert(struct bcmsw_switch *bcmsw_sw, l2u_entry_t *entry, int index, in
  *      Initialize the L2 cache
  */
 int
-_bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
+_bcm_esw_l2_cache_init(bcmsw_switch_t *bcmsw)
 {
     bcm_l2_cache_addr_t addr;
     l2u_entry_t entry;
@@ -5477,7 +5459,7 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
 
     _bcm_l2_cache_to_l2u(&entry, &addr);
 
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    _soc_l2u_insert(bcmsw, &entry, -1, &index);
 
     //L2_PROTOCOL_PKTf start 207, len 1
     val = 1;
@@ -5490,23 +5472,23 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
     //VFI_MASKf start 129, len 12
     val = 0;
     _mem_field_set((uint32_t *)&entry, sizeof (entry), 129, 12, &val, 0);
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    _soc_l2u_insert(bcmsw, &entry, -1, &index);
 
     /* Set 01:80:c2:00:00:10 */
     addr.mac[5] = 0x10;
     _bcm_l2_cache_to_l2u(&entry, &addr);
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    _soc_l2u_insert(bcmsw, &entry, -1, &index);
     
     /* Set 01:80:c2:00:00:0x */
     addr.mac[5] = 0x00;
     addr.mac_mask[5] = 0xf0;
     _bcm_l2_cache_to_l2u(&entry, &addr);
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    _soc_l2u_insert(bcmsw, &entry, -1, &index);
 
     /* Set 01:80:c2:00:00:2x */
     addr.mac[5] = 0x20;
     _bcm_l2_cache_to_l2u(&entry, &addr);
-    _soc_l2u_insert(bcmsw_sw, &entry, -1, &index);
+    _soc_l2u_insert(bcmsw, &entry, -1, &index);
 
     return SOC_E_NONE;
 }
@@ -5514,28 +5496,237 @@ _bcm_esw_l2_cache_init(struct bcmsw_switch *bcmsw_sw)
 
 //bcm_esw_l2_init
 int
-_esw_l2_init(struct bcmsw_switch *bcmsw_sw)
+_esw_l2_init(bcmsw_switch_t *bcmsw)
 {
     int rv; 
 
     /*
      * Init L2 cache
      */
-    rv = _bcm_esw_l2_cache_init(bcmsw_sw);
+    rv = _bcm_esw_l2_cache_init(bcmsw);
     
     return SOC_E_NONE;
 }
 
+/*****************************************************************************************/
+/*                             switch  VLAN                                              */
+/*****************************************************************************************/
+// _bcm_xgs3_vlan_table_init
+static int
+_vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
+{
+    vlan_tab_entry_t    ve;
+    int                 rv;
+    int                 index;
+    uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
+    uint32_t            val;
+    uint16_t            tpid;
+    int                 tpid_index;    
+
+    // Clear EGR_VLANm
+    for (index = 0; index <= 4095; index++) {
+        _soc_mem_write(bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, empty_entry); 
+    }    
+
+    //EGR_VLANm entry is 10 bytes, 3 word
+    memcpy(&ve, empty_entry, 12);
+
+    /* This function will be called with VLAN_TABm, EGR_VLANm, and VLAN_2_TABm
+     * for TH2 and TH3. In TH2/TH3, VLAN_2_TABm has STGf while VLAN_TABm does
+     * not. The check is to prevent STGf being set wrongly.
+     */
+    //STGf start 1, len 9
+    val = 1; //default STG
+    _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 1, 9, &val, SOCF_LE);
+    
+    //VALIDf start 0, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, SOCF_LE);
 
 
+    tpid = 0; //_bcm_fb2_outer_tpid_default_get(unit);
+
+    /* Add the default outer TPID entry twice during init so that
+     * the default entry does not get removed even when no table 
+     * entry is referencing to the default TPID entry.
+     */  
+    _bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
+    _bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
+
+    //OUTER_TPID_INDEXf start 10, len 2
+    val = tpid_index;
+    _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 10, 2, &val, SOCF_LE);
 
 
-static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
+    vlan_attrs_1_entry_t vlan_attrs;
+    memset(&vlan_attrs, 0, sizeof(vlan_attrs_1_entry_t));
+
+    //VLAN_ATTRS_1m 9 bytes, 3 words
+    _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+
+    //STGf start 2, len 9
+    val = 1; //default STG
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 2, 9, &val, SOCF_LE);
+
+    //VALIDf start 58, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
+
+    //FID_IDf start 24, len 12
+    val = 0;
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 24, 12, &val, SOCF_LE);
+
+    //MPLS_ENABLEf start 0, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 0, 1, &val, 0);
+
+    //MIM_TERM_ENABLEf start 1, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 1, 1, &val, 0);
+
+    //EN_IFILTERf start 23, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 23, 1, &val, 0);
+
+    _soc_mem_write(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+
+
+    _soc_mem_write(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve); 
+
+
+    //TODO
+    //bcm_td3_vlan_vfi_untag_init(unit, vd->vlan_tag,
+    //                                     vd->ut_port_bitmap);
+
+    return BCM_E_NONE;
+}
+
+//_bcm_xgs3_vlan_table_init
+static int
+_vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
+{
+    vlan_tab_entry_t    ve;
+    //bcm_pbmp_t          pbm;
+    uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
+    int                 rv;
+    uint32_t            val;
+
+    // Clear VLAN_TABm
+    for (index = 0; index <= 4095; index++) {
+        _soc_mem_write(bcmsw->dev, VLAN_TABm+index, SCHAN_BLK_IPIPE, 12, empty_entry); 
+    }    
+
+    //VLAN_TABm entry is 47 bytes, 12 word
+    memcpy(&ve, empty_entry, 12);
+
+#if 0 
+    TBD    
+    pbm = vd->ut_port_bitmap);
+    pbm |= PBMP_E_ALL(unit)
+
+    //PORT_BITMAPf start 0 len 72
+    val = vd->port_bitmap;
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 0, 72, &val, SOCF_LE);
+#endif    
+
+    //STGf start 141 len 9
+    val = 1;  //default STG
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 141, 9, &val, SOCF_LE);
+
+    //VALIDf start 150, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 150, 1, &val, 0);
+
+    //EN_IFILTERf start 296, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 296, 1, &val, 0);
+
+    //L3_IIFf start 318, len 13
+    val = vd->vlan_tag;
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 318, 13, &val, 0);
+
+    _soc_mem_write(bcmsw->dev, VLAN_TABm+vd->vlan_tag, SCHAN_BLK_IPIPE, 12, &ve); 
+
+    return BCM_E_NONE;
+}
+
+//bcm_xgs3_vlan_init
+int
+_xgs3_vlan_init(bcmsw_switch_t *bcmsw, bcm_vlan_data_t *vd)
+{
+    /* Must call on EGR_VLANm before VLAN_TABm */
+
+    //EGR_VLANm
+    _vlan_table_init_egr_vlan(unit, vd); 
+
+    //VLAN_TABm
+    _vlan_table_init_vlan_tab(unit, vd);
+
+    return BCM_E_NONE;
+}
+
+
+/*
+ * Function:
+ *      bcm_vlan_init
+ * Purpose:
+ *      Initialize the VLAN module.
+ * Parameters:
+ *      unit - StrataSwitch PCI device unit number (driver internal).
+ * Returns:
+ *      BCM_E_NONE - Success.
+ *      BCM_E_INTERNAL - Chip access failure.
+ */
+
+ int
+ bcm_esw_vlan_init(bcmsw_switch_t *bcmsw)
+ {
+    int         rv = SOC_E_NONE;
+    vlan_data_t vd;
+ 
+    /*
+     * Initialize hardware tables
+    */
+ 
+
+    memset(&vd, 0, sizeof(vlan_data_t));
+    /*
+     * LB ports to be member of vlan, like front panel ports.
+     */
+    vd.vlan_tag = BCM_VLAN_DEFAULT;
+    //BCM_PBMP_ASSIGN(vd.port_bitmap, temp_pbmp);
+    //BCM_PBMP_REMOVE(vd.port_bitmap, PBMP_LB(unit));
+    //BCM_PBMP_REMOVE(vd.port_bitmap, PBMP_RDB_ALL(unit));
+    //BCM_PBMP_REMOVE(vd.port_bitmap, PBMP_FAE_ALL(unit));
+    //BCM_PBMP_ASSIGN(vd.ut_port_bitmap, temp_pbmp);
+    //BCM_PBMP_REMOVE(vd.ut_port_bitmap, PBMP_CMIC(unit));
+    //BCM_PBMP_REMOVE(vd.ut_port_bitmap, PBMP_LB(unit));
+    //BCM_PBMP_REMOVE(vd.ut_port_bitmap, PBMP_RDB_ALL(unit));
+    //BCM_PBMP_REMOVE(vd.ut_port_bitmap, PBMP_FAE_ALL(unit));
+    //BCM_PBMP_REMOVE(vd.ut_port_bitmap, PBMP_MACSEC_ALL(unit));
+    vd.port_bitmap.pbits[0] = 0xffffffff;
+    vd.port_bitmap.pbits[1] = 0x023fffff;
+    vd.ut_port_bitmap.pbits[0] = 0xffffffff;
+    vd.ut_port_bitmap.pbits[1] = 0x023fffff;
+
+    //(mbcm_driver[unit]->mbcm_vlan_init(unit, &vd)); //bcm_xgs3_vlan_init
+    _xgs3_vlan_init(bcmsw, &vd);
+ 
+ 
+     return rv;
+ }
+
+
+/*****************************************************************************************/
+/*                            switch                                                     */
+/*****************************************************************************************/
+
+static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
 {
     int err = 0;
 
     //create ports
-    err = bcmsw_ports_init(bcmsw_sw);
+    err = bcmsw_ports_init(bcmsw);
     if (err) {
     	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
     	goto err_ports_create;
@@ -5543,7 +5734,7 @@ static int bcmsw_modules_init(struct bcmsw_switch *bcmsw_sw)
 
 
     //bcm_esw_l2_init
-    _esw_l2_init(bcmsw_sw);
+    _esw_l2_init(bcmsw);
 
     //bcm_esw_vlan_init
 
@@ -5812,9 +6003,9 @@ static int _helix5_port_reset(struct net_device *dev)
 }
 
 //soc_do_init(int unit, int reset)
-static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
+static int _switch_do_init(bcmsw_switch_t *bcmsw)
 {
-    struct net_device *dev = bcmsw_sw->dev;
+    struct net_device *dev = bcmsw->dev;
     int val;
 
     /* Initialize PCI Host interface */
@@ -5951,21 +6142,21 @@ static int _switch_do_init(struct bcmsw_switch *bcmsw_sw)
 
 int bcmsw_switch_init(void)
 {
-    struct bcmsw_switch *bcmsw_sw;
+    bcmsw_switch_t *bcmsw;
     int err = 0;
     lport_tab_entry_t lport_entry;
     soc_info_t *si;
         
-    bcmsw_sw = kzalloc(sizeof(*bcmsw_sw), GFP_KERNEL);
-    if (!bcmsw_sw)
+    bcmsw = kzalloc(sizeof(*bcmsw), GFP_KERNEL);
+    if (!bcmsw)
 		return -ENOMEM;
 
-    err = bcmsw_switchdev_init(bcmsw_sw);
+    err = bcmsw_switchdev_init(bcmsw);
     if (err)
 	goto err_swdev_register;
   
     //get bcm0 netdev
-    bcmsw_sw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
+    bcmsw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
 
     /* Connect to the kernel bde */
     if ((linux_bde_create(NULL, &kernel_bde) < 0) || kernel_bde == NULL) {
@@ -5979,11 +6170,11 @@ int bcmsw_switch_init(void)
  
     // initializa soc_info according to hardware information,soc_info_config & soc_helix5_port_config_init
     bcmsw_soc_info_init(si);
-    bcmsw_sw->si = si;
+    bcmsw->si = si;
 
     //switch initialization 
     //BCM: init soc, schan is initialized 
-    _switch_do_init(bcmsw_sw);
+    _switch_do_init(bcmsw);
 
     //load m0 firmware
     //BCM: m0 load 0 0x0 linkscan_led_fw.bin
@@ -5997,18 +6188,18 @@ int bcmsw_switch_init(void)
 
     //misc_init
     //BCM: init misc, miim is initialized
-    _misc_init(bcmsw_sw);
+    _misc_init(bcmsw);
 
     //init mmu
-    _mmu_init(bcmsw_sw);
+    _mmu_init(bcmsw);
 
     //initialize modules
     //BCM: init bcm
-    bcmsw_modules_init(bcmsw_sw);
+    bcmsw_modules_init(bcmsw);
   
 
     //test schan
-    //err = _soc_mem_read(bcmsw_sw->dev, 0x501c0000, SCHAN_BLK_IPIPE, 14, &lport_entry); 
+    //err = _soc_mem_read(bcmsw->dev, 0x501c0000, SCHAN_BLK_IPIPE, 14, &lport_entry); 
 
 
     //test iproc reg read/write
