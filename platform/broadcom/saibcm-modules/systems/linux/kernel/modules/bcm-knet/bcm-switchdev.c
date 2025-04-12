@@ -792,7 +792,7 @@ _schan_reg64_write(struct net_device *dev, int dst_blk, uint32_t address, uint64
     //setup command header
     schan_msg.header.v4.opcode = WRITE_REGISTER_CMD_MSG; 
     schan_msg.header.v4.dst_blk = dst_blk;
-    schan_msg.header.v4.acc_type = 0;
+    schan_msg.header.v4.acc_type = acc_type;
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
@@ -3611,7 +3611,7 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
     //acc_type = 20
     _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
 
-    _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_1, 20);
+    _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, &enable_val_1, 20);
 
     update0 = 0;
     update1 = 0;
@@ -3664,9 +3664,11 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
     }
 
     if(update0 == 1) {
+	printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%lx\n", enable_val_0);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     }
     if(update1 == 1) {
+	printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%lx\n", enable_val_1);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
@@ -3731,7 +3733,7 @@ _helix5_mmu_mtro_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
 
     if (lcl_mmu_port < 64) {
         //acc_type = 20
-        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, &enable_val_0, 20);
+        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SED, reg1, &enable_val_0, 20);
 
         if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_0, lcl_mmu_port);
@@ -3739,10 +3741,10 @@ _helix5_mmu_mtro_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
         else {
             COMPILER_64_BITSET(enable_val_0, lcl_mmu_port);
         }
-        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SED, reg1, enable_val_0, 20);
     } else {
         //acc_type = 20
-        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, &enable_val_1, 20);
+        _schan_reg64_read(bcmsw->dev, SCHAN_BLK_MMU_SED, reg2, &enable_val_1, 20);
 
         if (set_val == 0) {
             COMPILER_64_BITCLR(enable_val_1, lcl_mmu_port - 64);
@@ -3750,7 +3752,7 @@ _helix5_mmu_mtro_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
         else {
             COMPILER_64_BITSET(enable_val_1, lcl_mmu_port - 64);
         }
-        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
+        _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SED, reg2, enable_val_1, 20);
     }
 
     return SOC_E_NONE;
@@ -5516,6 +5518,7 @@ static int
 _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 {
     vlan_tab_entry_t    ve;
+    vlan_attrs_1_entry_t vlan_attrs;
     int                 rv;
     int                 index;
     uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
@@ -5550,15 +5553,14 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
      * the default entry does not get removed even when no table 
      * entry is referencing to the default TPID entry.
      */  
-    _bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
-    _bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
+    //_bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
+    //_bcm_fb2_outer_tpid_entry_add(bcmsw, tpid, &tpid_index);
 
     //OUTER_TPID_INDEXf start 10, len 2
     val = tpid_index;
     _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 10, 2, &val, SOCF_LE);
 
 
-    vlan_attrs_1_entry_t vlan_attrs;
     memset(&vlan_attrs, 0, sizeof(vlan_attrs_1_entry_t));
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
@@ -5598,7 +5600,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     //bcm_td3_vlan_vfi_untag_init(unit, vd->vlan_tag,
     //                                     vd->ut_port_bitmap);
 
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 
 //_bcm_xgs3_vlan_table_init
@@ -5610,6 +5612,7 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
     int                 rv;
     uint32_t            val;
+    int                 index;
 
     // Clear VLAN_TABm
     for (index = 0; index <= 4095; index++) {
@@ -5647,22 +5650,22 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     _soc_mem_write(bcmsw->dev, VLAN_TABm+vd->vlan_tag, SCHAN_BLK_IPIPE, 12, &ve); 
 
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 
 //bcm_xgs3_vlan_init
 int
-_xgs3_vlan_init(bcmsw_switch_t *bcmsw, bcm_vlan_data_t *vd)
+_xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 {
     /* Must call on EGR_VLANm before VLAN_TABm */
 
     //EGR_VLANm
-    _vlan_table_init_egr_vlan(unit, vd); 
+    _vlan_table_init_egr_vlan(bcmsw, vd); 
 
     //VLAN_TABm
-    _vlan_table_init_vlan_tab(unit, vd);
+    _vlan_table_init_vlan_tab(bcmsw, vd);
 
-    return BCM_E_NONE;
+    return SOC_E_NONE;
 }
 
 
@@ -5737,6 +5740,7 @@ static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
     _esw_l2_init(bcmsw);
 
     //bcm_esw_vlan_init
+    bcm_esw_vlan_init(bcmsw);
 
     /* RX init is done in phases during early attach */
     //bcm_esw_rx_init

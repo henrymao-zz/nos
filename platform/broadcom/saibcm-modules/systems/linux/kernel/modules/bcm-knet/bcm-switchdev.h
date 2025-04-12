@@ -689,6 +689,7 @@ typedef union schan_msg_u {
 #define SCHAN_BLK_EPIPE     2
 #define SCHAN_BLK_MMU_XPE   3
 #define SCHAN_BLK_MMU_SC    4
+#define SCHAN_BLK_MMU_SED   6
 #define SCHAN_BLK_TOP       7
 
 #define SCHAN_BLK_PMQPORT0  18   
@@ -2240,10 +2241,10 @@ typedef uint8 _mac_t[6];
     (((_mac_)[0] | (_mac_)[1] | (_mac_)[2] | \
       (_mac_)[3] | (_mac_)[4] | (_mac_)[5]) == 0) 
 
-#define BCM_VLAN_NONE           ((bcm_vlan_t)0x0000) 
-#define BCM_VLAN_ALL            ((bcm_vlan_t)0xffff) 
-#define BCM_VLAN_DEFAULT        ((bcm_vlan_t)0x0001) 
-#define BCM_VLAN_INVALID        ((bcm_vlan_t)0x1000) 
+#define BCM_VLAN_NONE           (0x0000) 
+#define BCM_VLAN_ALL            (0xffff) 
+#define BCM_VLAN_DEFAULT        (0x0001) 
+#define BCM_VLAN_INVALID        (0x1000) 
 
 #define BCM_VLAN_VALID(id)      \
     ((id) >= BCM_VLAN_DEFAULT && \
@@ -2595,6 +2596,12 @@ soc_field_info_t soc_VLAN_ATTRS_1_BCM56370_A0m_fields[] = {
 #define VLAN_ATTRS_1m                   0x580c0000
 #define VLAN_ATTRS_1m_BYTES             9
 
+typedef struct {
+    uint32_t entry_data[11];
+}vlan_attrs_1_entry_t;
+ 
+
+
 
 /*
 soc_field_info_t soc_VLAN_TAB_BCM56370_A0m_fields[] = {
@@ -2647,6 +2654,10 @@ soc_field_info_t soc_VLAN_TAB_BCM56370_A0m_fields[] = {
 #define VLAN_TABm                       0x643c0000
 #define VLAN_TABm_BYTES                 47
 
+typedef struct {
+    uint32_t entry_data[14];
+}vlan_tab_entry_t;
+ 
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -3328,6 +3339,16 @@ typedef struct soc_cancun_udf_stage_info_s {
 /*                              switchdev                                                */
 /*****************************************************************************************/
 
+typedef struct _bcmsw_switch_s {
+    struct net_device *dev; //bcm0
+    soc_info_t *si;
+    struct bcmsw_switchdev *swdev;
+
+    //soc cancun info
+    soc_cancun_t *soc_cancun_info;
+} bcmsw_switch_t;
+
+
 struct bcmsw_switchdev_event_work {
 	struct work_struct work;
 	netdevice_tracker dev_tracker;
@@ -3340,23 +3361,12 @@ struct bcmsw_switchdev_event_work {
 };
 
 struct bcmsw_switchdev {
-	struct bcmsw_switch *sw;
+	bcmsw_switch_t *sw;
 	struct list_head bridge_list;
 	bool bridge_8021q_exists;
 	struct notifier_block swdev_nb_blk;
 	struct notifier_block swdev_nb;
 };
-
-
-typedef struct _bcmsw_switch_s {
-    struct net_device *dev; //bcm0
-    soc_info_t *si;
-    struct bcmsw_switchdev *swdev;
-
-    //soc cancun info
-    soc_cancun_t *soc_cancun_info;
-} bcmsw_switch_t;
-
 
 /* Add an entry to field-value array for multiple fields write */
 #define bcmsw_mem_set_field_value_array(_fa, _f, _va, _v, _p) \
