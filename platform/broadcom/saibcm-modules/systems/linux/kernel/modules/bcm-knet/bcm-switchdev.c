@@ -33,6 +33,8 @@ static ibde_t *kernel_bde = NULL;
 
 char *_shr_errmsg[] = _SHR_ERRMSG_INIT;
 
+static const uint32_t empty_entry[SOC_MAX_MEM_WORDS] = {0};
+
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
 /*****************************************************************************************/
@@ -2197,7 +2199,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
     _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
 
-    lport_entry.reg.PORT_VIDf = BCMSW_VLAN_DEFAULT;
+    lport_entry.reg.PORT_VIDf = vid;
     lport_entry.reg.MAC_BASED_VID_ENABLEf = 1;
     lport_entry.reg.SUBNET_BASED_VID_ENABLEf = 1;
     lport_entry.reg.PRI_MAPPINGf = 0xfac688;
@@ -4602,10 +4604,11 @@ _port_init(bcmsw_switch_t *bcmsw)
      */
     //TODO
 
-
     // STEP 2 
-    // clear egress port blocking table
-    //TODO
+    // clear egress port blocking table MAC_BLOCKm
+    for (index = 0; index <= 31; index++) {
+        _soc_mem_write(bcmsw->dev, MAC_BLOCKm+index, SCHAN_BLK_IPIPE, 3, empty_entry); 
+    }    
 
     // STEP 3 - Probe for Ports -> bcm_esw_port_probe
     /* Probe the PHY and set up the PHY and MAC for the specified ports.
@@ -5521,7 +5524,6 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     vlan_attrs_1_entry_t vlan_attrs;
     int                 rv;
     int                 index;
-    uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
     uint32_t            val;
     uint16_t            tpid;
     int                 tpid_index;    
@@ -5559,7 +5561,6 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     //OUTER_TPID_INDEXf start 10, len 2
     val = tpid_index;
     _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 10, 2, &val, SOCF_LE);
-
 
     memset(&vlan_attrs, 0, sizeof(vlan_attrs_1_entry_t));
 

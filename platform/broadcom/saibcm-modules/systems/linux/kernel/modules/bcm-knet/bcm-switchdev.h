@@ -1995,6 +1995,13 @@ typedef union command_config_s {
 #define  CLPORT_MODE_REG                0x2020a00
 #define  CLPORT_ENABLE_REG              0x2020b00
 
+
+//Register: FLUSH_CONTROL.ge0 port register address 0x0001cd00
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Flush enable control register
+//Displaying: reset defaults, reset value 0 mask 0
+#define FLUSH_CONTROLr                  0x0001cd00
+
 /*****************************************************************************************/
 /*                              FLEXPORT related                                         */
 /*****************************************************************************************/
@@ -2523,6 +2530,19 @@ soc_field_info_t soc_L2_USER_ENTRY_BCM56370_A0m_fields[] = {
 //Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
 //Entries: 512 with indices 0-511 (0x0-0x1ff), each 27 bytes 7 words
 #define L2_USER_ENTRYm                  0x68400000
+
+
+/*****************************************************************************************/
+/*                            Egress Blocking Table                                      */
+/*****************************************************************************************/
+
+//Memory: MAC_BLOCK.ipipe0 aka PORT_MAC_BLOCK alias MAC_BLOCK address 0x805c0000
+//Flags: valid cachable(on)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 32 with indices 0-31 (0x0-0x1f), each 11 bytes 3 words
+
+
+#define MAC_BLOCKm                      0x805c0000
 
 
 /*****************************************************************************************/
