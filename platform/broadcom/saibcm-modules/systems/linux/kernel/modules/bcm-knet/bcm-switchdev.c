@@ -15,7 +15,8 @@
 #include <linux/netlink.h>
 #include <net/switchdev.h>
 #include <net/vxlan.h>
-
+#include <linux/proc_fs.h>
+#include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
 #include "bcm-switchdev.h"
@@ -4588,6 +4589,7 @@ _port_init(bcmsw_switch_t *bcmsw)
 {
     int num_port = HX5_NUM_PORT, port, vid; 
     soc_info_t *si = bcmsw->si;
+    int index;
 
     vid = BCMSW_VLAN_DEFAULT;
     for (port = 0; port < num_port; port++) {
@@ -5720,6 +5722,77 @@ _xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
      return rv;
  }
 
+/*****************************************************************************************/
+/*                             /proc                                                     */
+/*****************************************************************************************/
+static struct proc_dir_entry *base;
+static struct proc_dir_entry *sinfo;
+
+
+// /proc/switchdev/sinfo
+
+static int
+_sinfo_show(struct seq_file *m, void *v)
+{
+    int index;
+    seq_printf(m, "SOC INFO for BCM56371:\n");
+
+    seq_printf(m, "port  l2p  p2l  l2i  p2m  m2p  pipe serdes \n");
+    for (index =0; index< 72; index++) {
+        seq_printf(m, " %i %i %i %i %i %i %i %i\n",
+                index,
+                si->port_l2p_mapping[index],
+                si->port_p2l_mapping[index],
+                si->port_l2i_mapping[index],
+                si->port_p2m_mapping[index],
+                si->port_m2p_mapping[index],
+                si->port_pipe[index],
+                si->port_serdes[index]);
+    }
+    return 0;
+}
+
+static ssize_t _sinfo_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+	printk("_sinfo_write handler\n");
+	return -1;
+}
+
+static ssize_t _sinfo_open(struct file *file, char __user *ubuf,size_t count, loff_t *ppos) 
+{
+	return single_open(file, _sinfo_show, NULL);
+}
+
+
+static struct file_operations sinfo_ops = 
+{
+    owner:      THIS_MODULE,
+    open:       _sinfo_open,
+    read:       seq_read,
+    llseek:     seq_lseek,
+    write:      _sinfo_write,
+    release:    single_release,
+};
+
+
+
+
+static int _procfs_init(bcmsw_switch_t *bcmsw)
+{
+    base = proc_mkdir(SWITCHDEV_BASE_DIR_NAME, NULL);
+
+    if(base == NULL){
+        printk("switchdev proc create %s failed\n", SWITCHDEV_BASE_DIR_NAME);
+        return -EINVAL;
+    }
+
+    sinfo = proc_create("sinfo", 0777, base, &sinfo_ops);
+    if (led_ctl == NULL) {
+        printk("proc_create failed!\n");
+        proc_remove(base);
+        return -EINVAL;
+    }
+}
 
 /*****************************************************************************************/
 /*                            switch                                                     */
@@ -6209,6 +6282,8 @@ int bcmsw_switch_init(void)
 
     //test iproc reg read/write
 
+    //procfs init
+    _procfs_init(bcmsw);
 
 err_swdev_register:
     return err;    

@@ -13,6 +13,27 @@
 #include <net/switchdev.h>
 #include <net/vxlan.h>
 
+/*****************************************************************************************/
+/*                             /proc                                                     */
+/*****************************************************************************************/
+/*
+/proc/switchdev/
+/proc/switchdev/sinfo                    
+
+/proc/switchdev/reg/COMMAND_CONFIGr
+
+/proc/switchdev/mem/EGR_VLAN
+/proc/switchdev/mem/VLAN_TAB
+/proc/switchdev/mem/VLAN_ATTRS_1
+/proc/switchdev/mem/VLAN_ATTRS_1
+/proc/switchdev/mem/L2_USER_ENTRY
+/proc/switchdev/mem/LPORT_TAB
+
+/proc/switchdev/stats/
+
+*/
+#define SWITCHDEV_BASE_DIR_NAME     "switchdev"
+
 
 /*****************************************************************************************/
 /*                              SOC                                                      */
