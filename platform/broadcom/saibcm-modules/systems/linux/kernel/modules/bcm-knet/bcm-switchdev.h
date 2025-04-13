@@ -2640,6 +2640,26 @@ typedef struct {
 }vlan_attrs_1_entry_t;
  
 
+/*
+soc_field_info_t soc_EGR_VLAN_VFI_UNTAG_BCM56370_A0m_fields[] = {
+    { ECC0f, 8, 136, SOCF_LE | SOCF_GLOBAL },
+    { ECCP0f, 9, 136, SOCF_LE | SOCF_GLOBAL },
+    { PARITY0f, 1, 144, 0 | SOCF_GLOBAL },
+    { UT_BITMAPf, 72, 0, SOCF_LE | SOCF_GLOBAL },
+    { UT_PORT_BITMAPf, 72, 0, SOCF_LE | SOCF_GLOBAL },
+    { UT_VP_GRP_BITMAPf, 64, 72, SOCF_LE | SOCF_GLOBAL }
+};  
+ */
+//Memory: EGR_VLAN_VFI_UNTAG.epipe0 address 0x09100000
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 19 bytes 5 words
+#define EGR_VLAN_VFI_UNTAGm            0x09100000
+#define EGR_VLAN_VFI_UNTAGm_BYTES      19
+
+typedef struct {
+    uint32_t entry_data[5];
+}egr_vlan_vfi_untag_entry_t;
+
 
 
 /*
@@ -3373,6 +3393,11 @@ typedef struct soc_cancun_udf_stage_info_s {
     uint32 *hfe_profile_ptr;
 } soc_cancun_udf_stage_info_t;
 
+/*****************************************************************************************/
+/*                              profile mem                                              */
+/*****************************************************************************************/
+
+
 
 /*****************************************************************************************/
 /*                              switchdev                                                */
@@ -3385,6 +3410,9 @@ typedef struct _bcmsw_switch_s {
 
     //soc cancun info
     soc_cancun_t *soc_cancun_info;
+
+    //ING/EGR_VLAN_VFI_MEMBERSHIP
+    soc_profile_mem_t *egr_vlan_vfi_untag_profile;
 } bcmsw_switch_t;
 
 

@@ -5520,6 +5520,41 @@ _esw_l2_init(bcmsw_switch_t *bcmsw)
 /*****************************************************************************************/
 /*                             switch  VLAN                                              */
 /*****************************************************************************************/
+ 
+//bcm_td3_vlan_vfi_untag_init
+int
+_td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
+{
+    egr_vlan_vfi_untag_entry_t egr_vlan_vfi;
+    vlan_tab_entry_t egr_vtab;
+    uint32 profile_ptr = 0;
+
+    _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, &egr_vtab); 
+
+    //UNTAG_PROFILE_PTRf start 22 len 12
+    _mem_field_get((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
+
+    printk("_td3_vlan_vfi_untag_init vid %d profile_ptr before init %d\n", vid, profile_ptr);
+
+    // 1 to 1 mapping of vid and profile 
+    profile_ptr = vid;
+
+    //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
+    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
+
+    //UT_PORT_BITMAPf start 0 len 72                
+    _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, pbmp, SOCF_LE);                           
+
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
+
+    //UNTAG_PROFILE_PTRf start 22 len 12
+    _mem_field_set((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
+
+    _soc_mem_write(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, &egr_vtab); 
+
+    return SOC_E_NONE;
+}
+
 // _bcm_xgs3_vlan_table_init
 static int
 _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
@@ -5598,6 +5633,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     _soc_mem_write(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
 
 
+
     _soc_mem_write(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve); 
 
     //readback 
@@ -5615,9 +5651,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     //		    ve.entry_data[2]);
  
 
-    //TODO
-    //bcm_td3_vlan_vfi_untag_init(unit, vd->vlan_tag,
-    //                                     vd->ut_port_bitmap);
+    _td3_vlan_vfi_untag_init(bcmsw, vd->vlan_tag, vd->ut_port_bitmap);
 
     return SOC_E_NONE;
 }
@@ -5946,6 +5980,160 @@ static struct proc_ops egr_vlan_ops =
     proc_release:    single_release,
 };
 
+// /proc/switchdev/mem/VLAN_ATTRS_1
+static int
+_vlan_attrs_1_show(struct seq_file *m, void *v)
+{
+    int                 index;
+    uint32_t            val;
+    vlan_attrs_1_entry_t vlan_attrs;
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "VLAN_ATTRS_1 base 0x%x (%d bytes):\n", VLAN_ATTRS_1m, VLAN_ATTRS_1m_BYTES);
+
+    
+    for (index = 0; index < 4095; index ++) {
+        //VLAN_ATTRS_1 entry is 9 bytes, 3 word
+        _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+index, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+
+        //VALIDf start 58, len 1
+        _mem_field_get((uint32_t *)&ve, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
+
+        if (val & 0x1) {
+            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x\n", index, 
+                       vlan_attrs.entry_data[0], vlan_attrs.entry_data[1], vlan_attrs.entry_data[2]);
+            // dump field 
+            // { MPLS_ENABLEf, 1, 0, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 0, 1, &val, 0);
+            seq_printf(m, "                   MPLS_ENABLE %d\n", val);
+
+            // { MIM_TERM_ENABLEf, 1, 1, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 1, 1, &val, 0);
+            seq_printf(m, "               MIM_TERM_ENABLE %d\n", val);         
+            
+            // { STGf, 9, 2, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 2, 9, &val, 0);
+            seq_printf(m, "                           STG %d\n", val);                
+
+            // { MEMBERSHIP_PROFILE_PTRf, 12, 11, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 11, 12, &val, SOCF_LE);
+            seq_printf(m, "        MEMBERSHIP_PROFILE_PTR %d\n", val);     
+
+            // { EN_IFILTERf, 1, 23, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 23, 1, &val, 0);
+            seq_printf(m, "                    EN_IFILTER %d\n", val);            
+
+            //  { FID_IDf, 12, 24, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 24, 12, &val, SOCF_LE);
+            seq_printf(m, "                        FID_ID %d\n", val);                 
+
+            // { VLAN_CTRL_IDf, 4, 36, SOCF_LE | SOCF_GLOBAL }
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 36, 4, &val, SOCF_LE);
+            seq_printf(m, "                  VLAN_CTRL_ID %d\n", val);         
+
+            // { ACTIVE_L3_IIF_PROFILE_INDEXf, 10, 48, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 48, 10, &val, SOCF_LE);
+            seq_printf(m, "   ACTIVE_L3_IIF_PROFILE_INDEX %d\n", val);   
+            
+            // { PARITYf, 1, 66, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 66, 1, &val, 0);
+            seq_printf(m, "                        PARITY %d\n", val);   
+            
+        }
+    }    
+    return 0;
+}
+
+static ssize_t _vlan_attrs_1_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_vlan_attrs_1_write handler\n");
+    return -1;
+}
+
+static int _vlan_attrs_1_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _vlan_attrs_1_show, NULL);
+}
+static struct proc_ops vlan_attrs_1_ops = 
+{
+    proc_open:       _vlan_attrs_1_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_write:      _vlan_attrs_1_write,
+    proc_release:    single_release,
+};
+
+// /proc/switchdev/mem/VLAN_TAB
+static int
+_vlan_tab_show(struct seq_file *m, void *v)
+{
+    int                 index;
+    uint32_t            val;
+    vlan_tab_entry_t    vt;
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "VLAN_TAB base 0x%x (%d bytes):\n", VLAN_TABm, VLAN_TABm_BYTES);
+
+    
+    for (index = 0; index < 4095; index ++) {
+        //VLAN_ATTRS_1 entry is 9 bytes, 3 word
+        _soc_mem_read(bcmsw->dev, VLAN_TABm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+
+
+        //VALIDf start 150, len 1
+        _mem_field_get((uint32_t *)&vt, VLAN_TABm_BYTES, 150, 1, &val, 0);
+
+        if (val & 0x1) {
+            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
+                       vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], 
+                       vt.entry_data[4], vt.entry_data[5], vt.entry_data[6], vt.entry_data[7],
+                       vt.entry_data[8], vt.entry_data[9], vt.entry_data[10], vt.entry_data[11]);
+            // dump field 
+            //STGf start 141 len 9
+            _mem_field_get((uint32_t *)&vt, VLAN_ATTRS_1m_BYTES, 141, 9, &val, SOCF_LE);
+            seq_printf(m, "                           STG %d\n", val);
+
+            //EN_IFILTERf start 296, len 1
+            _mem_field_get((uint32_t *)&vt, VLAN_ATTRS_1m_BYTES, 296, 1, &val, 0);
+            seq_printf(m, "                    EN_IFILTER %d\n", val);
+
+            //L3_IIFf start 318, len 13
+            _mem_field_get((uint32_t *)&vt, VLAN_ATTRS_1m_BYTES, 318, 13, &val, 0);
+            seq_printf(m, "                        L3_IIF %d\n", val);
+            
+        }
+    }    
+    return 0;
+}
+
+static ssize_t _vlan_tab_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_vlan_tab_write handler\n");
+    return -1;
+}
+
+static int _vlan_tab_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _vlan_tab_1_show, NULL);
+}
+static struct proc_ops vlan_tab_ops = 
+{
+    proc_open:       _vlan_tab_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_write:      _vlan_tab_write,
+    proc_release:    single_release,
+};
+
+/*****************************************************************************************/
 
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
@@ -5979,6 +6167,18 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
     mem_reg_base = proc_mkdir("switchdev/mem", NULL);
 
     entry = proc_create("EGR_VLAN", 0666, mem_reg_base, &egr_vlan_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    entry = proc_create("VLAN_ATTRS_1", 0666, mem_reg_base, &vlan_attrs_1_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    entry = proc_create("VLAN_TAB", 0666, mem_reg_base, &vlan_tab_ops);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;
