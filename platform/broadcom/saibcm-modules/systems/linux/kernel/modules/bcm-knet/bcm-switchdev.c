@@ -3107,6 +3107,14 @@ _helix5_get_qmode(bcmsw_switch_t *bcmsw, int phy_port)
     return qmode;
 }
 
+static const uint32_t gxblk[6] = {
+    SCHAN_BLK_GXPORT0,
+    SCHAN_BLK_GXPORT1,
+    SCHAN_BLK_GXPORT2,
+    SCHAN_BLK_GXPORT3,
+    SCHAN_BLK_GXPORT4,
+    SCHAN_BLK_GXPORT5,
+};
 //soc_helix5_flex_mac_port_up
 int
 _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
@@ -3133,15 +3141,6 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
     //    4, 3, 3, 3, 2, 2, 1, 1, 0
     //};
     struct net_device *dev;
-        
-    uint32_t gxblk[6] = {
-        SCHAN_BLK_GXPORT0,
-        SCHAN_BLK_GXPORT1,
-        SCHAN_BLK_GXPORT2,
-        SCHAN_BLK_GXPORT3,
-        SCHAN_BLK_GXPORT4,
-        SCHAN_BLK_GXPORT5,
-    };
 
     //strict_preamble = 0;
 
@@ -3430,7 +3429,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             _reg32_write(dev, blk_no, COMMAND_CONFIGr+index, ctrl.word);
 
             _reg32_read(dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
-            printk("soc_helix5_flex_mac_port_up port %d command_config 0x%x\n", phy_port, ctrl.word);
+            //printk("soc_helix5_flex_mac_port_up port %d command_config 0x%x\n", phy_port, ctrl.word);
 	 } else {
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, XLMAC_MODEr,
@@ -5728,8 +5727,8 @@ _xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 /*****************************************************************************************/
 /*                             /proc                                                     */
 /*****************************************************************************************/
-static struct proc_dir_entry *switchdev_base;
-static struct proc_dir_entry *sinfo_ctl;
+static struct proc_dir_entry *proc_switchdev_base = NULL;
+static struct proc_dir_entry *proc_reg_base = NULL;
 
 
 // /proc/switchdev/sinfo
@@ -5790,24 +5789,85 @@ static struct proc_ops sinfo_ops =
     proc_release:    single_release,
 };
 
+// /proc/switchdev/reg/COMMAND_CONFIGr
+static int
+_command_config_show(struct seq_file *m, void *v)
+{
+    int index;
+    int index;
+    uint32_t val;
 
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "COMMAND_CONFIG base 0x%x:\n", COMMAND_CONFIGr);
+
+    for (index =0; index < 6; index ++) {
+        _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
+        seq_printf(m, "%d  0x%08x\n", index, val);
+    }   
+
+    return 0;
+}
+
+static ssize_t _command_config_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_command_config_write handler\n");
+    return -1;
+}
+
+static int _comman_config_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _command_config_show, NULL);
+}
+
+
+static struct proc_ops command_config_ops = 
+{
+    proc_open:       _comman_config_open,
+    proc_read:       seq_read,
+    proc_lseek:     seq_lseek,
+    proc_write:      _command_config_write,
+    proc_release:    single_release,
+};
 
 
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
-    switchdev_base = proc_mkdir(SWITCHDEV_BASE_DIR_NAME, NULL);
+    struct proc_dir_entry *entry;
 
-    if(switchdev_base == NULL){
-        printk("switchdev proc create %s failed\n", SWITCHDEV_BASE_DIR_NAME);
+    proc_switchdev_base = proc_mkdir("switchdev", NULL);
+
+    if(proc_switchdev_base == NULL){
+        printk("switchdev proc create switchdev failed\n");
         return -EINVAL;
     }
 
-    sinfo_ctl = proc_create("sinfo", 0666, switchdev_base, &sinfo_ops);
-    if (sinfo_ctl == NULL) {
+    entry = proc_create("sinfo", 0666, proc_switchdev_base, &sinfo_ops);
+    if (entry == NULL) {
         printk("proc_create failed!\n");
-        proc_remove(switchdev_base);
-        return -EINVAL;
+        goto create_fail;
     }
+
+    reg_base = proc_mkdir("switchdev/reg", NULL);
+
+    entry = proc_create("COMMAND_CONFIG", 0666, reg_base, &command_config_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+create_fail:
+    proc_remove(proc_switchdev_base);
+    return -EINVAL;
+}
+
+static int _procfs_uninit(bcmsw_switch_t *bcmsw)
+{
+    remove_proc_entry("sinfo", proc_switchdev_base);
+    remove_proc_entry("switchdev", NULL);
 }
 
 /*****************************************************************************************/
@@ -6307,3 +6367,9 @@ err_swdev_register:
     return err;    
 }
 
+int bcmsw_switch_uninit(void)
+{
+    bcmsw_switch_t *bcmsw = _bcmsw;
+
+     _procfs_uninit(bcmsw);
+}

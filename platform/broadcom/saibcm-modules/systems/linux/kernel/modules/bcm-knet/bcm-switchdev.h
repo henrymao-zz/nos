@@ -20,7 +20,7 @@
 /proc/switchdev/
 /proc/switchdev/sinfo                    
 
-/proc/switchdev/reg/COMMAND_CONFIGr
+/proc/switchdev/reg/COMMAND_CONFIG
 
 /proc/switchdev/mem/EGR_VLAN
 /proc/switchdev/mem/VLAN_TAB
@@ -32,8 +32,6 @@
 /proc/switchdev/stats/
 
 */
-#define SWITCHDEV_BASE_DIR_NAME     "switchdev"
-
 
 /*****************************************************************************************/
 /*                              SOC                                                      */

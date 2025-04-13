@@ -9547,6 +9547,9 @@ _cleanup(void)
     /* Inidicate that we are shutting down */
     module_initialized = 0;
 
+    //TODO switchdev cleanup
+    bcmsw_switch_uninit();
+
     bkn_proc_cleanup();
     remove_proc_entry("bcm/knet", NULL);
     remove_proc_entry("bcm", NULL);
@@ -9722,6 +9725,7 @@ bkn_knet_dev_init(int d)
 }
 
 extern int bcmsw_switch_init(void);
+extern int bcmsw_switch_uninit(void);
 
 static int
 _init(void)
