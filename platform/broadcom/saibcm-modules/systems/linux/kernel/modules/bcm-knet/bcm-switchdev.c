@@ -3669,11 +3669,11 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
     }
 
     if(update0 == 1) {
-	printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%lx\n", enable_val_0);
+	printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%llx\n", enable_val_0);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     }
     if(update1 == 1) {
-	printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%lx\n", enable_val_1);
+	printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%llx\n", enable_val_1);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
@@ -5543,7 +5543,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
     _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
-    _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, pbmp, SOCF_LE);                           
+    _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
 
     _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
 
@@ -5561,7 +5561,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 {
     vlan_tab_entry_t    ve;
     vlan_attrs_1_entry_t vlan_attrs;
-    int                 rv;
+    //int                 rv;
     int                 index;
     uint32_t            val;
     uint16_t            tpid;
@@ -5998,10 +5998,10 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
     
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
-        _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+index, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+        _soc_mem_read(_bcmsw->dev, VLAN_ATTRS_1m+index, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
 
         //VALIDf start 58, len 1
-        _mem_field_get((uint32_t *)&ve, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
+        _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
 
         if (val & 0x1) {
             seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x\n", index, 
@@ -6016,7 +6016,7 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
             seq_printf(m, "               MIM_TERM_ENABLE %d\n", val);         
             
             // { STGf, 9, 2, SOCF_LE | SOCF_GLOBAL },
-            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 2, 9, &val, 0);
+            _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 2, 9, &val, SOCF_LE);
             seq_printf(m, "                           STG %d\n", val);                
 
             // { MEMBERSHIP_PROFILE_PTRf, 12, 11, SOCF_LE | SOCF_GLOBAL },
@@ -6085,7 +6085,7 @@ _vlan_tab_show(struct seq_file *m, void *v)
     
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
-        _soc_mem_read(bcmsw->dev, VLAN_TABm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+        _soc_mem_read(_bcmsw->dev, VLAN_TABm+index, SCHAN_BLK_IPIPE, 12, &vt); 
 
 
         //VALIDf start 150, len 1
@@ -6122,7 +6122,7 @@ static ssize_t _vlan_tab_write(struct file *file, const char __user *ubuf,size_t
 
 static int _vlan_tab_open(struct inode * inode, struct file * file)
 {
-    return single_open(file, _vlan_tab_1_show, NULL);
+    return single_open(file, _vlan_tab_show, NULL);
 }
 static struct proc_ops vlan_tab_ops = 
 {
@@ -6214,6 +6214,7 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("stats", proc_switchdev_base);
 
     remove_proc_entry("switchdev", NULL);
+    return 0;
 }
 
 /*****************************************************************************************/

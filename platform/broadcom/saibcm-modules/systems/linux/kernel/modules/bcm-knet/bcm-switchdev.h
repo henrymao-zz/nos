@@ -3412,7 +3412,7 @@ typedef struct _bcmsw_switch_s {
     soc_cancun_t *soc_cancun_info;
 
     //ING/EGR_VLAN_VFI_MEMBERSHIP
-    soc_profile_mem_t *egr_vlan_vfi_untag_profile;
+    //soc_profile_mem_t *egr_vlan_vfi_untag_profile;
 } bcmsw_switch_t;
 
 
