@@ -539,6 +539,9 @@ static volatile int module_initialized;
 
 static ibde_t *kernel_bde = NULL;
 
+extern int bcmsw_switch_init(void);
+extern int bcmsw_switch_uninit(void);
+
 /* Descriptor info */
 typedef struct bkn_desc_info_s {
     uint32_t *dcb_mem;
@@ -9723,9 +9726,6 @@ bkn_knet_dev_init(int d)
     }
     return 0;
 }
-
-extern int bcmsw_switch_init(void);
-extern int bcmsw_switch_uninit(void);
 
 static int
 _init(void)

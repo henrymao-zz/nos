@@ -5752,10 +5752,10 @@ _sinfo_show(struct seq_file *m, void *v)
     }
 
     seq_printf(m, "SOC INFO for BCM56371:\n");
-    seq_printf(m, "port  l2p  p2l  l2i  p2m  m2p  pipe serdes \n");
+    seq_printf(m, "port   l2p    p2l    l2i   p2m   m2p   pipe   serdes \n");
 
     for (index =0; index< HX5_NUM_PORT; index++) {
-        seq_printf(m, " %i %i %i %i %i %i %i %i\n",
+        seq_printf(m, " %6i %6i %6i %6i %6i %6i %6i %6i\n",
                 index,
                 si->port_l2p_mapping[index],
                 si->port_p2l_mapping[index],
@@ -5793,7 +5793,6 @@ static struct proc_ops sinfo_ops =
 static int
 _command_config_show(struct seq_file *m, void *v)
 {
-    int index;
     int index;
     uint32_t val;
 
@@ -5851,13 +5850,15 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
-    reg_base = proc_mkdir("switchdev/reg", NULL);
+    proc_reg_base = proc_mkdir("switchdev/reg", NULL);
 
-    entry = proc_create("COMMAND_CONFIG", 0666, reg_base, &command_config_ops);
+    entry = proc_create("COMMAND_CONFIG", 0666, proc_reg_base, &command_config_ops);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;
     }
+
+    return 0;
 
 create_fail:
     proc_remove(proc_switchdev_base);
@@ -5867,6 +5868,8 @@ create_fail:
 static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
     remove_proc_entry("sinfo", proc_switchdev_base);
+    remove_proc_entry("COMMAND_CONFIG", proc_reg_base);
+    remove_proc_entry("reg", proc_switchdev_base);
     remove_proc_entry("switchdev", NULL);
 }
 
