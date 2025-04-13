@@ -6133,6 +6133,103 @@ static struct proc_ops vlan_tab_ops =
     proc_release:    single_release,
 };
 
+
+// /proc/switchdev/mem/EGR_VLAN_VFI_UNTAG
+static int
+_egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
+{
+    int                 index;
+    uint32_t            val;
+    egr_vlan_vfi_untag_entry_t    vt;
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "EGR_VLAN_VFI_UNTAG base 0x%x (%d bytes):\n", EGR_VLAN_VFI_UNTAGm, EGR_VLAN_VFI_UNTAGm_BYTES);
+
+    
+    for (index = 0; index < 4095; index ++) {
+        //VLAN_ATTRS_1 entry is 19 bytes, 5 word
+        _soc_mem_read(_bcmsw->dev, EGR_VLAN_VFI_UNTAGm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+
+        seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
+                   vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], vt.entry_data[4];
+    }    
+    return 0;
+}
+
+static ssize_t _egr_vlan_vfi_untag_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_egr_vlan_vfi_untag_write handler\n");
+    return -1;
+}
+
+static int _egr_vlan_vfi_untag_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _egr_vlan_vfi_untag_show, NULL);
+}
+static struct proc_ops egr_vlan_vfi_untag_ops = 
+{
+    proc_open:       _egr_vlan_vfi_untag_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_write:      _egr_vlan_vfi_untag_write,
+    proc_release:    single_release,
+};
+
+
+// /proc/switchdev/mem/L2_USER_ENTRY
+static int
+_l2_user_entry_show(struct seq_file *m, void *v)
+{
+    int                 index;
+    uint32_t            val;
+    l2u_entry_t         vt;
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "L2_USER_ENTRY base 0x%x (%d bytes):\n", L2_USER_ENTRYm, L2_USER_ENTRYm_BYTES);
+
+    
+    for (index = 0; index < 512; index ++) {
+        //L2_USER_ENTRY entry is 27 bytes, 7 word
+        _soc_mem_read(_bcmsw->dev, L2_USER_ENTRYm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+        //VALIDf start 0, len 1
+        _mem_field_get((uint32_t *)&vt, L2_USER_ENTRYm_BYTES, 0, 1, &val, 0);        
+
+        if(val & 0x1) {
+            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
+                   vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3],
+                   vt.entry_data[4], vt.entry_data[5], vt.entry_data[6]);
+        }
+    }    
+    return 0;
+}
+
+static ssize_t _l2_user_entry_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_l2_user_entry_write handler\n");
+    return -1;
+}
+
+static int _l2_user_entry_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _l2_user_entry_show, NULL);
+}
+static struct proc_ops egr_vlan_vfi_untag_ops = 
+{
+    proc_open:       _l2_user_entry_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_write:      _l2_user_entry_write,
+    proc_release:    single_release,
+};
+
 /*****************************************************************************************/
 
 static int _procfs_init(bcmsw_switch_t *bcmsw)
@@ -6183,7 +6280,19 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }
+
+    entry = proc_create("EGR_VLAN_VFI_UNTAG", 0666, mem_reg_base, &egr_vlan_vfi_untag_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
     
+    entry = proc_create("L2_USER_ENTRY", 0666, mem_reg_base, &l2_user_entry_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+
     // /proc/switchdev/stats
     stats_reg_base = proc_mkdir("switchdev/stats", NULL);
 

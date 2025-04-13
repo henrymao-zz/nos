@@ -2357,10 +2357,7 @@ const _mac_t _mac_all_zeroes =
 const _mac_t _mac_all_ones =
 	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-typedef struct {
-    uint32_t entry_data[35];
-}l2u_entry_t;
-    
+
 //typedef int bcm_module_t;
 //typedef int bcm_trunk_t;
 //typedef uint16 bcm_vlan_t;
@@ -2549,7 +2546,12 @@ soc_field_info_t soc_L2_USER_ENTRY_BCM56370_A0m_fields[] = {
 //Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
 //Entries: 512 with indices 0-511 (0x0-0x1ff), each 27 bytes 7 words
 #define L2_USER_ENTRYm                  0x68400000
+#define L2_USER_ENTRYm_BYTES            27
 
+typedef struct {
+    uint32_t entry_data[35];
+}l2u_entry_t;
+    
 
 /*****************************************************************************************/
 /*                            Egress Blocking Table                                      */
