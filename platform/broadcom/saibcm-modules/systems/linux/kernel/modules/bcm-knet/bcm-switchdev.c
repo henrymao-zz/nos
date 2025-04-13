@@ -22,6 +22,7 @@
 #include "bcm-switchdev.h"
 
 static ibde_t *kernel_bde = NULL;
+static bcmsw_switch_t *_bcmsw = NULL; 
 
 /*****************************************************************************************/
 /*                              SOC                                                      */
@@ -35,6 +36,8 @@ static ibde_t *kernel_bde = NULL;
 char *_shr_errmsg[] = _SHR_ERRMSG_INIT;
 
 static const uint32_t empty_entry[SOC_MAX_MEM_WORDS] = {0};
+
+
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -5725,8 +5728,8 @@ _xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 /*****************************************************************************************/
 /*                             /proc                                                     */
 /*****************************************************************************************/
-static struct proc_dir_entry *base;
-static struct proc_dir_entry *sinfo;
+static struct proc_dir_entry *switchdev_base;
+static struct proc_dir_entry *sinfo_ctl;
 
 
 // /proc/switchdev/sinfo
@@ -5735,10 +5738,24 @@ static int
 _sinfo_show(struct seq_file *m, void *v)
 {
     int index;
-    seq_printf(m, "SOC INFO for BCM56371:\n");
+    soc_info_t *si;
 
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	return 0;
+    }
+
+    si = _bcmsw->si;
+
+    if (!si) {
+	seq_printf(m, " si Not initialized\n"); 
+	return 0;
+    }
+
+    seq_printf(m, "SOC INFO for BCM56371:\n");
     seq_printf(m, "port  l2p  p2l  l2i  p2m  m2p  pipe serdes \n");
-    for (index =0; index< 72; index++) {
+
+    for (index =0; index< HX5_NUM_PORT; index++) {
         seq_printf(m, " %i %i %i %i %i %i %i %i\n",
                 index,
                 si->port_l2p_mapping[index],
@@ -5754,24 +5771,23 @@ _sinfo_show(struct seq_file *m, void *v)
 
 static ssize_t _sinfo_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
 {
-	printk("_sinfo_write handler\n");
-	return -1;
+    printk("_sinfo_write handler\n");
+    return -1;
 }
 
-static ssize_t _sinfo_open(struct file *file, char __user *ubuf,size_t count, loff_t *ppos) 
+static int _sinfo_open(struct inode * inode, struct file * file)
 {
-	return single_open(file, _sinfo_show, NULL);
+    return single_open(file, _sinfo_show, NULL);
 }
 
 
-static struct file_operations sinfo_ops = 
+static struct proc_ops sinfo_ops = 
 {
-    owner:      THIS_MODULE,
-    open:       _sinfo_open,
-    read:       seq_read,
-    llseek:     seq_lseek,
-    write:      _sinfo_write,
-    release:    single_release,
+    proc_open:       _sinfo_open,
+    proc_read:       seq_read,
+    proc_lseek:     seq_lseek,
+    proc_write:      _sinfo_write,
+    proc_release:    single_release,
 };
 
 
@@ -5779,17 +5795,17 @@ static struct file_operations sinfo_ops =
 
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
-    base = proc_mkdir(SWITCHDEV_BASE_DIR_NAME, NULL);
+    switchdev_base = proc_mkdir(SWITCHDEV_BASE_DIR_NAME, NULL);
 
-    if(base == NULL){
+    if(switchdev_base == NULL){
         printk("switchdev proc create %s failed\n", SWITCHDEV_BASE_DIR_NAME);
         return -EINVAL;
     }
 
-    sinfo = proc_create("sinfo", 0777, base, &sinfo_ops);
-    if (led_ctl == NULL) {
+    sinfo_ctl = proc_create("sinfo", 0666, switchdev_base, &sinfo_ops);
+    if (sinfo_ctl == NULL) {
         printk("proc_create failed!\n");
-        proc_remove(base);
+        proc_remove(switchdev_base);
         return -EINVAL;
     }
 }
@@ -6220,14 +6236,16 @@ static int _switch_do_init(bcmsw_switch_t *bcmsw)
 
 int bcmsw_switch_init(void)
 {
-    bcmsw_switch_t *bcmsw;
     int err = 0;
     lport_tab_entry_t lport_entry;
     soc_info_t *si;
+    bcmsw_switch_t *bcmsw;
         
     bcmsw = kzalloc(sizeof(*bcmsw), GFP_KERNEL);
     if (!bcmsw)
-		return -ENOMEM;
+	return -ENOMEM;
+    //save to global variable 
+    _bcmsw = bcmsw;
 
     err = bcmsw_switchdev_init(bcmsw);
     if (err)
