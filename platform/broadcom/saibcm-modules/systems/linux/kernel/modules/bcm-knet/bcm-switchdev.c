@@ -5600,6 +5600,20 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     _soc_mem_write(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve); 
 
+    //readback 
+    //printk("_vlan_table_init_egr_vlan write %d 0x%08x 0x%08x 0x%08x\n", 
+    //    	    vd->vlan_tag,
+    //    	    ve.entry_data[0],
+    //    	    ve.entry_data[1],
+    //    	    ve.entry_data[2]);
+    //memcpy(&ve, empty_entry, 12);
+    //_soc_mem_read(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve);
+    //printk("_vlan_table_init_egr_vlan read %d 0x%08x 0x%08x 0x%08x\n", 
+    //		    vd->vlan_tag,
+    //		    ve.entry_data[0],
+    //		    ve.entry_data[1],
+    //		    ve.entry_data[2]);
+ 
 
     //TODO
     //bcm_td3_vlan_vfi_untag_init(unit, vd->vlan_tag,
@@ -5754,7 +5768,7 @@ _sinfo_show(struct seq_file *m, void *v)
     }
 
     seq_printf(m, "SOC INFO for BCM56371:\n");
-    seq_printf(m, "port   l2p    p2l    l2i   p2m   m2p   pipe   serdes \n");
+    seq_printf(m, "   port    l2p    p2l    l2i    p2m    m2p   pipe  serdes\n");
 
     for (index =0; index< HX5_NUM_PORT; index++) {
         seq_printf(m, " %6i %6i %6i %6i %6i %6i %6i %6i\n",
@@ -5851,16 +5865,16 @@ _egr_vlan_show(struct seq_file *m, void *v)
 
     for (index = 0; index < 4095; index ++) {
         //EGR_VLANm entry is 10 bytes, 3 word
-        _soc_mem_write(bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, &ve); 
+        _soc_mem_read(_bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, &ve); 
 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, 0);
 
         if (val & 0x1) {
-            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x\n", ve.entry_data[0], ve.entry_data[1], ve.entry_data[2]);
+            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x\n", index, ve.entry_data[0], ve.entry_data[1], ve.entry_data[2]);
             // dump field 
             // { STGf, 9, 1, SOCF_LE | SOCF_GLOBAL },
-            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 9, 1, &val, 0);
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 1, 9, &val, SOCF_LE);
             seq_printf(m, "                      STG %d\n", val);
 
             // { OUTER_TPID_INDEXf, 2, 10, SOCF_LE | SOCF_GLOBAL },
@@ -5923,7 +5937,7 @@ static int _egr_vlan_open(struct inode * inode, struct file * file)
 }
 
 
-static struct proc_ops command_config_ops = 
+static struct proc_ops egr_vlan_ops = 
 {
     proc_open:       _egr_vlan_open,
     proc_read:       seq_read,
