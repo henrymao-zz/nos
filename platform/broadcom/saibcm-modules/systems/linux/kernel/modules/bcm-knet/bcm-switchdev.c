@@ -5530,7 +5530,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     int                 index;
     uint32_t            val;
     uint16_t            tpid;
-    int                 tpid_index;    
+    int                 tpid_index = 0;    
 
     // Clear EGR_VLANm
     for (index = 0; index <= 4095; index++) {
@@ -5729,6 +5729,8 @@ _xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 /*****************************************************************************************/
 static struct proc_dir_entry *proc_switchdev_base = NULL;
 static struct proc_dir_entry *proc_reg_base = NULL;
+static struct proc_dir_entry *mem_reg_base = NULL;
+static struct proc_dir_entry *stats_reg_base = NULL;
 
 
 // /proc/switchdev/sinfo
@@ -5832,6 +5834,104 @@ static struct proc_ops command_config_ops =
     proc_release:    single_release,
 };
 
+// /proc/switchdev/mem/EGR_VLAN
+static int
+_egr_vlan_show(struct seq_file *m, void *v)
+{
+    int                 index;
+    uint32_t            val;
+    vlan_tab_entry_t    ve;
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+	    return 0;
+    }
+
+    seq_printf(m, "EGR_VLAN base 0x%x (10 bytes):\n", EGR_VLANm);
+
+    for (index = 0; index < 4095; index ++) {
+        //EGR_VLANm entry is 10 bytes, 3 word
+        _soc_mem_write(bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, &ve); 
+
+        //VALIDf start 0, len 1
+        _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, 0);
+
+        if (val & 0x1) {
+            seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x\n", ve.entry_data[0], ve.entry_data[1], ve.entry_data[2]);
+            // dump field 
+            // { STGf, 9, 1, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 9, 1, &val, 0);
+            seq_printf(m, "                      STG %d\n", val);
+
+            // { OUTER_TPID_INDEXf, 2, 10, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 10, 2, &val, SOCF_LE);
+            seq_printf(m, "         OUTER_TPID_INDEX %d\n", val);
+
+            // { DOT1P_MAPPING_PTRf, 4, 12, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 12, 4, &val, SOCF_LE);
+            seq_printf(m, "        DOT1P_MAPPING_PTR %d\n", val);
+
+            // { REMARK_CFIf, 1, 16, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 16, 1, &val, 0);
+            seq_printf(m, "               REMARK_CFI %d\n", val);
+
+            // { REMARK_DOT1Pf, 1, 17, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 17, 1, &val, 0);
+            seq_printf(m, "             REMARK_DOT1P %d\n", val);
+
+            // { UNTAG_PROFILE_PTRf, 12, 22, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 22, 12, &val, SOCF_LE);
+            seq_printf(m, "        UNTAG_PROFILE_PTR %d\n", val);
+
+            // { FLEX_CTR_BASE_COUNTER_IDXf, 11, 34, SOCF_LE | SOCF_GLOBAL },
+
+            // { RSVD_FLEX_CTR_BASE_COUNTER_IDXf, 3, 45, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+
+            // { FLEX_CTR_POOL_NUMBERf, 2, 48, SOCF_LE | SOCF_GLOBAL },
+
+            // { RSVD_FLEX_CTR_POOL_NUMBERf, 2, 50, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+
+            // { FLEX_CTR_OFFSET_MODEf, 2, 52, SOCF_LE | SOCF_GLOBAL },
+
+            // { MEMBERSHIP_PROFILE_PTRf, 12, 56, SOCF_LE | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 56, 12, &val, SOCF_LE);
+            seq_printf(m, "   MEMBERSHIP_PROFILE_PTR %d\n", val);
+
+            // { EN_EFILTERf, 1, 68, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 68, 1, &val, 0);
+            seq_printf(m, "               EN_EFILTER %d\n", val);
+
+            // { PARITYf, 1, 79, 0 | SOCF_GLOBAL },
+            _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 79, 1, &val, 0);
+            seq_printf(m, "                   PARITY %d\n", val);            
+            // { ECCf, 7, 72, SOCF_LE | SOCF_GLOBAL },
+            // { ECCPf, 8, 72, SOCF_LE | SOCF_GLOBAL },
+        }
+    }
+    return 0;
+}
+
+static ssize_t _egr_vlan_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+{
+    printk("_egr_vlan_write handler\n");
+    return -1;
+}
+
+static int _egr_vlan_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _egr_vlan_show, NULL);
+}
+
+
+static struct proc_ops command_config_ops = 
+{
+    proc_open:       _egr_vlan_open,
+    proc_read:       seq_read,
+    proc_lseek:     seq_lseek,
+    proc_write:      _egr_vlan_write,
+    proc_release:    single_release,
+};
+
 
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
@@ -5844,12 +5944,14 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
         return -EINVAL;
     }
 
+    // /proc/switchdev/sinfo
     entry = proc_create("sinfo", 0666, proc_switchdev_base, &sinfo_ops);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;
     }
 
+    // /proc/switchdev/reg
     proc_reg_base = proc_mkdir("switchdev/reg", NULL);
 
     entry = proc_create("COMMAND_CONFIG", 0666, proc_reg_base, &command_config_ops);
@@ -5858,6 +5960,24 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
+
+    // /proc/switchdev/mem
+    mem_reg_base = proc_mkdir("switchdev/mem", NULL);
+
+    entry = proc_create("EGR_VLAN", 0666, mem_reg_base, &egr_vlan_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/stats
+    stats_reg_base = proc_mkdir("switchdev/stats", NULL);
+
+    //entry = proc_create("EGR_VLAN", 0666, stats_reg_base, &egr_vlan_ops);
+    //if (entry == NULL) {
+    //    printk("proc_create failed!\n");
+    //    goto create_fail;
+    //}
     return 0;
 
 create_fail:
@@ -5868,8 +5988,17 @@ create_fail:
 static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
     remove_proc_entry("sinfo", proc_switchdev_base);
+    
+    // /proc/switchdev/reg
     remove_proc_entry("COMMAND_CONFIG", proc_reg_base);
     remove_proc_entry("reg", proc_switchdev_base);
+
+    // /proc/switchdev/mem
+    remove_proc_entry("mem", proc_switchdev_base);
+
+    // /proc/switchdev/stats
+    remove_proc_entry("stats", proc_switchdev_base);
+
     remove_proc_entry("switchdev", NULL);
 }
 
