@@ -5849,13 +5849,14 @@ _command_config_show(struct seq_file *m, void *v)
 {
     int index;
     uint32_t val;
+    _proc_reg_data_t *p_data = (_proc_reg_data_t *)v;
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
 	    return 0;
     }
 
-    seq_printf(m, "COMMAND_CONFIG base 0x%x:\n", COMMAND_CONFIGr);
+    seq_printf(m, "COMMAND_CONFIG base 0x%x: 0x%x\n", COMMAND_CONFIGr, p_data->reg_addr);
 
     for (index =0; index < 6; index ++) {
         _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
@@ -6258,6 +6259,7 @@ static struct proc_ops l2_user_entry_ops =
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
     struct proc_dir_entry *entry;
+    _proc_reg_data_t *p_data;
 
     proc_switchdev_base = proc_mkdir("switchdev", NULL);
 
@@ -6281,7 +6283,10 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }
-
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = COMMAND_CONFIGr;
+    entry.data = p_data;
 
     // /proc/switchdev/mem
     mem_reg_base = proc_mkdir("switchdev/mem", NULL);
