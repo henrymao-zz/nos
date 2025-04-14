@@ -745,13 +745,29 @@ typedef union schan_msg_u {
 #define IS_TDM_CONFIG_PIPE0r           0x6040100
 #define IS_OPP_SCHED_CFG_PIPE0r        0x6040500
 
+
 #define EGR_HW_RESET_CONTROL_0r        0x3000000
 #define EGR_HW_RESET_CONTROL_1r        0x3010000
-#define EGR_HW_RESET_CONTROL_1_PIPE0r  0x3010000
 
+/*
+soc_field_info_t soc_ING_HW_RESET_CONTROL_1_BCM56960_A0r_fields[] = {
+    { MEMIDX_OFFSETf, 26, 0, SOCF_LE },
+    { MEMORY_NUMBERf, 8, 18, SOCF_LE },
+    { OFFSETf, 18, 0, SOCF_LE },
+    { STAGE_NUMBERf, 6, 26, SOCF_LE }
+ */
 #define ING_HW_RESET_CONTROL_1r        0x2230000
+
+/*
+soc_field_info_t soc_ING_HW_RESET_CONTROL_2_BCM56970_A0r_fields[] = {
+    { COUNTf, 19, 0, SOCF_LE },
+    { DONEf, 1, 22, SOCF_RES },
+    { REGIONf, 1, 20, 0 },
+    { RESET_ALLf, 1, 19, 0 },
+    { VALIDf, 1, 21, 0 }
+};
+ */
 #define ING_HW_RESET_CONTROL_2r        0x2240000
-#define ING_HW_RESET_CONTROL_2_PIPE0r  0x2240000
 
 #define IDB_HW_CONTROLr                0x2200000
 #define CLPORT_MIB_RESETr              0x2022400

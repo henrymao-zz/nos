@@ -6034,7 +6034,7 @@ _proc_mem_show(struct seq_file *m, void *v)
        case ING_DEVICE_PORTm:
            for (index =0; index < 72; index ++) {
 	       _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
-			     SCHAN_BLK_EPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
+			     SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
 			     entry);
                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
                           index,
@@ -6701,7 +6701,7 @@ static int _clear_all_memory(struct net_device *dev)
 
     /* Wait for IPIPE memory initialization done */
     do {
-        _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2_PIPE0r, &val);
+        _reg32_read(dev, SCHAN_BLK_IPIPE, ING_HW_RESET_CONTROL_2r, &val);
         //sleep 1ms
        msleep(1);
      } while(!(val& (1<<22)));    
@@ -6711,7 +6711,7 @@ static int _clear_all_memory(struct net_device *dev)
 
     /* Wait for EPIPE memory initialization done */
     do {
-        _reg32_read(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1_PIPE0r, &val);
+        _reg32_read(dev, SCHAN_BLK_EPIPE, EGR_HW_RESET_CONTROL_1r, &val);
         //sleep 1ms
         msleep(1);
      } while(!(val& (1<<20)));   
