@@ -5353,7 +5353,8 @@ _soc_l2u_find_free_entry(bcmsw_switch_t *bcmsw, l2u_entry_t *key, int *free_inde
         step = -1;
     }
     for (index = start; index != end; index += step) {
-        rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, &entry);
+        rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, 
+			   SCHAN_BLK_IPIPE, (L2_USER_ENTRYm_BYTES+3)/4, &entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -5529,7 +5530,8 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
     vlan_tab_entry_t egr_vtab;
     uint32 profile_ptr = 0;
 
-    _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, &egr_vtab); 
+    _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, 
+		  SCHAN_BLK_EPIPE, (EGR_VLANm_BYTES+3)/4, &egr_vtab); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_get((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
@@ -5540,7 +5542,8 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
     profile_ptr = vid;
 
     //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
-    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
+    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
+		  SCHAN_BLK_EPIPE, (EGR_VLAN_VFI_UNTAGm_BYTES+3)/4, &egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
     _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
@@ -5604,7 +5607,8 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     memset(&vlan_attrs, 0, sizeof(vlan_attrs_1_entry_t));
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
-    _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+    _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, 
+		  SCHAN_BLK_IPIPE, (EGR_VLANm_BYTES+3)/4, &vlan_attrs); 
 
     //STGf start 2, len 9
     val = 1; //default STG
@@ -5899,7 +5903,11 @@ _egr_vlan_show(struct seq_file *m, void *v)
 
     for (index = 0; index < 4095; index ++) {
         //EGR_VLANm entry is 10 bytes, 3 word
-        _soc_mem_read(_bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, &ve); 
+        _soc_mem_read(_bcmsw->dev, 
+		      EGR_VLANm+index, 
+		      SCHAN_BLK_EPIPE, 
+		      (EGR_VLANm_BYTES + 3)/4, 
+		      &ve); 
 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, 0);
@@ -5998,7 +6006,11 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
     
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
-        _soc_mem_read(_bcmsw->dev, VLAN_ATTRS_1m+index, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+        _soc_mem_read(_bcmsw->dev, 
+		      VLAN_ATTRS_1m+index, 
+		      SCHAN_BLK_IPIPE, 
+		      (VLAN_ATTRS_1m_BYTES+3)/4, 
+		      &vlan_attrs); 
 
         //VALIDf start 58, len 1
         _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
@@ -6085,8 +6097,11 @@ _vlan_tab_show(struct seq_file *m, void *v)
     
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
-        _soc_mem_read(_bcmsw->dev, VLAN_TABm+index, SCHAN_BLK_IPIPE, 12, &vt); 
-
+        _soc_mem_read(_bcmsw->dev, 
+		      VLAN_TABm+index, 
+		      SCHAN_BLK_IPIPE, 
+		      (VLAN_TABm_BYTES+3)/4, 
+		      &vt); 
 
         //VALIDf start 150, len 1
         _mem_field_get((uint32_t *)&vt, VLAN_TABm_BYTES, 150, 1, &val, 0);
@@ -6150,12 +6165,16 @@ _egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
     seq_printf(m, "EGR_VLAN_VFI_UNTAG base 0x%x (%d bytes):\n", EGR_VLAN_VFI_UNTAGm, EGR_VLAN_VFI_UNTAGm_BYTES);
 
     
-    for (index = 0; index < 4095; index ++) {
+    for (index = 0; index < 4; index ++) {
         //VLAN_ATTRS_1 entry is 19 bytes, 5 word
-        _soc_mem_read(_bcmsw->dev, EGR_VLAN_VFI_UNTAGm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+        _soc_mem_read(_bcmsw->dev, 
+		      EGR_VLAN_VFI_UNTAGm+index, 
+		      SCHAN_BLK_EPIPE, 
+		      (EGR_VLAN_VFI_UNTAGm_BYTES+3)/4, 
+		      &vt); 
 
         seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
-                   vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], vt.entry_data[4];
+                   vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], vt.entry_data[4]);
     }    
     return 0;
 }
@@ -6198,7 +6217,11 @@ _l2_user_entry_show(struct seq_file *m, void *v)
     
     for (index = 0; index < 512; index ++) {
         //L2_USER_ENTRY entry is 27 bytes, 7 word
-        _soc_mem_read(_bcmsw->dev, L2_USER_ENTRYm+index, SCHAN_BLK_IPIPE, 12, &vt); 
+        _soc_mem_read(_bcmsw->dev, 
+		      L2_USER_ENTRYm+index, 
+		      SCHAN_BLK_IPIPE, 
+		      (L2_USER_ENTRYm_BYTES+3)/4, 
+		      &vt); 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&vt, L2_USER_ENTRYm_BYTES, 0, 1, &val, 0);        
 
@@ -6221,7 +6244,7 @@ static int _l2_user_entry_open(struct inode * inode, struct file * file)
 {
     return single_open(file, _l2_user_entry_show, NULL);
 }
-static struct proc_ops egr_vlan_vfi_untag_ops = 
+static struct proc_ops l2_user_entry_ops = 
 {
     proc_open:       _l2_user_entry_open,
     proc_read:       seq_read,
