@@ -3005,8 +3005,8 @@ _helix5_idb_ca_reset_buffer(bcmsw_switch_t *bcmsw, int port, int reset_buffer)
 
     _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, reg, val32.word);
 
-    printk("_helix5_idb_ca_reset_buffer port %d 0x%x pm_num %1d sbup=%1d reset_buffer=%1d  \n",
-            port, val32.word, pm_num, subp,reset_buffer);
+    //printk("_helix5_idb_ca_reset_buffer port %d 0x%x pm_num %1d sbup=%1d reset_buffer=%1d  \n",
+    //        port, val32.word, pm_num, subp,reset_buffer);
     return SOC_E_NONE;
 }
 
@@ -5781,8 +5781,8 @@ _xgs3_vlan_init(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 /*****************************************************************************************/
 static struct proc_dir_entry *proc_switchdev_base = NULL;
 static struct proc_dir_entry *proc_reg_base = NULL;
-static struct proc_dir_entry *mem_reg_base = NULL;
-static struct proc_dir_entry *stats_reg_base = NULL;
+static struct proc_dir_entry *proc_mem_base = NULL;
+static struct proc_dir_entry *proc_stats_base = NULL;
 
 
 // /proc/switchdev/sinfo
@@ -5843,49 +5843,142 @@ static struct proc_ops sinfo_ops =
     proc_release:    single_release,
 };
 
-// /proc/switchdev/reg/COMMAND_CONFIGr
+// /proc/switchdev/reg/*
 static int
-_command_config_show(struct seq_file *m, void *v)
+_proc_reg32_show(struct seq_file *m, void *v)
 {
     int index;
     uint32_t val;
-    _proc_reg_data_t *p_data = (_proc_reg_data_t *)v;
+    _proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(m->file));
 
     if (!_bcmsw) {
-        seq_printf(m, " Not initialized\n");
-	    return 0;
+        seq_printf(m," Not initialized\n");
+        return 0;
     }
 
-    seq_printf(m, "COMMAND_CONFIG base 0x%x: 0x%x\n", COMMAND_CONFIGr, p_data->reg_addr);
+    seq_printf(m, "base 0x%x\n", p_data->reg_addr);
 
-    for (index =0; index < 6; index ++) {
-        _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
-        seq_printf(m, "%d  0x%08x\n", index, val);
-    }   
-
+    switch (p_data->reg_addr) {
+       case COMMAND_CONFIGr:
+           for (index =0; index < 6; index ++) {
+               _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
+               seq_printf(m, "%2d [%2d]  0x%08x\n", index, gxblk[index], val);
+           }   
+           break;
+       case IDB_OBM0_Q_CONTROLr:
+           for (index =0; index < 10; index ++) { 
+	       _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
+	       seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, obm_ctrl_regs[index], val);
+           }
+	   break;
+ 
+       case IDB_OBM0_Q_CA_CONTROLr:
+           for (index =0; index < 10; index ++) { 
+	       _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, soc_helix5_obm_ca_ctrl_regs[index], &val);
+	       seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, soc_helix5_obm_ca_ctrl_regs[index], val);
+           }
+	   break;
+       default:
+	   seq_printf(m," Not implemented\n");
+    } 
     return 0;
 }
 
-static ssize_t _command_config_write(struct file *file, const char __user *ubuf,size_t count, loff_t *ppos) 
+static ssize_t
+_proc_reg32_write(struct file *file, const char *ubuf, size_t count, loff_t *ppos) 
 {
-    printk("_command_config_write handler\n");
+    _proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(file));
+    printk("_prog_reg32_write handler 0x%08x\n", p_data->reg_addr);
     return -1;
 }
 
-static int _comman_config_open(struct inode * inode, struct file * file)
+static int _proc_reg32_open(struct inode * inode, struct file * file)
 {
-    return single_open(file, _command_config_show, NULL);
+    return single_open(file, _proc_reg32_show, NULL);
 }
 
 
-static struct proc_ops command_config_ops = 
+static struct proc_ops _proc_reg32_ops = 
 {
-    proc_open:       _comman_config_open,
+    proc_open:       _proc_reg32_open,
     proc_read:       seq_read,
-    proc_lseek:     seq_lseek,
-    proc_write:      _command_config_write,
+    proc_lseek:      seq_lseek,
+    proc_write:      _proc_reg32_write,
     proc_release:    single_release,
 };
+
+// /proc/switchdev/mem/*
+static int
+_proc_mem_show(struct seq_file *m, void *v)
+{
+    int index, i;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
+    egr_port_entry_t   *egr_port_entry;
+    lport_tab_entry_t  *lport_entry;
+    ing_device_port_entry_t *ing_device_port_entry; 
+    _proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(m->file));
+
+    if (!_bcmsw) {
+        seq_printf(m," Not initialized\n");
+        return 0;
+    }
+
+    seq_printf(m, "base 0x%x\n", p_data->reg_addr);
+
+    switch (p_data->reg_addr) {
+       case EGR_PORTm:
+	   egr_port_entry = (egr_port_entry_t *)entry;
+           for (index =0; index < 72; index ++) {
+	       _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
+			     SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), 
+			     egr_port_entry);
+               seq_printf(m, "%2d [%2d]  0x%016llx\n", index, egr_port_entry->port_type, *egr_port_entry);
+           }   
+           break;
+
+       case LPORT_TABm:
+	   lport_entry = (lport_tab_entry_t *)entry;
+           for (index =0; index < 72; index ++) {
+	       _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
+			     SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), 
+			     lport_entry);
+               seq_printf(m, "%2d vid:%4d ", index, lport_entry->reg.PORT_VIDf);
+	       for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
+                   seq_printf(m, "0x%08x ", entry[i]);
+	       }
+               seq_printf(m, "\n");
+           }   
+           break; 
+
+       default:
+	   seq_printf(m," Not implemented\n");
+    } 
+    return 0;
+}
+
+static ssize_t
+_proc_mem_write(struct file *file, const char *ubuf, size_t count, loff_t *ppos) 
+{
+    _proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(file));
+    printk("_prog_reg32_write handler 0x%08x\n", p_data->reg_addr);
+    return -1;
+}
+
+static int _proc_mem_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _proc_mem_show, NULL);
+}
+
+
+static struct proc_ops _proc_mem_ops = 
+{
+    proc_open:       _proc_mem_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_write:      _proc_mem_write,
+    proc_release:    single_release,
+};
+
 
 // /proc/switchdev/mem/EGR_VLAN
 static int
@@ -6256,10 +6349,127 @@ static struct proc_ops l2_user_entry_ops =
 
 /*****************************************************************************************/
 
+static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
+{
+    struct proc_dir_entry *entry;
+    _proc_reg_data_t *p_data;
+
+    // /proc/switchdev/reg
+    proc_reg_base = proc_mkdir("switchdev/reg", NULL);
+
+    // /proc/switchdev/reg/COMMAND_CONFIG
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = COMMAND_CONFIGr;
+    entry = proc_create_data("COMMAND_CONFIG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/reg/IDB_OBM_CONTROL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = IDB_OBM0_Q_CONTROLr;
+    entry = proc_create_data("IDB_OBM_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+
+    // /proc/switchdev/reg/IDB_OBM_CA_CONTROL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = IDB_OBM0_Q_CA_CONTROLr;
+    entry = proc_create_data("IDB_OBM_CA_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    return 0;
+create_fail:
+    return -1;
+}
+
+static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
+{
+    struct proc_dir_entry *entry;
+    _proc_reg_data_t *p_data;
+
+
+    // /proc/switchdev/mem
+    proc_mem_base = proc_mkdir("switchdev/mem", NULL);
+
+
+    // /proc/switchdev/mem/EGR_VLAN
+    entry = proc_create("EGR_VLAN", 0666, proc_mem_base, &egr_vlan_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/VLAN_ATTRS_1
+    entry = proc_create("VLAN_ATTRS_1", 0666, proc_mem_base, &vlan_attrs_1_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/VLAN_TAB
+    entry = proc_create("VLAN_TAB", 0666, proc_mem_base, &vlan_tab_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/EGR_VLAN_VFI_UNTAG
+    entry = proc_create("EGR_VLAN_VFI_UNTAG", 0666, proc_mem_base, &egr_vlan_vfi_untag_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+    
+    // /proc/switchdev/mem/L2_USER_ENTRY
+    entry = proc_create("L2_USER_ENTRY", 0666, proc_mem_base, &l2_user_entry_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+
+    // /proc/switchdev/mem/EGR_PORT
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_PORTm;
+    entry = proc_create_data("EGR_PORT", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/LPORT_TAB
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = LPORT_TABm;
+    entry = proc_create_data("LPORT_TAB", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    return 0;
+
+create_fail:
+    return -1;
+}
+
+
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
     struct proc_dir_entry *entry;
     _proc_reg_data_t *p_data;
+    int rv;
 
     proc_switchdev_base = proc_mkdir("switchdev", NULL);
 
@@ -6276,59 +6486,20 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
     }
 
     // /proc/switchdev/reg
-    proc_reg_base = proc_mkdir("switchdev/reg", NULL);
-
-    entry = proc_create("COMMAND_CONFIG", 0666, proc_reg_base, &command_config_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
+    rv = _procfs_reg_init(bcmsw);
+    if (rv) {
         goto create_fail;
     }
-    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
-    memset(p_data, 0, sizeof(_proc_reg_data_t));
-    p_data->reg_addr = COMMAND_CONFIGr;
-    entry.data = p_data;
 
     // /proc/switchdev/mem
-    mem_reg_base = proc_mkdir("switchdev/mem", NULL);
-
-    entry = proc_create("EGR_VLAN", 0666, mem_reg_base, &egr_vlan_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
+    rv = _procfs_mem_init(bcmsw);
+    if (rv) {
         goto create_fail;
     }
-
-    entry = proc_create("VLAN_ATTRS_1", 0666, mem_reg_base, &vlan_attrs_1_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
-        goto create_fail;
-    }
-
-    entry = proc_create("VLAN_TAB", 0666, mem_reg_base, &vlan_tab_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
-        goto create_fail;
-    }
-
-    entry = proc_create("EGR_VLAN_VFI_UNTAG", 0666, mem_reg_base, &egr_vlan_vfi_untag_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
-        goto create_fail;
-    }    
-    
-    entry = proc_create("L2_USER_ENTRY", 0666, mem_reg_base, &l2_user_entry_ops);
-    if (entry == NULL) {
-        printk("proc_create failed!\n");
-        goto create_fail;
-    }    
 
     // /proc/switchdev/stats
-    stats_reg_base = proc_mkdir("switchdev/stats", NULL);
+    proc_stats_base = proc_mkdir("switchdev/stats", NULL);
 
-    //entry = proc_create("EGR_VLAN", 0666, stats_reg_base, &egr_vlan_ops);
-    //if (entry == NULL) {
-    //    printk("proc_create failed!\n");
-    //    goto create_fail;
-    //}
     return 0;
 
 create_fail:

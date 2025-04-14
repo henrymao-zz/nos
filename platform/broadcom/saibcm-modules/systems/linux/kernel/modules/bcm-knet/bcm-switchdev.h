@@ -1288,7 +1288,14 @@ typedef union lport_tab_entry_s {
     uint8_t  bytes[56];
 }lport_tab_entry_t;
 
-#define LPORT_TABm  0x501c0000
+//Memory: LPORT_TAB.ipipe0 aka LPORT alias LPORT0 address 0x501c0000
+//Flags: valid cachable(on)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 1024 with indices 0-1023 (0x0-0x3ff), each 56 bytes 14 words
+
+#define LPORT_TABm                 0x501c0000
+#define LPORT_TABm_BYTES           56
+
 /*
 soc_field_info_t soc_EGR_PORT_BCM56870_A0m_fields[] = {
     { EDIT_CTRL_IDf, 4, 33, SOCF_LE | SOCF_GLOBAL },
@@ -2611,7 +2618,7 @@ soc_field_info_t soc_EGR_VLAN_BCM56370_A0m_fields[] = {
     { RESERVED_2f, 3, 69, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
     { RSVD_FLEX_CTR_BASE_COUNTER_IDXf, 3, 45, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
     { RSVD_FLEX_CTR_POOL_NUMBERf, 2, 50, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
-    { STGf, 9, 1, SOCF_LE | SOCF_GLOBAL },
+    { STlGf, 9, 1, SOCF_LE | SOCF_GLOBAL },
     { UNTAG_PROFILE_PTRf, 12, 22, SOCF_LE | SOCF_GLOBAL },
     { VALIDf, 1, 0, 0 | SOCF_GLOBAL }
 };
