@@ -2155,7 +2155,7 @@ soc_field_info_t soc_L2_USER_ENTRY_BCM56370_A0m_fields[] = {
 #define L2_USER_ENTRYm_BYTES            27
 
 typedef struct {
-    uint32_t entry_data[35];
+    uint32_t entry_data[28];
 }l2u_entry_t;
     
 
