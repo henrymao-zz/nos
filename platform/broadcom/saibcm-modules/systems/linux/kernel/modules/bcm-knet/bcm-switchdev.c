@@ -2249,8 +2249,14 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 257, 4, &val, SOCF_LE);   
 
 
+    //VFP_ENABLEf start 25, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 25, 1, &val, 0);
+
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_OVID,
-    //lport_entry.reg.VT_KEY_TYPEf = 
+    //VT_KEY_TYPEf start 46, len 4
+    val = 4; // VLXLT_HASH_KEY_TYPE_OVID
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 46, 4, &val, SOCF_LE);
 
     //VT_PORT_TYPE_SELECT_1f start 52, len 2
     val = 1;
@@ -2258,17 +2264,34 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_IVID,
 
-    //VT_KEY_TYPE_2f start 52, len 2
-    val = 1;
+    //VT_KEY_TYPE_2f start 54, len 4
+    val = 5; //VLXLT_HASH_KEY_TYPE_IVID
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 54, 4, &val, SOCF_LE);  
 
-    //lport_entry.reg.PORT_TYPEf = port_type;
-    //lport_entry.reg.SRC_SYS_PORT_IDf = port;
-     /* TD3TBD SYS_PORT_ID and PP_PORT_NUM should be covered by CIH,
-     * will remove it after CIH is ready. */
-    //lport_entry.reg.SYS_PORT_IDf = port;
-    //lport_entry.reg.PP_PORT_NUMf = port;
-    //lport_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
+    //VT_PORT_TYPE_SELECT_2f start 58, len 2
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 58, 2, &val, SOCF_LE);
+
+    //MIM_TERM_ENABLEf start 64, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 64, 1, &val, 0);
+
+
+    //IPMC_DO_VLANf start 234, len 1 
+    //TODO
+    //val =1;
+    //_mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 234, 1, &val, 0);
+    
+    //FILTER_ENABLEf start 251, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 251, 1, &val, 0);
+
+    //V6IPMC_ENABLEf start 394, len 1
+    //TODO
+    //V4IPMC_ENABLEf start 395, len 1
+    //TODO
+    //MPLS_ENABLEf start 400, len 1
+
 
     //TAG_ACTION_PROFILE_PTRf start 113, len 7
     val = 1;
@@ -4654,7 +4677,6 @@ _port_init(bcmsw_switch_t *bcmsw)
        if(si->port_type[port] != -1) {
            //bcm_td3_port_cfg_init
            _port_cfg_init(bcmsw, port, vid);
-	  
        }
     }
     // STEP 1 
@@ -5997,7 +6019,7 @@ _proc_mem_show(struct seq_file *m, void *v)
        case LPORT_TABm:
            for (index =0; index < 72; index ++) {
 	       _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
-			     SCHAN_BLK_EPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
+			     SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
 			     entry);
 	       //PORT_VIDf start 3, len 12
 	       _mem_field_get(entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
