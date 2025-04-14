@@ -936,356 +936,9 @@ soc_field_info_t soc_LPORT_TAB_BCM56370_A0m_fields[] = {
     { VXLAN_VN_ID_LOOKUP_KEY_TYPEf, 2, 158, SOCF_LE | SOCF_GLOBAL },
     { WIRED_WIRELESSf, 1, 23, 0 | SOCF_GLOBAL }
 */        
-typedef union lport_tab_entry_s {
-    struct lport_reg_ {
-	#if defined(LE_HOST)
-        //Byte 0 - 7 : 64 bit
-        uint64_t PORT_PRIf:3,                                 /*  0:2      */
-                 PORT_VIDf:12,                                /*  3:14     */  //OVIDf
-                 VT_2_MISS_DROPf:1,                           /*  15:15    */
-                 VT_2_MISS_DROP_KEY_1_AND_KEY_2f:1,           /*  16:16    */
-                 VT_2_MISS_DROP_KEY_2f:1,                     /*  17:17    */
-                 VT_2_MISS_DROP_KEY_1f:1,                     /*  18:18    */
-                 VT_2_ENABLEf:1,                              /*  19:19    */
-                 FCOE_VT_2_MISS_DROP_KEY_1_AND_KEY_2f:1,      /*  20:20    */
-                 FCOE_VT_2_MISS_DROP_KEY_2f:1,                /*  21:21    */
-                 FCOE_VT_2_MISS_DROP_KEY_1f:1,                /*  22:22    */
-                 WIRED_WIRELESSf:1,                           /*  23:23    */
-                 RESERVED_24_24f:1,                           /*  24:24    */
-                 VFP_ENABLEf:1,                               /*  25:25    */
-                 VFP_PORT_GROUP_IDf:8,                        /*  26:33    */
-                 IVIDf:12,                                    /*  34:45    */
-                 VT_KEY_TYPEf:4,                              /*  46:49    */
-                 VT_MISS_DROPf:1,                             /*  50:50    */
-                 VT_ENABLEf:1,                                /*  51:51    */
-                 VT_PORT_TYPE_SELECT_1f:2,                    /*  52:53    */ 
-                 VT_KEY_TYPE_2f:4,                            /*  54:57    */
-                 VT_PORT_TYPE_SELECT_2f:2,                    /*  58:59    */
-                 RESERVED_60f:1,                              /*  60:60    */
-                 PORT_OPERATIONf:3;                           /*  61:63    */
-        
-        //Byte 8 -15  : 64bit
-        uint64_t  MIM_TERM_ENABLEf:1,                          /*  64:64    */
-                  IPRIf:3,                                     /*  65:67    */
-                  USE_PORT_TABLE_GROUP_IDf:1,                  /*  68:68    */
-                  OCFIf:1,                                     /*  69:69    */
-                  FLEX_CTR_POOL_NUMBERf:3,                     /*  70:72    */
-                  RSVD_FLEX_CTR_POOL_NUMBERf:2,                /*  73:74    */
-                  FLEX_CTR_OFFSET_MODEf:2,                     /*  75:76    */
-                  FLEX_CTR_BASE_COUNTER_IDXf:10,               /*  77:86    */
-                  RSVD_FLEX_CTR_BASE_COUNTER_IDXf:3,           /*  87:89    */
-                  ICFIf:1,                                     /*  90:90    */
-                  NIV_UPLINK_PORTf:1,                          /*  91:91    */
-                  NIV_VIF_IDf:12,                              /*  92:103   */
-                  NIV_VIF_LOOKUP_ENABLEf:1,                    /* 104:104   */
-                  TX_DEST_PORT_ENABLEf:1,                      /* 105:105   */
-                  VNTAG_ACTIONS_IF_NOT_PRESENTf:2,             /* 106:107   */
-                  VNTAG_ACTIONS_IF_PRESENTf:2,                 /* 108:109   */
-                  RESERVED_111_110f:2,                         /* 110:111   */
-                  OUTER_TPID_VERIFYf:1,                        /* 112:112   */
-                  TAG_ACTION_PROFILE_PTRf:7,                   /* 113:119   */
-                  ICFI_1_MAPPINGf:1,                           /* 120:120   */
-                  ICFI_0_MAPPINGf:1,                           /* 121:121   */
-                  IPRI_MAPPINGf_lo:6;                          /* 122:127   */
 
-         //Byte 16 - 23 : 64bit 
- 	 uint64_t IPRI_MAPPINGf_hi:18,                         /* 128:145   */	  
-                  VXLAN_SVP_ASSIGNMENT_KEY_TYPEf:1,            /* 146:146   */
-                  VXLAN_TERMINATION_LOOKUP_TYPEf:1,            /* 147:147   */
-                  FCOE_VT_MISS_DROP_KEY_1_AND_KEY_2f:1,        /* 148:148   */
-                  FCOE_VT_MISS_DROP_KEY_2f:1,                  /* 149:149   */
-                  FCOE_VT_MISS_DROP_KEY_1f,                    /* 150:150   */     
-                  VT_MISS_DROP_KEY_1_AND_KEY_2f:1,             /* 151:151   */     
-                  VT_MISS_DROP_KEY_2f:1,                       /* 152:152   */     
-                  VT_MISS_DROP_KEY_1f:1,                       /* 153:153   */    
-                  ETAG_DEf:1,                                  /* 154:154   */  
-                  ETAG_PCPf:3,                                 /* 155:157   */ 
-                  VXLAN_VN_ID_LOOKUP_KEY_TYPEf:2,              /* 158:159   */ 
-                  RESERVED_161_160f:2,                         /* 160:161   */ 
-                  ETAG_PCP_DE_SOURCEf:2,                       /* 162:163   */ 
-                  FCOE_VFT_PRI_MAP_PROFILEf:1,                 /* 164:164   */ 
-                  FCOE_FABRIC_PRIf:3,                          /* 165:167   */ 
-                  FCOE_FABRIC_IDf:12,                          /* 168:179   */  
-                  FCOE_FABRIC_SELf:2,                          /* 180:181   */ 
-                  FCOE_VT_KEY_TYPE_2f:5,                       /* 182:186   */ 
-                  FCOE_VT_KEY_TYPE_1f:5;                       /* 187:191   */ 
-
-        //Byte 24 - 31 : 64bit
-        uint64_t RESERVED_192f:1,                                /* 192:192   */ 
-                 ETAG_PCP_DE_MAPPING_PTRf:6,                     /* 193:198   */ 
-                 L2GRE_VPNID_LOOKUP_KEY_TYPEf:1,                 /* 199:199   */ 
-                 NIV_RPF_CHECK_ENABLEf:1,                        /* 200:200   */ 
-                 IEEE_802_1AS_ENABLEf:1,                         /* 201:201   */ 
-                 PRI_MAPPINGf:24,                                /* 202:225   */ 
-                 CFI_0_MAPPINGf:1,                               /* 226:226   */ 
-                 CFI_1_MAPPINGf:1,                               /* 227:227   */ 
-                 EN_IFILTERf:2,                                  /* 228:229   */ 
-                 MIRRORf:4,                                      /* 230:233   */ 
-                 IPMC_DO_VLANf:1,                                /* 234:234   */ 
-                 DROP_BPDUf:1,                                   /* 235:235   */ 
-                 PORT_DIS_TAGf:1,                                /* 236:236   */ 
-                 PORT_DIS_UNTAGf:1,                              /* 237:237   */ 
-                 PASS_CONTROL_FRAMESf:1,                         /* 238:238   */ 
-                 SUBNET_BASED_VID_ENABLEf:1,                     /* 239:239   */ 
-                 MAC_BASED_VID_ENABLEf:1,                        /* 240:240   */ 
-                 PVLAN_ENABLEf:1,                                /* 241:241   */ 
-                 VLAN_PRECEDENCEf:1,                             /* 242:242   */ 
-                 RTAG7_PORT_LBNf:4,                              /* 243:246   */ 
-                 URPF_MODEf:2,                                   /* 247:248   */ 
-                 URPF_DEFAULTROUTECHECKf:1,                      /* 249:249   */ 
-                 RESERVED_250f:1,                                /* 250:250   */ 
-                 FILTER_ENABLEf:1,                               /* 251:251   */ 
-                 CLASS_BASED_SM_ENABLEf:1,                       /* 252:252   */ 
-                 CML_FLAGS_NEWf_lo:3;                            /* 253:255   */ 
-
-        //Byte 32 - 39 : 64bit
-        uint64_t CML_FLAGS_NEWf_hi:1,                            /* 256:256   */ 
-                 CML_FLAGS_MOVEf:4,                              /* 257:260   */ 
-                 DISABLE_VLAN_CHECKSf:1,                         /* 261:261   */ 
-                 DISABLE_STATIC_MOVE_DROPf:1,                    /* 262:262   */ 
-                 CML_BMAC_NEWf:2,                                /* 263:264   */ 
-                 CML_BMAC_MOVEf:2,                               /* 265:266   */ 
-                 PROTOCOL_PKT_INDEXf:6,                          /* 267:272   */ 
-                 TRUST_DOT1P_PTRf:6,                             /* 273:278   */ 
-                 TRUST_DSCP_PTRf:7,                              /* 279:285   */ 
-                 CTRL_PROFILE_INDEX_1588f:6,                     /* 286:291   */ 
-                 VLAN_PROTOCOL_DATA_INDEXf:7,                    /* 292:298   */ 
-                 NIV_NAMESPACEf:12,                              /* 299:310   */ 
-                 PROHIBITED_DOT1Pf:8,                            /* 311:318   */ 
-                 IFP_KEY_SEL_CLASS_IDf_lo:1;                     /* 319:319   */ 
-
-        //Byte 40 - 47 : 64bit
-       uint64_t  IFP_KEY_SEL_CLASS_IDf_hi:7,                        /* 320:326   */ 
-                 RESERVED_327_330f:4,                               /* 327:330   */ 
-                 DISCARD_IF_VNTAG_PRESENTf:1,                       /* 331:331   */ 
-                 DISCARD_IF_VNTAG_NOT_PRESENTf:1,                   /* 332:332   */ 
-                 USE_INNER_PRIf:1,                                  /* 333:333   */ 
-                 ALLOW_SRC_MODf:1,                                  /* 334:334   */ 
-                 REMOVE_HG_HDR_SRC_PORTf:1,                         /* 335:335   */ 
-                 MISC_PORT_PROFILE_INDEXf:8,                        /* 336:343   */ 
-                 RTAG7_PORT_PROFILE_INDEXf:10,                      /* 344:353   */ 
-                 FCOE_NETWORK_PORTf:1,                              /* 354:354   */ 
-                 FCOE_DO_NOT_LEARNf:1,                              /* 355:355   */ 
-                 FCOE_SRC_FPMA_PREFIX_CHECK_ENABLEf:1,              /* 356:356   */ 
-                 FCOE_SRC_BIND_CHECK_ENABLEf:1,                     /* 357:357   */ 
-                 FCOE_ZONE_CHECK_ENABLEf:1,                         /* 358:358   */ 
-                 FCOE_VFT_ENABLEf:1,                                /* 359:359   */ 
-                 FCOE_ROUTE_ENABLEf:1,                              /* 360:360   */ 
-                 MAC_IP_BIND_LOOKUP_MISS_DROPf:1,                   /* 361:361   */ 
-                 MAC_IP_BIND_VT2_LOOKUP_MISS_DROPf:1,               /* 362:362   */ 
-                 PHB_FROM_ETAGf:1,                                  /* 363:363   */ 
-                 PORT_BRIDGEf:1,                                    /* 364:364   */ 
-                 DOT1P_REMAP_POINTERf:6,                            /* 365:370   */ 
-                 TRUST_DSCP_V4f:1,                                  /* 371:371   */ 
-                 TRUST_DSCP_V6f:1,                                  /* 372:372   */ 
-                 RESERVED_373f:1,                                   /* 373:373   */ 
-                 DESTINATIONf_lo:10;                                /* 374:383   */ 
-
-        //Byte 48 
-       uint8_t  DESTINATIONf:8,                                     /* 384:391   */ 
-                RESERVED_392_392f:1,                                /* 392:392   */ 
-                FCOE_NPV_MODEf:1,                                   /* 393:393   */ 
-                V6IPMC_ENABLEf:1,                                   /* 394:394   */ 
-                V4IPMC_ENABLEf:1,                                   /* 395:395   */ 
-                V6L3_ENABLEf:1,                                     /* 396:396   */ 
-                V4L3_ENABLEf:1,                                     /* 397:397   */ 
-                L2GRE_TERMINATION_ALLOWEDf:1,                       /* 398:398   */ 
-                VXLAN_TERMINATION_ALLOWEDf:1;                       /* 399:399   */ 
-
-        //Byte 49 - 50 
-       int16_t   MPLS_ENABLEf:1,                                    /* 400:400   */ 
-                 OFFSET_TRUNK_RANDOM_LBf:4,                         /* 401:404   */ 
-                 OFFSET_ECMP_RANDOM_LBf:4,                          /* 405:408   */ 
-                 OFFSET_ECMP_LEVEL2_RANDOM_LBf:4,                   /* 409:412   */ 
-                 RESERVED_413_415f:3;                               /* 413:415   */ 
-
-
-        //Byte 51 - 55 
-        uint8_t ECCP_0f;                                            /* 416:423   */ 
-        uint8_t ECCP_1f;                                            /* 424:431   */ 
-        uint8_t ECCP_2f;                                            /* 432:439   */ 
-        uint8_t ECCP_3f;                                            /* 440:447   */         
-        #else
-        //Byte 0 - 7 : 64 bit
-        uint64_t   PORT_OPERATIONf:3,                           /*  61:63    */
-                   RESERVED_60f:1,                              /*  60:60    */
-                   VT_PORT_TYPE_SELECT_2f:2,                    /*  58:59    */
-                   VT_KEY_TYPE_2f:4,                            /*  54:57    */
-                   VT_PORT_TYPE_SELECT_1f:2,                    /*  52:53    */
-                   VT_ENABLEf:1,                                /*  51:51    */
-                   VT_MISS_DROPf:1,                             /*  50:50    */
-                   VT_KEY_TYPEf:4,                              /*  46:49    */
-                   IVIDf:12,                                    /*  34:45    */
-                   VFP_PORT_GROUP_IDf:8,                        /*  26:33    */
-                   VFP_ENABLEf:1,                               /*  25:25    */
-                   RESERVED_24_24f:1,                           /*  24:24    */
-                   WIRED_WIRELESSf:1,                           /*  23:23    */
-                   FCOE_VT_2_MISS_DROP_KEY_1f:1,                /*  22:22    */
-                   FCOE_VT_2_MISS_DROP_KEY_2f:1,                /*  21:21    */
-                   FCOE_VT_2_MISS_DROP_KEY_1_AND_KEY_2f:1,      /*  20:20    */
-                   VT_2_ENABLEf:1,                              /*  19:19    */
-                   VT_2_MISS_DROP_KEY_1f:1,                     /*  18:18    */
-                   VT_2_MISS_DROP_KEY_2f:1,                     /*  17:17    */
-                   VT_2_MISS_DROP_KEY_1_AND_KEY_2f:1,           /*  16:16    */
-                   VT_2_MISS_DROPf:1,                           /*  15:15    */
-                   PORT_VIDf:12,                                /*  3:14     */  //OVIDf
-                   PORT_PRIf:3;                                 /*  0:2      */
-
-        //Byte 8 - 15 : 64bit
-	uint64_t   IPRI_MAPPINGf_lo:6,                          /* 122:127   */
-                   ICFI_0_MAPPINGf:1,                           /* 121:121   */
-                   ICFI_1_MAPPINGf:1,                           /* 120:120   */
-                   TAG_ACTION_PROFILE_PTRf:7,                   /* 113:119   */
-                   OUTER_TPID_VERIFYf:1,                        /* 112:112   */
-                   RESERVED_111_110f:2,                         /* 110:111   */
-                   VNTAG_ACTIONS_IF_PRESENTf:2,                 /* 108:109   */
-                   VNTAG_ACTIONS_IF_NOT_PRESENTf:2,             /* 106:107   */
-                   TX_DEST_PORT_ENABLEf:1,                      /* 105:105   */
-                   NIV_VIF_LOOKUP_ENABLEf:1,                    /* 104:104   */
-                   NIV_VIF_IDf:12,                              /*  92:103   */
-                   NIV_UPLINK_PORTf:1,                          /*  91:91    */
-                   ICFIf:1,                                     /*  90:90    */
-                   RSVD_FLEX_CTR_BASE_COUNTER_IDXf:3,           /*  87:89    */
-                   FLEX_CTR_BASE_COUNTER_IDXf:10,               /*  77:86    */
-                   FLEX_CTR_OFFSET_MODEf:2,                     /*  75:76    */
-                   RSVD_FLEX_CTR_POOL_NUMBERf:2,                /*  73:74    */
-                   FLEX_CTR_POOL_NUMBERf:3,                     /*  70:72    */
-                   OCFIf:1,                                     /*  69:69    */
-                   USE_PORT_TABLE_GROUP_IDf:1,                  /*  68:68    */
-                   IPRIf:3,                                     /*  65:67    */
-                   MIM_TERM_ENABLEf:1;                          /*  64:64    */
-
-
-        uint64_t   FCOE_VT_KEY_TYPE_1f:5,                       /* 187:191   */ 
-                   FCOE_VT_KEY_TYPE_2f:5,                       /* 182:186   */
-                   FCOE_FABRIC_SELf:2,                          /* 180:181   */
-                   FCOE_FABRIC_IDf:12,                          /* 168:179   */
-                   FCOE_FABRIC_PRIf:3,                          /* 165:167   */
-                   FCOE_VFT_PRI_MAP_PROFILEf:1,                 /* 164:164   */
-                   ETAG_PCP_DE_SOURCEf:2,                       /* 162:163   */
-                   RESERVED_161_160f:2,                         /* 160:161   */
-                   VXLAN_VN_ID_LOOKUP_KEY_TYPEf:2               /* 158:159   */
-                   ETAG_PCPf:3,                                 /* 155:157   */
-                   ETAG_DEf:1,                                  /* 154:154   */
-                   VT_MISS_DROP_KEY_1f:1,                       /* 153:153   */
-                   VT_MISS_DROP_KEY_2f:1,                       /* 152:152   */
-                   VT_MISS_DROP_KEY_1_AND_KEY_2f:1,             /* 151:151   */
-                   FCOE_VT_MISS_DROP_KEY_1f,                    /* 150:150   */
-                   FCOE_VT_MISS_DROP_KEY_2f:1,                  /* 149:149   */
-                   FCOE_VT_MISS_DROP_KEY_1_AND_KEY_2f:1,        /* 148:148   */
-                   VXLAN_TERMINATION_LOOKUP_TYPEf:1,            /* 147:147   */
-                   VXLAN_SVP_ASSIGNMENT_KEY_TYPEf:1,            /* 146:146   */
-		   IPRI_MAPPINGf_hi:18;                         /* 128:145   */
-
-        //Byte 24 - 31 : 64bit
-        uint64_t CML_FLAGS_NEWf_lo:3,                            /* 253:255   */ 
-                 CLASS_BASED_SM_ENABLEf:1,                       /* 252:252   */ 
-                 FILTER_ENABLEf:1,                               /* 251:251   */ 
-                 RESERVED_250f:1,                                /* 250:250   */ 
-                 URPF_DEFAULTROUTECHECKf:1,                      /* 249:249   */ 
-                 URPF_MODEf:2,                                   /* 247:248   */ 
-                 RTAG7_PORT_LBNf:4,                              /* 243:246   */ 
-                 VLAN_PRECEDENCEf:1,                             /* 242:242   */ 
-                 PVLAN_ENABLEf:1,                                /* 241:241   */ 
-                 MAC_BASED_VID_ENABLEf:1,                        /* 240:240   */ 
-                 SUBNET_BASED_VID_ENABLEf:1,                     /* 239:239   */ 
-                 PASS_CONTROL_FRAMESf:1,                         /* 238:238   */ 
-                 PORT_DIS_UNTAGf:1,                              /* 237:237   */ 
-                 PORT_DIS_TAGf:1,                                /* 236:236   */ 
-                 DROP_BPDUf:1,                                   /* 235:235   */ 
-                 IPMC_DO_VLANf:1,                                /* 234:234   */ 
-                 MIRRORf:4,                                      /* 230:233   */ 
-                 EN_IFILTERf:2,                                  /* 228:229   */ 
-                 CFI_1_MAPPINGf:1,                               /* 227:227   */ 
-                 CFI_0_MAPPINGf:1,                               /* 226:226   */ 
-                 PRI_MAPPINGf:24,                                /* 202:225   */ 
-                 IEEE_802_1AS_ENABLEf:1,                         /* 201:201   */ 
-                 NIV_RPF_CHECK_ENABLEf:1,                        /* 200:200   */ 
-                 L2GRE_VPNID_LOOKUP_KEY_TYPEf:1,                 /* 199:199   */ 
-                 ETAG_PCP_DE_MAPPING_PTRf:6,                     /* 193:198   */ 
-                 RESERVED_192f:1;                                /* 192:192   */ 
-       
-        //Byte 32 - 39 : 64bit
-        uint64_t IFP_KEY_SEL_CLASS_IDf_lo:1,                     /* 319:319   */  //PORT_CLASS_IDf
-                 PROHIBITED_DOT1Pf:8,                            /* 311:318   */ 
-                 NIV_NAMESPACEf:12,                              /* 299:310   */ 
-                 VLAN_PROTOCOL_DATA_INDEXf:7,                    /* 292:298   */ 
-                 CTRL_PROFILE_INDEX_1588f:6,                     /* 286:291   */ 
-                 TRUST_DSCP_PTRf:7,                              /* 279:285   */ 
-                 TRUST_DOT1P_PTRf:6,                             /* 273:278   */ 
-                 PROTOCOL_PKT_INDEXf:6,                          /* 267:272   */ 
-                 CML_BMAC_MOVEf:2,                               /* 265:266   */ 
-                 CML_BMAC_NEWf:2,                                /* 263:264   */ 
-                 DISABLE_STATIC_MOVE_DROPf:1,                    /* 262:262   */ 
-                 DISABLE_VLAN_CHECKSf:1,                         /* 261:261   */ 
-                 CML_FLAGS_MOVEf:4,                              /* 257:260   */ 
-                 CML_FLAGS_NEWf_hi:1;                            /* 256:256   */ 
-
-
-        //Byte 40 - 47 : 64bit
-        uint64_t DESTINATIONf_lo:10,                                /* 374:383   */ 
-                 RESERVED_373f:1,                                   /* 373:373   */ 
-                 TRUST_DSCP_V6f;1,                                  /* 372:372   */ 
-                 TRUST_DSCP_V4f:1,                                  /* 371:371   */ 
-                 DOT1P_REMAP_POINTERf:6,                           /* 365:370   */ 
-                 PORT_BRIDGEf:1,                                    /* 364:364   */ 
-                 PHB_FROM_ETAGf:1,                                  /* 363:363   */ 
-                 MAC_IP_BIND_VT2_LOOKUP_MISS_DROPf:1,               /* 362:362   */ 
-                 MAC_IP_BIND_LOOKUP_MISS_DROPf:1,                   /* 361:361   */ 
-                 FCOE_ROUTE_ENABLEf:1,                              /* 360:360   */ 
-                 FCOE_VFT_ENABLEf:1,                                /* 359:359   */ 
-                 FCOE_ZONE_CHECK_ENABLEf:1,                         /* 358:358   */ 
-                 FCOE_SRC_BIND_CHECK_ENABLEf:1,                     /* 357:357   */ 
-                 FCOE_SRC_FPMA_PREFIX_CHECK_ENABLEf:1,              /* 356:356   */ 
-                 FCOE_DO_NOT_LEARNf:1,                              /* 355:355   */ 
-                 FCOE_NETWORK_PORTf:1,                              /* 354:354   */ 
-                 RTAG7_PORT_PROFILE_INDEXf:10,                      /* 344:353   */ 
-                 MISC_PORT_PROFILE_INDEXf:8,                        /* 336:343   */ 
-                 REMOVE_HG_HDR_SRC_PORTf:1,                         /* 335:335   */ 
-                 ALLOW_SRC_MODf:1,                                  /* 334:334   */ 
-                 USE_INNER_PRIf:1,                                  /* 333:333   */ 
-                 DISCARD_IF_VNTAG_NOT_PRESENTf:1,                   /* 332:332   */ 
-                 DISCARD_IF_VNTAG_PRESENTf:1,                       /* 331:331   */ 
-                 RESERVED_327_330f:4,                               /* 327:330   */ 
-                 IFP_KEY_SEL_CLASS_IDf_hi:7;                        /* 320:326   */ 
-      
-        //Byte 48 
-        uint8_t VXLAN_TERMINATION_ALLOWEDf:1,                       /* 399:399   */ 
-                L2GRE_TERMINATION_ALLOWEDf:1,                       /* 398:398   */ 
-                V4L3_ENABLEf:1,                                     /* 397:397   */ 
-                V6L3_ENABLEf:1,                                     /* 396:396   */ 
-                V4IPMC_ENABLEf:1,                                   /* 395:395   */ 
-                V6IPMC_ENABLEf:1,                                   /* 394:394   */ 
-                FCOE_NPV_MODEf:1,                                   /* 393:393   */ 
-                RESERVED_392_392f:1,                                /* 392:392   */ 
-                DESTINATIONf:8;                                     /* 384:391   */ 
-       
-        //Byte 49 - 50 
-        uint16_t RESERVED_413_415f:3,                               /* 413:415   */ 
-                 OFFSET_ECMP_LEVEL2_RANDOM_LBf:4,                   /* 409:412   */ 
-                 OFFSET_ECMP_RANDOM_LBf:4,                          /* 405:408   */ 
-                 OFFSET_TRUNK_RANDOM_LBf:4,                         /* 401:404   */ 
-                 MPLS_ENABLEf:1;                                    /* 400:400   */ 
-       
-        //Byte 51 - 55 
-        uint8_t ECCP_0f;                                            /* 416:423   */ 
-        uint8_t ECCP_1f;                                            /* 424:431   */ 
-        uint8_t ECCP_2f;                                            /* 432:439   */ 
-        uint8_t ECCP_3f;                                            /* 440:447   */         
-    #endif
-    }reg;
-    struct data_ {
-       uint8_t DATA_0f[13];
-       uint8_t DATA_1f[13];
-       uint8_t DATA_2f[13];
-       uint8_t DATA_3f[13];
-       uint8_t ECCP_0f;
-       uint8_t ECCP_1f;
-       uint8_t ECCP_2f;
-       uint8_t ECCP_3f;
-    }data;
-    uint32_t word[14];
-    uint8_t  bytes[56];
+typedef struct {
+    uint32_t entry_data[14];
 }lport_tab_entry_t;
 
 //Memory: LPORT_TAB.ipipe0 aka LPORT alias LPORT0 address 0x501c0000
@@ -1325,8 +978,16 @@ typedef struct egr_port_entry_s {
            r0:27;            /* Reserved               */
 #endif
 }egr_port_entry_t;
-#define EGR_PORTm       0x06100000
 
+//Memory: EGR_PORT.epipe0 address 0x06100000
+//Flags: valid cachable(off)
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 72 with indices 0-71 (0x0-0x47), each 5 bytes 2 words
+//Entry mask: -1 0x0000001f
+//Description: Configuration Register for a Port. This is different for each GE, 10GE port. FeatureSpecific-Ethernet.
+
+#define EGR_PORTm              0x06100000
+#define EGR_PORTm_BYTES        5
 
 /*
 
@@ -1371,88 +1032,19 @@ soc_field_info_t soc_ING_DEVICE_PORT_BCM56370_A0m_fields[] = {
 #endif
 */
 
-typedef union ing_device_port_entry_s {
-    struct ing_port_reg_ {
-#if defined(LE_HOST)
-    uint64 PORT_TYPEf:3,                          /*   0:2      */
-           LPORT_PROFILE_IDXf:10,                 /*   3:12     */
-           SYS_PORT_IDf:7,                        /*  13:19     */
-           PP_PORT_NUMf:7,                        /*  20:26     */
-           SUBPORT_ID_NAMESPACEf:6,               /*  27:32     */
-           RESERVED_36_33f:4,                     /*  33:36     */
-           PKT_FLOW_SELECT_CTRL_ID_0f:12,         /*  37:48     */ 
-           //HYBRID_MODE_ENABLEf:1;               /*   38:38    */
-           //ING_PACKET_PROCESSING_ENABLE_0f:1;   /*   39:39    */
-           //ING_PACKET_PROCESSING_ENABLE_1f:1;   /*   40:40    */
-           USE_MH_VIDf:1,                         /*  49:49     */
-           USE_MH_PKT_PRIf:1,                     /*  50:50     */
-           PARSE_CTRL_ID_0f:8,                    /*  51:58     */
-           PARSE_CONTEXT_ID_0f_lo:5;              /*  59:63     */
 
-    uint64 PARSE_CONTEXT_ID_0f_hi:11,             /*  64:74     */
-           INITIAL_SHIFT_AMOUNT_0f:6,             /*  75:80     */
-           HDR_TYPE_0f:16,                        /*  81:96     */
-           RESERVED_98_97f:2,                     /*  97:98     */
-           MY_MODIDf:8,                           /*  99:106    */
-           HIGIG_TRUNKf:1,                        /* 107:107    */
-           HIGIG_TRUNK_IDf:6,                     /* 108:113    */
-           DUAL_MODID_ENABLEf:1,                  /* 114:114    */
-           REMOTE_CPU_ENf:1,                      /* 115:115    */
-           FROM_REMOTE_CPU_ENf:1,                 /* 116:116    */
-           SRC_SYS_PORT_IDf:7,                    /* 117:123    */ 
-           RESERVED_124_124f:1,                   /* 124:124    */
-           REMOVE_MH_SRC_PORTf:1,                 /* 125:125    */
-           PORT_IPBM_INDEXf_lo:2;                 /* 126:127    */
-
-    uint16 PORT_IPBM_INDEXf_hi:4,                 /* 128:131    */
-           DISABLE_TIMESTAMPINGf:1,               /* 132:132    */
-           INSERT_RX_TIMESTAMPf:1,                /* 133:133    */
-           RESERVED_134f:1,                       /* 134:134    */
-           ECCf:8,                                /* 135:142    */
-           PARITYf:1;                             /* 143:143    */
-#else
-    uint64 PARSE_CONTEXT_ID_0f_lo:5,              /*  59:63     */
-           PARSE_CTRL_ID_0f:8,                    /*  51:58     */
-           USE_MH_PKT_PRIf:1,                     /*  50:50     */
-           USE_MH_VIDf:1,                         /*  49:49     */
-           //HYBRID_MODE_ENABLEf:1;               /*  38:38     */
-           //ING_PACKET_PROCESSING_ENABLE_0f:1;   /*  39:39     */
-           //ING_PACKET_PROCESSING_ENABLE_1f:1;   /*  40:40     */
-           PKT_FLOW_SELECT_CTRL_ID_0f:12,         /*  37:48     */ 
-           RESERVED_36_33f:4,                     /*  33:36     */
-           SUBPORT_ID_NAMESPACEf:6,               /*  27:32     */
-           PP_PORT_NUMf:7,                        /*  20:26     */
-           SYS_PORT_IDf:7,                        /*  13:19     */
-           LPORT_PROFILE_IDXf:10,;                /*   3:12     */
-           PORT_TYPEf:3;                          /*   0:2      */
-
-    uint64 PORT_IPBM_INDEXf_lo:2,                 /* 126:127    */
-           REMOVE_MH_SRC_PORTf:1,                 /* 125:125    */
-           RESERVED_124_124f:1,                   /* 124:124    */
-           SRC_SYS_PORT_IDf:7,                    /* 117:123    */ 
-           FROM_REMOTE_CPU_ENf:1,                 /* 116:116    */
-           REMOTE_CPU_ENf:1,                      /* 115:115    */
-           DUAL_MODID_ENABLEf:1,                  /* 114:114    */
-           HIGIG_TRUNK_IDf:6,                     /* 108:113    */
-           HIGIG_TRUNKf:1,                        /* 107:107    */
-           MY_MODIDf:8,                           /*  99:106    */
-           RESERVED_98_97f:2,                     /*  97:98     */
-           HDR_TYPE_0f:16,                        /*  81:96     */
-           INITIAL_SHIFT_AMOUNT_0f:6,             /*  75:80     */           
-           PARSE_CONTEXT_ID_0f_hi:11;             /*  64:74     */
-
-    uint16 PARITYf:1,                             /* 143:143    */
-           ECCf:8,                                /* 135:142    */
-           RESERVED_134f:1,                       /* 134:134    */
-           INSERT_RX_TIMESTAMPf:1,                /* 133:133    */
-           DISABLE_TIMESTAMPINGf:1,               /* 132:132    */
-           PORT_IPBM_INDEXf_hi:4;                 /* 128:131    */
-#endif
-    }reg;
-    uint8_t  bytes[18];
+typedef struct {
+    uint32_t entry_data[18];
 }ing_device_port_entry_t;
 
+//Memory: ING_DEVICE_PORT.ipipe0 aka PORT alias PORT0 address 0x4c000000
+//Flags: valid cachable(on)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 73 with indices 0-72 (0x0-0x48), each 18 bytes 5 words
+//Description: Ingress Physical Port Table.
 #define ING_DEVICE_PORTm          0x4c000000
+#define ING_DEVICE_PORTm_BYTES    18
+
 
 /* Add an entry to field-value array for multiple fields write */
 #define _mem_set_field_value_array(_fa, _f, _va, _v, _p) \
@@ -2578,7 +2170,7 @@ typedef struct {
 
 
 #define MAC_BLOCKm                      0x805c0000
-
+#define MAC_BLOCKm_BYTES                11
 
 /*****************************************************************************************/
 /*                            VLAN                                                       */

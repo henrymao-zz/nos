@@ -2167,6 +2167,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     soc_info_t *si = bcmsw->si;
     uint32 port_type;
     int cpu_hg_index = -1;    
+    uint32_t val;
 
     egr_port_entry_t   egr_port_entry;  
     lport_tab_entry_t  lport_entry;
@@ -2185,11 +2186,11 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     /* EGR_LPORT_TABLE config init */
     //read EGR_PORTm
-    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
+    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), &egr_port_entry); 
 
     egr_port_entry.port_type = port_type;
 
-    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), &egr_port_entry); 
+    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), &egr_port_entry); 
 
     /* initialize the Cancun tag profile entry setup
      * for VT_MISS_UNTAG action. Should be done in Cancun
@@ -2201,27 +2202,66 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     /* PORT_TABLE config init */
     //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
-    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
+    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), &lport_entry); 
 
-    lport_entry.reg.PORT_VIDf = vid;
-    lport_entry.reg.MAC_BASED_VID_ENABLEf = 1;
-    lport_entry.reg.SUBNET_BASED_VID_ENABLEf = 1;
-    lport_entry.reg.PRI_MAPPINGf = 0xfac688;
-    lport_entry.reg.CFI_0_MAPPINGf = 0;
-    lport_entry.reg.CFI_1_MAPPINGf = 1;
-    lport_entry.reg.IPRI_MAPPINGf_lo = 0xfac688 & 0x3F;
-    lport_entry.reg.IPRI_MAPPINGf_hi = 0xfac688 >> 6; 
-    lport_entry.reg.ICFI_0_MAPPINGf = 0;
-    lport_entry.reg.ICFI_1_MAPPINGf = 1;
-    lport_entry.reg.CML_FLAGS_NEWf_lo = 0x8 & 0x7;
-    lport_entry.reg.CML_FLAGS_NEWf_hi = 0x8 >> 3;
-    lport_entry.reg.CML_FLAGS_MOVEf = 0x8;
+    //PORT_VIDf start 3, len 12
+    val = vid;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
+
+    //MAC_BASED_VID_ENABLEf start 240, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 240, 1, &val, 0);
+
+    // SUBNET_BASED_VID_ENABLEf start 239, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 239, 1, &val, 0);
+    
+    //PRI_MAPPINGf start 202, len 24
+    val = 0xfac688;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 202, 24, &val, SOCF_LE);
+
+    //CFI_0_MAPPINGf start 226, len 1
+    val = 0;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 226, 1, &val, 0);
+
+    //CFI_1_MAPPINGf start 227, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 227, 1, &val, 0);
+
+    //IPRI_MAPPINGf start 122, len 24
+    val = 0xfac688;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 122, 24, &val, SOCF_LE);   
+
+    //ICFI_0_MAPPINGf start 121, len 1
+    val = 0;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 121, 1, &val, 0);
+
+    //ICFI_1_MAPPINGf start 120, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 120, 1, &val, 0);
+
+    //CML_FLAGS_NEWf start 253, len 4
+    val = 0x8;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 253, 4, &val, SOCF_LE);   
+
+    //CML_FLAGS_MOVEf start 257, len 4
+    val = 0x8;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 257, 4, &val, SOCF_LE);   
+
+
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_OVID,
     //lport_entry.reg.VT_KEY_TYPEf = 
-    lport_entry.reg.VT_PORT_TYPE_SELECT_1f = 1;
+
+    //VT_PORT_TYPE_SELECT_1f start 52, len 2
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 52, 2, &val, SOCF_LE);  
+
     //_bcm_esw_pt_vtkey_type_value_get(unit, VLXLT_HASH_KEY_TYPE_IVID,
-    //lport_entry.reg.VT_KEY_TYPE_2f = 
-    lport_entry.reg.VT_PORT_TYPE_SELECT_2f = 1;
+
+    //VT_KEY_TYPE_2f start 52, len 2
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 54, 4, &val, SOCF_LE);  
+
     //lport_entry.reg.PORT_TYPEf = port_type;
     //lport_entry.reg.SRC_SYS_PORT_IDf = port;
      /* TD3TBD SYS_PORT_ID and PP_PORT_NUM should be covered by CIH,
@@ -2229,24 +2269,40 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     //lport_entry.reg.SYS_PORT_IDf = port;
     //lport_entry.reg.PP_PORT_NUMf = port;
     //lport_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
-    lport_entry.reg.TAG_ACTION_PROFILE_PTRf = 1;
 
-    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), &lport_entry); 
+    //TAG_ACTION_PROFILE_PTRf start 113, len 7
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 113, 7, &val, SOCF_LE); 
+
+    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), &lport_entry); 
 
     if (cpu_hg_index != -1) {
         //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
         /* TD3TBD should be covered by CMH, will remove it after CMH
          * is ready. */
-         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
 
-        //BCM_IF_ERROR_RETURN(soc_mem_field32_modify(unit, ING_DEVICE_PORTm,
-        //                    cpu_hg_index, PORT_TYPEf, 1));
-        ing_device_port_entry.reg.PORT_TYPEf = 1;
-        ing_device_port_entry.reg.SRC_SYS_PORT_IDf = port;
-        ing_device_port_entry.reg.SYS_PORT_IDf = port;
-        ing_device_port_entry.reg.PP_PORT_NUMf = port;
-        ing_device_port_entry.reg.DUAL_MODID_ENABLEf = 0; //dual_modid;
-        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(sizeof(ing_device_port_entry_t)), &ing_device_port_entry); 
+        //PORT_TYPEf start 0, len 3
+        val = 1;
+        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE);  
+
+        //SRC_SYS_PORT_IDf start 117, len 7
+        val = port;
+        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE);
+        
+        //SYS_PORT_IDf start 13, len 7
+        val = port;
+        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE);
+
+        //PP_PORT_NUMf start 20, len 7
+        val = port;
+        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE);
+
+        //DUAL_MODID_ENABLEf start 114, len 1
+        val = 0;
+        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 114, 1, &val, 0);
+
+        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
     }    
 
     return 0;
@@ -5354,7 +5410,7 @@ _soc_l2u_find_free_entry(bcmsw_switch_t *bcmsw, l2u_entry_t *key, int *free_inde
     }
     for (index = start; index != end; index += step) {
         rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, 
-			   SCHAN_BLK_IPIPE, (L2_USER_ENTRYm_BYTES+3)/4, &entry);
+			   SCHAN_BLK_IPIPE, BYTES2WORDS(L2_USER_ENTRYm_BYTES), &entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -5531,7 +5587,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
     uint32 profile_ptr = 0;
 
     _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, 
-		  SCHAN_BLK_EPIPE, (EGR_VLANm_BYTES+3)/4, &egr_vtab); 
+		  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &egr_vtab); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_get((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
@@ -5543,7 +5599,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
 
     //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
     _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
-		  SCHAN_BLK_EPIPE, (EGR_VLAN_VFI_UNTAGm_BYTES+3)/4, &egr_vlan_vfi); 
+		          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), &egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
     _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
@@ -5608,7 +5664,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
     _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, 
-		  SCHAN_BLK_IPIPE, (EGR_VLANm_BYTES+3)/4, &vlan_attrs); 
+		  SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &vlan_attrs); 
 
     //STGf start 2, len 9
     val = 1; //default STG
@@ -5927,20 +5983,20 @@ _proc_mem_show(struct seq_file *m, void *v)
 
     switch (p_data->reg_addr) {
        case EGR_PORTm:
-	   egr_port_entry = (egr_port_entry_t *)entry;
+	       egr_port_entry = (egr_port_entry_t *)entry;
            for (index =0; index < 72; index ++) {
 	       _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
-			     SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(egr_port_entry_t)), 
+			     SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
 			     egr_port_entry);
                seq_printf(m, "%2d [%2d]  0x%016llx\n", index, egr_port_entry->port_type, *egr_port_entry);
            }   
            break;
 
        case LPORT_TABm:
-	   lport_entry = (lport_tab_entry_t *)entry;
+	       lport_entry = (lport_tab_entry_t *)entry;
            for (index =0; index < 72; index ++) {
 	       _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
-			     SCHAN_BLK_EPIPE, BYTES2WORDS(sizeof(lport_tab_entry_t)), 
+			     SCHAN_BLK_EPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
 			     lport_entry);
                seq_printf(m, "%2d vid:%4d ", index, lport_entry->reg.PORT_VIDf);
 	       for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
@@ -5949,6 +6005,35 @@ _proc_mem_show(struct seq_file *m, void *v)
                seq_printf(m, "\n");
            }   
            break; 
+
+       case ING_DEVICE_PORTm:
+           ing_device_port_entry_t = (ing_device_port_entry_t *)entry;
+           for (index =0; index < 72; index ++) {
+	       _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
+			     SCHAN_BLK_EPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
+			     egr_port_entry);
+               seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+                          index,
+                          egr_port_entry->entry_data[0],
+                          egr_port_entry->entry_data[1],
+                          egr_port_entry->entry_data[2],
+                          egr_port_entry->entry_data[3],
+                          egr_port_entry->entry_data[4]);
+           }   
+           break;
+
+       case MAC_BLOCKm:
+           for (index =0; index < 32; index ++) {
+	       _soc_mem_read(_bcmsw->dev, MAC_BLOCKm+index, 
+			     SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), 
+			     entry);
+               seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
+                          index,
+                          entry->entry_data[0],
+                          entry->entry_data[1],
+                          entry->entry_data[2]);
+           }          
+           break;
 
        default:
 	   seq_printf(m," Not implemented\n");
@@ -6000,7 +6085,7 @@ _egr_vlan_show(struct seq_file *m, void *v)
         _soc_mem_read(_bcmsw->dev, 
 		      EGR_VLANm+index, 
 		      SCHAN_BLK_EPIPE, 
-		      (EGR_VLANm_BYTES + 3)/4, 
+		      BYTES2WORDS(EGR_VLANm_BYTES), 
 		      &ve); 
 
         //VALIDf start 0, len 1
@@ -6103,7 +6188,7 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
         _soc_mem_read(_bcmsw->dev, 
 		      VLAN_ATTRS_1m+index, 
 		      SCHAN_BLK_IPIPE, 
-		      (VLAN_ATTRS_1m_BYTES+3)/4, 
+		      BYTES2WORDS(VLAN_ATTRS_1m_BYTES), 
 		      &vlan_attrs); 
 
         //VALIDf start 58, len 1
@@ -6194,7 +6279,7 @@ _vlan_tab_show(struct seq_file *m, void *v)
         _soc_mem_read(_bcmsw->dev, 
 		      VLAN_TABm+index, 
 		      SCHAN_BLK_IPIPE, 
-		      (VLAN_TABm_BYTES+3)/4, 
+		      BYTES2WORDS(VLAN_TABm_BYTES), 
 		      &vt); 
 
         //VALIDf start 150, len 1
@@ -6264,7 +6349,7 @@ _egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
         _soc_mem_read(_bcmsw->dev, 
 		      EGR_VLAN_VFI_UNTAGm+index, 
 		      SCHAN_BLK_EPIPE, 
-		      (EGR_VLAN_VFI_UNTAGm_BYTES+3)/4, 
+		      BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
 		      &vt); 
 
         seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
@@ -6314,7 +6399,7 @@ _l2_user_entry_show(struct seq_file *m, void *v)
         _soc_mem_read(_bcmsw->dev, 
 		      L2_USER_ENTRYm+index, 
 		      SCHAN_BLK_IPIPE, 
-		      (L2_USER_ENTRYm_BYTES+3)/4, 
+		      BYTES2WORDS(L2_USER_ENTRYm_BYTES), 
 		      &vt); 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&vt, L2_USER_ENTRYm_BYTES, 0, 1, &val, 0);        
@@ -6453,6 +6538,26 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
     memset(p_data, 0, sizeof(_proc_reg_data_t));
     p_data->reg_addr = LPORT_TABm;
     entry = proc_create_data("LPORT_TAB", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/ING_DEVICE_PORT
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = ING_DEVICE_PORTm;
+    entry = proc_create_data("ING_DEVICE_PORT", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/MAC_BLOCK
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = MAC_BLOCKm;
+    entry = proc_create_data("MAC_BLOCK", 0666, proc_mem_base, &_proc_mem_ops, p_data);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;
