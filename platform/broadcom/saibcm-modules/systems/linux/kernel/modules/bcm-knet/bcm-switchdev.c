@@ -5091,7 +5091,7 @@ static int _trident3_mdio_rate_divisor_set(void)
 static int
 _soc_trident3_init_mmu_memory(bcmsw_switch_t *bcmsw)
 {
-    mmu_gcfg_miscconfig_reg_t mmu_gcfg = 0;
+    mmu_gcfg_miscconfig_reg_t mmu_gcfg;
     //int alloc_size;
 
    //if (_fwd_ctrl_lock[unit] == NULL) {
@@ -5113,22 +5113,22 @@ _soc_trident3_init_mmu_memory(bcmsw_switch_t *bcmsw)
 
     /* Initialize MMU memory */
     mmu_gcfg.word = 0;
-    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
 
     mmu_gcfg.reg.PARITY_ENf =  1;
     /* Need to assert PARITY_EN before setting INIT_MEM to start memory initialization */
-    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
 
     mmu_gcfg.reg.INIT_MEMf =  1;
-    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
 
     mmu_gcfg.reg.INIT_MEMf =  0;
-    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
     
     udelay(20);
     mmu_gcfg.reg.PARITY_ENf =  0;
     mmu_gcfg.reg.REFRESH_ENf = 1;
-    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
  
     return SOC_E_NONE;
 }
@@ -5141,7 +5141,6 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
     uint32 val;
     ing_phy2idb_entry_t entry;
     ing_idb2dev_entry_t idb_entry;
-    egr_dev2phy_map_t   egr_map_reg;
     sys_portmap_t       sysport_entry;
     int max_idx = 0;
     soc_info_t *si = bcmsw->si;
@@ -5221,7 +5220,7 @@ static int _misc_init(bcmsw_switch_t *bcmsw)
 {
     _soc_trident3_init_mmu_memory(bcmsw);
 
-    //_soc_helix5_port_mapping_init
+    _soc_helix5_port_mapping_init(bcmsw);
 
     //_soc_helix5_idb_init
 
@@ -6894,7 +6893,6 @@ create_fail:
 static int _procfs_init(bcmsw_switch_t *bcmsw)
 {
     struct proc_dir_entry *entry;
-    _proc_reg_data_t *p_data;
     int rv;
 
     proc_switchdev_base = proc_mkdir("switchdev", NULL);
