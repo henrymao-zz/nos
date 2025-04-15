@@ -715,6 +715,7 @@ typedef union schan_msg_u {
 #define SCHAN_BLK_EPIPE     2
 #define SCHAN_BLK_MMU_XPE   3
 #define SCHAN_BLK_MMU_SC    4
+#define SCHAN_BLK_MMU_GLB   5
 #define SCHAN_BLK_MMU_SED   6
 #define SCHAN_BLK_TOP       7
 
@@ -1343,6 +1344,96 @@ typedef union q_sched_rqe_s {
 } q_sched_rqe_t;
 #define Q_SCHED_RQE_SNAPSHOTr                         0x11800500
 
+
+/*****************************************************************************************/
+/*                            Port Mapping                                               */
+/*****************************************************************************************/
+
+//Memory: ING_PHY_TO_IDB_PORT_MAP.ipipe0 address 0x00000000
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
+//Entry mask: 0x000000ff
+//Description: Ingress Physical to IDB Port Number Mapping Table. Indexed by the physical port number, and provides the corresponding idb port number.
+
+/*
+soc_field_info_t soc_ING_PHY_TO_IDB_PORT_MAP_BCM56370_A0m_fields[] = {
+    { IDB_PORTf, 7, 1, SOCF_LE | SOCF_GLOBAL },
+    { VALIDf, 1, 0, 0 | SOCF_GLOBAL }
+};
+ */
+#define ING_PHY_TO_IDB_PORT_MAPm                      0x00000000
+#define ING_PHY_TO_IDB_PORT_MAPm_BYTES                1
+#define ING_PHY_TO_IDB_PORT_MAPm_MAX_INDEX            78
+
+typedef struct {
+    uint32_t entry_data[1];
+}ing_phy2idb_entry_t;
+
+//Memory: ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE.ipipe0 address 0x00040000
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 72 with indices 0-71 (0x0-0x47), each 1 bytes 1 words
+//Entry mask: 0x0000007f
+//Description: Ingress IDB to Device Port Number Mapping Table. Indexed by the IDB port number, and provides the corresponding device port number.
+#define ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm          0x00040000
+#define ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES    1
+#define ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_MAX_INDEX       71    
+
+/*
+soc_field_info_t soc_ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE_BCM56370_A0m_fields[] = {
+    { DEVICE_PORT_NUMBERf, 7, 0, SOCF_LE | SOCF_GLOBAL }
+};
+ */
+typedef struct {
+    uint32_t entry_data[1];
+}ing_idb2dev_entry_t;
+
+//Register: EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPING.cpu0 port register address 0x28004100
+//Blocks: epipe0 (1 copy)
+//Description: Egress Device to Physical Port Number Mapping Register. Indexed by the Device port number, and provides the corresponding physical port number.
+//Displaying: reset defaults, reset value 0x7f mask 0x7f
+//  PHYSICAL_PORT_NUMBER<6:0> = 0x7f
+#define EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr           0x28004100
+
+//Register: MMU_PORT_TO_PHY_PORT_MAPPING.cpu0 port register address 0x08110046
+//Blocks: mmu_glb0 (1 copy)
+//Description: MMU port to Physical port number mapping
+//Displaying: reset defaults, reset value 0xff mask 0xff
+//  PHY_PORT<7:0> = 0xff
+
+#define MMU_PORT_TO_PHY_PORT_MAPPINGr                         0x08110046
+
+
+//Register: MMU_PORT_TO_DEVICE_PORT_MAPPING.cpu0 port register address 0x08100046
+//Blocks: mmu_glb0 (1 copy)
+//Description: MMU port to DEVICE port number mapping
+//Displaying: reset defaults, reset value 0xff mask 0xff
+//  DEVICE_PORT<7:0> = 0xff
+#define MMU_PORT_TO_DEVICE_PORT_MAPPINGr                      0x08100046
+
+
+//Memory: SYS_PORTMAP.ipipe0 address 0x80f40000
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 256 with indices 0-255 (0x0-0xff), each 1 bytes 1 words
+//Entry mask: 0x0000007f
+//Description: System Port Mapping Table (maps local system port number to a local physical port number)
+//  RESERVED_DEVICE_PORT_NUMBER<7>
+//  DEVICE_PORT_NUMBER<6:0>
+
+/*
+soc_field_info_t soc_SYS_PORTMAP_BCM56370_A0m_fields[] = {
+    { DEVICE_PORT_NUMBERf, 7, 0, SOCF_LE | SOCF_GLOBAL },
+    { RESERVED_DEVICE_PORT_NUMBERf, 1, 7, SOCF_RES | SOCF_GLOBAL }
+};
+ */
+typedef struct {
+    uint32_t entry_data[1];
+}sys_portmap_t;
+
+#define SYS_PORTMAPm                                          0x80f40000
+#define SYS_PORTMAPm_BYTES                                    1
+#define SYS_PORTMAPm_MAX_INDEX                                255    
+
+
 /*****************************************************************************************/
 /*                            PHY related                                                */
 /*****************************************************************************************/
@@ -1851,6 +1942,55 @@ typedef union idb_lpbk_ca_s {
 typedef idb_lpbk_ca_t idb_ca_cpu_t;
 
 #define IDB_CA_CPU_CONTROL_PIPE0r       0x02000200
+
+/*****************************************************************************************/
+/*                             MMU                                                       */
+/*****************************************************************************************/
+
+//Register: MMU_GCFG_MISCCONFIG.mmu_glb0 general register address 0x0a000000
+//Flags:
+//Blocks: mmu_glb0 (1 copy)
+//Description: Controls various functions in the MMU
+//acc_type = 20
+
+/*
+soc_field_info_t soc_MMU_GCFG_MISCCONFIG_BCM56970_A0r_fields[] = {
+    { BST_CLEAR_ON_READ_IN_MAX_USE_COUNT_MODE_ENABLEf, 1, 8, 0 },
+    { BST_TRACKING_MODEf, 1, 3, 0 },
+    { INIT_MEMf, 1, 1, 0 },
+    { PARITY_ENf, 1, 2, 0 },
+    { REFRESH_ENf, 1, 0, 0 },
+    { RESERVEDf, 3, 5, SOCF_LE|SOCF_RES },
+    { SBUS_SPLIT_ERR_CHK_OVERRIDEf, 1, 4, 0 }
+};
+ */
+typedef union mmu_gcfg_miscconfig_reg_s {
+    struct _mmu_gcfg_miscconfig_reg_ {
+#if defined(LE_HOST)
+    uint32_t  REFRESH_ENf:1,
+              INIT_MEMf:1,
+              PARITY_ENf:1,
+              BST_TRACKING_MODEf:1,
+              SBUS_SPLIT_ERR_CHK_OVERRIDEf:1,
+              RESERVEDf:3,
+              BST_CLEAR_ON_READ_IN_MAX_USE_COUNT_MODE_ENABLEf:1,
+              r0:23;
+#else
+    uint32_t  r0:23,
+              BST_CLEAR_ON_READ_IN_MAX_USE_COUNT_MODE_ENABLEf:1,
+              RESERVEDf:3,
+              SBUS_SPLIT_ERR_CHK_OVERRIDEf:1,
+              BST_TRACKING_MODEf:1,
+              PARITY_ENf:1,
+              INIT_MEMf:1,
+              REFRESH_ENf:1;
+#endif
+    }reg;
+    uint32_t word;
+} mmu_gcfg_miscconfig_reg_t;
+
+#define MMU_GCFG_MISCCONFIGr             0x0a000000
+
 
 
 /*****************************************************************************************/

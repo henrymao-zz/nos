@@ -2299,6 +2299,14 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), &lport_entry); 
 
+
+    //Update ING_DEVICE_PORTm
+    _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
+
+
+
+
+
     if (cpu_hg_index != -1) {
         //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
         /* TD3TBD should be covered by CMH, will remove it after CMH
@@ -5051,6 +5059,10 @@ static int _cmicx_pci_test(struct net_device *dev)
     return -EFAULT;
 }
 
+/*****************************************************************************************/
+/*                             init misc                                                 */
+/*****************************************************************************************/
+
 static int _trident3_mdio_rate_divisor_set(void)
 {
     int int_divisor, ext_divisor;
@@ -5076,18 +5088,165 @@ static int _trident3_mdio_rate_divisor_set(void)
     return SOC_E_NONE;
 }
 
+static int
+_soc_trident3_init_mmu_memory(bcmsw_switch_t *bcmsw)
+{
+    mmu_gcfg_miscconfig_reg_t mmu_gcfg = 0;
+    //int alloc_size;
+
+   //if (_fwd_ctrl_lock[unit] == NULL) {
+   //     _fwd_ctrl_lock[unit] = sal_mutex_create("_fwd_ctrl_lock");
+   // }
+   // if (_fwd_ctrl_lock[unit] == NULL) {
+   //     return SOC_E_MEMORY;
+   // }
+
+    //if (_soc_td3_mmu_traffic_ctrl[unit] == NULL) {
+    //    alloc_size = sizeof(_soc_td3_mmu_traffic_ctrl_t);
+    //    _soc_td3_mmu_traffic_ctrl[unit] =
+    //        sal_alloc(alloc_size,"_soc_td3_mmu_traffic_ctrl");
+    //    if (_soc_td3_mmu_traffic_ctrl[unit] == NULL) {
+    //        return SOC_E_MEMORY;
+    //    }
+    //    sal_memset(_soc_td3_mmu_traffic_ctrl[unit], 0, alloc_size);
+    //}
+
+    /* Initialize MMU memory */
+    mmu_gcfg.word = 0;
+    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+
+    mmu_gcfg.reg.PARITY_ENf =  1;
+    /* Need to assert PARITY_EN before setting INIT_MEM to start memory initialization */
+    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+
+    mmu_gcfg.reg.INIT_MEMf =  1;
+    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+
+    mmu_gcfg.reg.INIT_MEMf =  0;
+    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+    
+    udelay(20);
+    mmu_gcfg.reg.PARITY_ENf =  0;
+    mmu_gcfg.reg.REFRESH_ENf = 1;
+    _schan_reg32_write(bcmsw->dev, , MMU_GCFG_MISCCONFIGr, mmu_gcfg.word, 20);
+ 
+    return SOC_E_NONE;
+}
+
+
+static int
+_soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
+{
+    int port, phy_port, idb_port, i;
+    uint32 val;
+    ing_phy2idb_entry_t entry;
+    ing_idb2dev_entry_t idb_entry;
+    egr_dev2phy_map_t   egr_map_reg;
+    sys_portmap_t       sysport_entry;
+    int max_idx = 0;
+    soc_info_t *si = bcmsw->si;
+
+    /* Ingress IDB to device port mapping */
+    memset(&entry, 0, sizeof(entry));
+    /* Set all entries to 0x7f as default */
+    //VALIDf bit start 0, len 1
+    val = 0;
+    _mem_field_set((uint32_t *)&entry, ING_PHY_TO_IDB_PORT_MAPm_BYTES, 0, 1, &val, 0);
+
+    //IDB_PORTf start 1, len 7
+    val = 0x7f;
+    _mem_field_set((uint32_t *)&entry, ING_PHY_TO_IDB_PORT_MAPm_BYTES, 1, 7, &val, SOCF_LE);
+
+
+    max_idx = ING_PHY_TO_IDB_PORT_MAPm_MAX_INDEX;
+    for (phy_port = 0; phy_port <= max_idx; phy_port++) {
+        _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + phy_port, SCHAN_BLK_IPIPE, 
+                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
+    }
+
+    /* Ingress IDB to device port mapping */
+    memset(&idb_entry, 0, sizeof(idb_entry));
+
+    /* Set all entries to 0x7f since Device Port No. 0 corresponds to CPU port*/
+    //DEVICE_PORT_NUMBERf start 0, len 7
+    val = 0x7f;
+    _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
+
+    for (idb_port = 0; idb_port < HX5_NUM_PORT; idb_port++) {
+        _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
+                       BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+    }
+
+    /* Ancillary ports */
+    for (i = 0; i < COUNTOF(hx5_anc_ports); i++) {
+        idb_port = hx5_anc_ports[i].idb_port;
+        phy_port = si->port_m2p_mapping[idb_port];
+        port = si->port_p2l_mapping[phy_port];
+
+        //DEVICE_PORT_NUMBERf start 0, len 7
+        val = port;
+        _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
+        _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
+            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+
+        /* Egress device port to physical port mapping */
+        val = phy_port;
+        _reg32_write(bcmsw->dev, SCHAN_BLK_EPIPE,EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr+port, val);
+
+        /* MMU port to physical port mapping */
+        val = phy_port;
+        _reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+port, val);
+
+        /* MMU port to device port mapping */
+        val = phy_port;
+        _reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val);
+
+    }
+    /* Ingress GPP port to device port mapping */
+    memset(&sysport_entry, 0, sizeof(sys_portmap_t));
+    for (port = 0; port < HX5_NUM_PORT; port++) {
+        // DEVICE_PORT_NUMBERf start 0, len 7
+        val = port;
+        _mem_field_set((uint32_t *)&sysport_entry, SYS_PORTMAPm, 0, 7, &val, SOCF_LE);
+
+        _soc_mem_write(bcmsw->dev, SYS_PORTMAPm + port, SCHAN_BLK_IPIPE, 
+                       BYTES2WORDS(SYS_PORTMAPm_BYTES), &sysport_entry);
+    }
+
+    return SOC_E_NONE;
+}
 
 //_soc_helix5_misc_init
 static int _misc_init(bcmsw_switch_t *bcmsw)
 {
-    /******************************* soc_reset()****************************/
+    _soc_trident3_init_mmu_memory(bcmsw);
 
-
-    /******************************* soc_reset()****************************/
     //_soc_helix5_port_mapping_init
 
     //_soc_helix5_idb_init
 
+    //_soc_helix5_edb_init
+
+
+    // (soc_mem_write(unit, CPU_PBMm, MEM_BLOCK_ALL, 0, entry));
+    //soc_mem_write(unit, CPU_PBM_2m, MEM_BLOCK_ALL, 0, entry)
+
+    //(soc_mem_write(unit, DEVICE_LOOPBACK_PORTS_BITMAPm, MEM_BLOCK_ALL, 0,
+
+
+    //soc_mem_write(unit, EGR_ING_PORTm, MEM_BLOCK_ALL, port, entry)
+
+    /* Enable dual hash tables */
+    //SOC_IF_ERROR_RETURN(soc_trident3_hash_init(unit));
+
+    // /soc_mem_field32_set(unit, MODPORT_MAP_SUBPORTm, &map_entry, ENABLEf, 1);
+
+
+    /* setting up my_modid */
+
+    //READ_ING_CONFIG_64r
+
+    //ING_EN_EFILTER_BITMAPm
 
     /* Setup MDIO divider */
     _trident3_mdio_rate_divisor_set();
@@ -5940,25 +6099,58 @@ _proc_reg32_show(struct seq_file *m, void *v)
     seq_printf(m, "base 0x%x\n", p_data->reg_addr);
 
     switch (p_data->reg_addr) {
-       case COMMAND_CONFIGr:
-           for (index =0; index < 6; index ++) {
+        case COMMAND_CONFIGr:
+            for (index =0; index < 6; index ++) {
                _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
                seq_printf(m, "%2d [%2d]  0x%08x\n", index, gxblk[index], val);
-           }   
-           break;
-       case IDB_OBM0_Q_CONTROLr:
-           for (index =0; index < 10; index ++) { 
-	       _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
-	       seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, obm_ctrl_regs[index], val);
-           }
-	   break;
+            }   
+            break;
+        case IDB_OBM0_Q_CONTROLr:
+            for (index =0; index < 10; index ++) { 
+	            _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
+	            seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, obm_ctrl_regs[index], val);
+            }
+	        break;
  
-       case IDB_OBM0_Q_CA_CONTROLr:
-           for (index =0; index < 10; index ++) { 
-	       _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, soc_helix5_obm_ca_ctrl_regs[index], &val);
-	       seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, soc_helix5_obm_ca_ctrl_regs[index], val);
-           }
-	   break;
+        case IDB_OBM0_Q_CA_CONTROLr:
+            for (index =0; index < 10; index ++) { 
+	            _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, soc_helix5_obm_ca_ctrl_regs[index], &val);
+	            seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, soc_helix5_obm_ca_ctrl_regs[index], val);
+            }
+	        break;
+
+        case MMU_GCFG_MISCCONFIGr:
+           _schan_reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, &val, 20);
+           seq_printf(m, "0x%08x\n",val);
+           break;
+
+        case EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr:
+            for (index =0; index < HX5_NUM_PORT; index ++) { 
+	            _reg32_read(_bcmsw->dev,SCHAN_BLK_EPIPE, 
+                            EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr+index,
+                            &val);
+	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+            }
+            break;
+
+        case MMU_PORT_TO_PHY_PORT_MAPPINGr:
+            for (index =0; index < HX5_NUM_PORT; index ++) { 
+	            _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                            MMU_PORT_TO_PHY_PORT_MAPPINGr+index,
+                            &val);
+	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+            }
+            break;
+
+        case MMU_PORT_TO_DEVICE_PORT_MAPPINGr:
+            for (index =0; index < HX5_NUM_PORT; index ++) { 
+	            _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                            MMU_PORT_TO_DEVICE_PORT_MAPPINGr+index,
+                            &val);
+	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+            }
+            break;
+                    
        default:
 	   seq_printf(m," Not implemented\n");
     } 
@@ -6006,61 +6198,97 @@ _proc_mem_show(struct seq_file *m, void *v)
     seq_printf(m, "base 0x%x\n", p_data->reg_addr);
 
     switch (p_data->reg_addr) {
-       case EGR_PORTm:
-	       egr_port_entry = (egr_port_entry_t *)entry;
-           for (index =0; index < 72; index ++) {
-	       _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
-			     SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
-			     egr_port_entry);
-               seq_printf(m, "%2d [%2d]  0x%016llx\n", index, egr_port_entry->port_type, *egr_port_entry);
-           }   
-           break;
+        case EGR_PORTm:
+	        egr_port_entry = (egr_port_entry_t *)entry;
+            for (index =0; index < 72; index ++) {
+                _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
+			                   SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
+			                   egr_port_entry);
+                seq_printf(m, "%2d [%2d]  0x%016llx\n", index, egr_port_entry->port_type, *egr_port_entry);
+            }   
+            break;
 
-       case LPORT_TABm:
-           for (index =0; index < 72; index ++) {
-	       _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
-			     SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
-			     entry);
-	       //PORT_VIDf start 3, len 12
-	       _mem_field_get(entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
-               seq_printf(m, "%2d vid:%4d ", index, val);
-	       for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
-                   seq_printf(m, "0x%08x ", entry[i]);
-	       }
+        case LPORT_TABm:
+            for (index =0; index < 72; index ++) {
+	            _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
+			                  SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
+			                  entry);
+	            //PORT_VIDf start 3, len 12
+	            _mem_field_get(entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
+                seq_printf(m, "%2d vid:%4d ", index, val);
+	            for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
+                    seq_printf(m, "0x%08x ", entry[i]);
+	            }
                seq_printf(m, "\n");
            }   
            break; 
 
-       case ING_DEVICE_PORTm:
-           for (index =0; index < 72; index ++) {
-	       _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
-			     SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
-			     entry);
-               seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+        case ING_DEVICE_PORTm:
+            for (index =0; index < 72; index ++) {
+	            _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
+			                  SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
+			                  entry);
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
                           index,
                           entry[0],
                           entry[1],
                           entry[2],
                           entry[3],
                           entry[4]);
-           }   
-           break;
+            }   
+            break;
 
-       case MAC_BLOCKm:
-           for (index =0; index < 32; index ++) {
-	       _soc_mem_read(_bcmsw->dev, MAC_BLOCKm+index, 
-			     SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), 
-			     entry);
-               seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
-                          index,
-                          entry[0],
-                          entry[1],
-                          entry[2]);
-           }          
-           break;
+        case MAC_BLOCKm:
+            for (index =0; index < 32; index ++) {
+                _soc_mem_read(_bcmsw->dev, MAC_BLOCKm+index, 
+			                  SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), 
+			                  entry);
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
+                           index,
+                           entry[0],
+                           entry[1],
+                           entry[2]);
+            }          
+            break;
 
-       default:
-	   seq_printf(m," Not implemented\n");
+        case SYS_PORTMAPm:
+            for (index =0; index < HX5_NUM_PORT; index ++) {
+	            _soc_mem_read(_bcmsw->dev, SYS_PORTMAPm+index, 
+			                  SCHAN_BLK_IPIPE, BYTES2WORDS(SYS_PORTMAPm_BYTES), 
+			                  entry);
+                seq_printf(m, "[%2d]   0x%08x \n", 
+                           index,
+                           entry[0]);
+            }          
+            break;     
+        
+        case ING_PHY_TO_IDB_PORT_MAPm:
+            for (index =0; index < ING_PHY_TO_IDB_PORT_MAPm_MAX_INDEX; index ++) {
+	            _soc_mem_read(_bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm+index, 
+			                  SCHAN_BLK_IPIPE, BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), 
+			                  entry);
+                seq_printf(m, "[%2d]   0x%08x \n", 
+                           index,
+                           entry[0]);
+            }    
+            break;
+
+        case ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm:
+            for (index =0; index < HX5_NUM_PORT; index ++) {
+	            _soc_mem_read(_bcmsw->dev, 
+                              ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm+index, 
+			                  SCHAN_BLK_IPIPE, 
+                              BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), 
+			                  entry);
+                seq_printf(m, "[%2d]   0x%08x \n", 
+                           index,
+                           entry[0]);
+            }      
+            break;
+
+        default:
+	        seq_printf(m," Not implemented\n");
+            break;
     } 
     return 0;
 }
@@ -6496,7 +6724,46 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }
+    
+    // /proc/switchdev/reg/MMU_GCFG_MISCCONFIG
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = MMU_GCFG_MISCCONFIGr;
+    entry = proc_create_data("MMU_GCFG_MISCCONFIG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
 
+    // /proc/switchdev/reg/EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPING
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr;
+    entry = proc_create_data("EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPING", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/reg/MMU_PORT_TO_PHY_PORT_MAPPING
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = MMU_PORT_TO_PHY_PORT_MAPPINGr;
+    entry = proc_create_data("MMU_PORT_TO_PHY_PORT_MAPPING", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/reg/MMU_PORT_TO_DEVICE_PORT_MAPPING
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = MMU_PORT_TO_DEVICE_PORT_MAPPINGr;
+    entry = proc_create_data("MMU_PORT_TO_DEVICE_PORT_MAPPING", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
     return 0;
 create_fail:
     return -1;
@@ -6587,6 +6854,36 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
+    // /proc/switchdev/mem/SYS_PORTMAP
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = SYS_PORTMAPm;
+    entry = proc_create_data("SYS_PORTMAP", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/ING_PHY_TO_IDB_PORT_MAP
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = ING_PHY_TO_IDB_PORT_MAPm;
+    entry = proc_create_data("ING_PHY_TO_IDB_PORT_MAP", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm;
+    entry = proc_create_data("ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
     return 0;
 
 create_fail:
