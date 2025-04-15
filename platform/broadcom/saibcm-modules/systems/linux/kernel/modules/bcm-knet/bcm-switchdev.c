@@ -5215,12 +5215,61 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
     return SOC_E_NONE;
 }
 
+//soc_helix5_flex_idb_reconfigure
+static int
+_soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
+{
+    int i, valid;
+    int physical_port, idb_port;
+    uint32_t memfld, val;
+    ing_phy2idb_entry_t entry;
+    ing_idb2dev_entry_t idb_entry;
+    soc_info_t *si = bcmsw->si;
+
+    //update ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm & ING_PHY_TO_IDB_PORT_MAPm
+
+    for(i = 0; i < HX5_NUM_PORT; i++) {
+        physical_port = si->port_l2p_mapping[i];
+        if(physical_port != -1) {
+            memfld = i ; 
+            idb_port = si->port_l2i_mapping[i];
+	        valid = 1;
+        } else {
+            memfld = 0x7f ; 
+	        valid = 0;
+        }	
+        
+        memset(&idb_entry, 0, sizeof(idb_entry));
+        //DEVICE_PORT_NUMBERf start 0, len 7
+        val = memfld;
+        _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
+        _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
+            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+
+
+        memset(&entry, 0, sizeof(entry));
+        //VALIDf bit start 0, len 1
+        val = valid;
+        _mem_field_set((uint32_t *)&entry, ING_PHY_TO_IDB_PORT_MAPm_BYTES, 0, 1, &val, 0);
+
+        //IDB_PORTf start 1, len 7
+        val = (valid == 0) ? 0x7f: idb_port;
+        _mem_field_set((uint32_t *)&entry, ING_PHY_TO_IDB_PORT_MAPm_BYTES, 1, 7, &val, SOCF_LE);
+
+        _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + physical_port-1, SCHAN_BLK_IPIPE, 
+                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
+    }
+}
+
 //_soc_helix5_misc_init
 static int _misc_init(bcmsw_switch_t *bcmsw)
 {
     _soc_trident3_init_mmu_memory(bcmsw);
 
     _soc_helix5_port_mapping_init(bcmsw);
+
+    //_soc_helix5_tdm_init -> soc_helix5_reconfigure_ports -> soc_helix5_flex_idb_reconfigure
+    _soc_helix5_flex_idb_reconfigure(bcmsw);
 
     //_soc_helix5_idb_init
 
