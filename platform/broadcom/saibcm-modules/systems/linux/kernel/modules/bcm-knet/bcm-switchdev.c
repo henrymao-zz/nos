@@ -5228,15 +5228,15 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
 
     //update ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm & ING_PHY_TO_IDB_PORT_MAPm
 
-    for(i = 0; i < HX5_NUM_PORT; i++) {
+    for(i = 1; i < HX5_NUM_PORT; i++) {
         physical_port = si->port_l2p_mapping[i];
         if(physical_port != -1) {
             memfld = i ; 
             idb_port = si->port_l2i_mapping[i];
-	        valid = 1;
+            valid = 1;
         } else {
             memfld = 0x7f ; 
-	        valid = 0;
+	    valid = 0;
         }	
         
         memset(&idb_entry, 0, sizeof(idb_entry));
@@ -5245,7 +5245,6 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
         _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
         _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
             BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
-
 
         memset(&entry, 0, sizeof(entry));
         //VALIDf bit start 0, len 1
@@ -6312,12 +6311,15 @@ _proc_mem_show(struct seq_file *m, void *v)
         
         case ING_PHY_TO_IDB_PORT_MAPm:
             for (index =0; index < ING_PHY_TO_IDB_PORT_MAPm_MAX_INDEX; index ++) {
-	            _soc_mem_read(_bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm+index, 
-			                  SCHAN_BLK_IPIPE, BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), 
-			                  entry);
-                seq_printf(m, "[%2d]   0x%08x \n", 
-                           index,
-                           entry[0]);
+                _soc_mem_read(_bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm+index, 
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), 
+                              entry);
+		//VALIDf bit 0
+		if(entry[0] & 0x1) {
+                    seq_printf(m, "[%2d]   0x%08x \n", 
+                               index,
+                               entry[0]);
+		}
             }    
             break;
 
