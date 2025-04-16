@@ -5102,6 +5102,307 @@ _esw_port_encap_get(bcmsw_switch_t *bcmsw, int port, int *encap)
     return SOC_E_NONE;
 }
 
+
+
+/*****************************************************************************************/
+/*                             Spanning Tree (STG)                                       */
+/*****************************************************************************************/
+static int
+_bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
+{
+    uint32 entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
+ 
+    //int stp_state;              /* STP port state.               */
+    //bcm_pbmp_t stacked;         /* Bitmap of stacked ports.      */
+    //bcm_port_t port;            /* Port iterator.                */
+
+    /* Set all ports to PVP_STP_DISABLED */
+    memset(entry, 0, sizeof(entry));
+
+#if 0   
+    /* Get all stacking ports and set them into forwarding */
+    BCM_PBMP_ASSIGN(stacked, PBMP_ST_ALL(unit));
+    BCM_PBMP_OR(stacked, SOC_PBMP_STACK_CURRENT(unit));
+    stp_state = PVP_STP_FORWARDING;
+
+
+    if (!SOC_IS_TOMAHAWK3(unit)) {
+        /* Get all stacking ports and set them into forwarding */
+        BCM_PBMP_ASSIGN(stacked, PBMP_ST_ALL(unit));
+        BCM_PBMP_OR(stacked, SOC_PBMP_STACK_CURRENT(unit));
+
+    /* Iterate over stacking ports & set stp state. */
+    PBMP_ITER(stacked, port) {
+        entry[STG_WORD(port)] |= stp_state << STG_BITS_SHIFT(port);
+    }
+    }
+
+    /* Write spanning tree group port states to hw. */
+    BCM_IF_ERROR_RETURN(soc_mem_write(unit, mem, MEM_BLOCK_ALL, stg, entry));
+
+    if ((BCM_STG_DEFAULT == stg) &&
+        soc_feature(unit, soc_feature_vlan_vfi_membership)) {
+
+        /* Initialize the STP state for 'PVP_STP_FORWARDING' for all
+           groups on default STG */
+        BCM_IF_ERROR_RETURN(bcm_td2p_vp_group_stp_init(
+            unit, stg, (mem == EGR_VLAN_STGm), stp_state));
+    }
+
+#endif
+    if ((BCM_STG_DEFAULT == stg) {
+        entry[0] = 0xfffffffc;
+        entry[1] = 0xffffffff;
+        entry[2] = 0xffffffff;
+        entry[3] = 0x000c0fff;
+        entry[4] = 0xffffc000;
+        entry[5] = 0xffffffff;
+        entry[6] = 0xffffffff;
+        entry[7] = 0xffffffff;
+        entry[8] = 0x0000ffff;
+        entry[9] = 0x00000000;
+        entry[10] = 0x00000000;
+    }
+    
+    _soc_mem_write(bcmsw->dev, STG_TABm+stg,
+                   SCHAN_BLK_IPIPE, 
+                   BYTES2WORDS(STG_TABm_BYTES), 
+                   entry); 
+    
+    return (SOC_E_NONE);
+}
+
+static int
+_bcm_xgs3_stg_stp_init_egr(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
+{
+    uint32 entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
+
+    /* Set all ports to PVP_STP_DISABLED */
+    memset(entry, 0, sizeof(entry));
+
+    if (BCM_STG_DEFAULT == stg) {
+        entry[0] = 0xfffffffc;
+        entry[1] = 0xffffffff;
+        entry[2] = 0xffffffff;
+        entry[3] = 0x000c0fff;
+        entry[4] = 0xffffc000;
+        entry[5] = 0xffffffff;
+        entry[6] = 0xffffffff;
+        entry[7] = 0xffffffff;
+        entry[8] = 0x0000ffff;
+        entry[9] = 0x00000000;
+    }
+    
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_STGm+stg,
+                   SCHAN_BLK_EPIPE, 
+                   BYTES2WORDS(EGR_VLAN_STGm_BYTES), 
+                   entry); 
+    
+    return (SOC_E_NONE);
+}
+
+
+static int
+_bcm_stg_pvp_translate(int pvp_state, int *bcm_state)
+{
+    if (NULL == bcm_state) {
+        return (SOC_E_PARAM);
+    }
+
+    switch (pvp_state) {
+      case PVP_STP_FORWARDING:
+          *bcm_state = BCM_STG_STP_FORWARD;
+          break;
+      case PVP_STP_BLOCKING:
+          *bcm_state = BCM_STG_STP_BLOCK;
+          break;
+      case PVP_STP_LEARNING:
+          *bcm_state = BCM_STG_STP_LEARN;
+          break;
+      case PVP_STP_DISABLED:
+          *bcm_state = BCM_STG_STP_DISABLE;
+          break;
+      default:
+          return (SOC_E_INTERNAL);
+    }
+    return (SOC_E_NONE);
+}
+
+
+static int
+_bcm_xgs3_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port,
+                      int *stp_state)
+{
+    uint32 entry[SOC_MAX_MEM_WORDS];    /* STP group ports state map.   */
+    int hw_stp_state;                   /* STP port state in hw format. */
+    int rv;                             /* Operation return status.     */
+
+  
+    memset(entry, 0, sizeof(entry));
+
+    rv=  _soc_mem_read(bcmsw->dev, STG_TABm+stg,
+                  SCHAN_BLK_IPIPE, 
+                  BYTES2WORD(STG_TABm_BYTES), 
+                  entry); 
+
+    /* Get specific port state from the entry. */
+    hw_stp_state = entry[STG_WORD(port)] >> STG_BITS_SHIFT(port);
+    hw_stp_state &= STG_PORT_MASK;
+
+    /* Translate hw stp port state to API format. */
+    rv = _bcm_stg_pvp_translate(hw_stp_state, stp_state);
+
+    return (SOC_E_NONE);
+}
+
+int
+bcm_xgs3_stg_stp_init(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
+{
+    // init STG_TABm
+    _bcm_xgs3_stg_stp_init_stg(bcmsw, stg);
+
+    // init EGR_VLAN_STGms
+    _bcm_xgs3_stg_stp_init_egr(bcmsw, stg);
+
+    return (BCM_E_NONE);
+}
+
+
+//Get the Spanning tree state for a port in specified STG.
+int
+bcm_esw_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port, int *stp_state)
+{
+    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
+    int			    rv = SOC_E_NONE;
+    uint32_t        val;
+
+
+    if(!stg_info) {
+       return SOC_E_INTERNAL;
+    }
+
+    if(stg < 0 || stg > stg_info->stg_max) {
+        return SOC_E_PARAM;
+    }
+
+    //if (!STG_BITMAP_TST(si, stg)) {
+    val = 0;
+    _mem_field_get(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
+    if (!val) {
+        rv = SOC_E_NOT_FOUND;
+        goto cleanup;
+    }
+
+    rv = _bcm_xgs3_stg_stp_get(bcmsw,stg, port, stp_state);
+
+cleanup:
+    return rv;
+}
+
+int
+bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
+{
+    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
+
+    int                 stg_defl, rv;
+
+    if (stg_info->stg_defl >= 0) {
+        rv = bcm_esw_stg_stp_get(unit, stg_defl, port, stp_state);
+    } else {  
+        *stp_state = BCM_STG_STP_FORWARD;
+        rv = SOC_E_NONE;
+    }
+
+    printk("bcm_port_stp_get: p=%d state=%d rv=%d\n",
+           port, *stp_state, rv);
+
+    return rv;
+}
+
+int
+bcm_esw_stg_create_id(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
+{
+    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
+    int			    rv = SOC_E_NONE;
+    uint32_t        val;
+
+    //if (STG_BITMAP_TST(si, stg)) 
+    val = 0;
+    _mem_field_get(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
+    if (val) {
+        return SOC_E_EXISTS;
+    }
+
+    /* Write an entry with all ports DISABLED */
+    //bcm_xgs3_stg_stp_init
+    bcm_xgs3_stg_stp_init(bcmsw, stg);
+
+
+    //STG_BITMAP_SET(si, stg);
+    val = 1;
+    _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
+    STG_BITMAP_SET(si, 0);
+
+
+    si->stg_count++;
+
+
+    return rv;
+}
+
+int
+bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
+{
+    bcm_stg_info_t	*stg_info;
+    uint32_t         val;
+    //int			alloc_size, idx;
+    //int vlan_vfi_count;    
+
+    stg_info = kmalloc(sizeof(bcm_stg_info_t), GFP_KERNEL); 
+    memset(stg_info, 0, sizeof(bcm_stg_info_t));
+    bcmsw->stg_info = stg_info;
+
+    stg_info->stg_min = 1;
+    stg_info->stg_max = STG_TABm_MAX_INDEX;
+ 
+    /*
+     * For practical ease of use, the initial default STG is always 1
+     * since that ID is valid on all chips.
+     */
+
+    stg_info->stg_defl = BCM_STG_DEFAULT; 
+
+    /*
+     * XGS switches have a special STG 0 entry that is used
+     * only for tagged packets with invalid VLAN.  XGS hardware does not
+     * automatically initialize it to all 1s.
+     * STG is marked valid so the bcm_stg_stp_set/get APIs can be used
+     * to manage entry 0, but this is generally for internal purposes.
+     */
+    // /bcm_xgs3_stg_stp_init
+    //BCM_IF_ERROR_RETURN(mbcm_driver[unit]->mbcm_stg_stp_init(unit, 0));
+    bcm_xgs3_stg_stp_init(bcmsw, 0);
+    //set bit 0
+    val = 1;
+    _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, 0, 1, &val, 0 );
+
+     /*
+      * Create default STG and add all VLANs to it.  Calling this routine
+      * is safe because it does not reference other BCM driver modules.
+      */
+ 
+     //BCM_IF_ERROR_RETURN(bcm_esw_stg_create_id(unit, si->stg_defl));
+     bcm_esw_stg_create_id(bcmsw, si->stg_defl);
+ 
+     //_bcm_stg_map_add(unit, si->stg_defl, BCM_VLAN_DEFAULT);
+ 
+     return SOC_E_NONE;     
+}
+
+
+/*****************************************************************************************/
+/*                             port info                                                 */
+/*****************************************************************************************/
 /*
  * Function:
  *      bcm_port_selective_get
@@ -5469,301 +5770,6 @@ bcm_esw_port_info_get(bcmsw_switch_t *bcmsw, int port, bcm_port_info_t *info)
     return bcm_esw_port_selective_get(bcmsw, port, info);
 }
 
-
-/*****************************************************************************************/
-/*                             Spanning Tree (STG)                                       */
-/*****************************************************************************************/
-static int
-_bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
-{
-    uint32 entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
- 
-    //int stp_state;              /* STP port state.               */
-    //bcm_pbmp_t stacked;         /* Bitmap of stacked ports.      */
-    //bcm_port_t port;            /* Port iterator.                */
-
-    /* Set all ports to PVP_STP_DISABLED */
-    memset(entry, 0, sizeof(entry));
-
-#if 0   
-    /* Get all stacking ports and set them into forwarding */
-    BCM_PBMP_ASSIGN(stacked, PBMP_ST_ALL(unit));
-    BCM_PBMP_OR(stacked, SOC_PBMP_STACK_CURRENT(unit));
-    stp_state = PVP_STP_FORWARDING;
-
-
-    if (!SOC_IS_TOMAHAWK3(unit)) {
-        /* Get all stacking ports and set them into forwarding */
-        BCM_PBMP_ASSIGN(stacked, PBMP_ST_ALL(unit));
-        BCM_PBMP_OR(stacked, SOC_PBMP_STACK_CURRENT(unit));
-
-    /* Iterate over stacking ports & set stp state. */
-    PBMP_ITER(stacked, port) {
-        entry[STG_WORD(port)] |= stp_state << STG_BITS_SHIFT(port);
-    }
-    }
-
-    /* Write spanning tree group port states to hw. */
-    BCM_IF_ERROR_RETURN(soc_mem_write(unit, mem, MEM_BLOCK_ALL, stg, entry));
-
-    if ((BCM_STG_DEFAULT == stg) &&
-        soc_feature(unit, soc_feature_vlan_vfi_membership)) {
-
-        /* Initialize the STP state for 'PVP_STP_FORWARDING' for all
-           groups on default STG */
-        BCM_IF_ERROR_RETURN(bcm_td2p_vp_group_stp_init(
-            unit, stg, (mem == EGR_VLAN_STGm), stp_state));
-    }
-
-#endif
-    if ((BCM_STG_DEFAULT == stg) {
-        entry[0] = 0xfffffffc;
-        entry[1] = 0xffffffff;
-        entry[2] = 0xffffffff;
-        entry[3] = 0x000c0fff;
-        entry[4] = 0xffffc000;
-        entry[5] = 0xffffffff;
-        entry[6] = 0xffffffff;
-        entry[7] = 0xffffffff;
-        entry[8] = 0x0000ffff;
-        entry[9] = 0x00000000;
-        entry[10] = 0x00000000;
-    }
-    
-    _soc_mem_write(bcmsw->dev, STG_TABm+stg,
-                   SCHAN_BLK_IPIPE, 
-                   BYTES2WORDS(STG_TABm_BYTES), 
-                   entry); 
-    
-    return (SOC_E_NONE);
-}
-
-static int
-_bcm_xgs3_stg_stp_init_egr(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
-{
-    uint32 entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
-
-    /* Set all ports to PVP_STP_DISABLED */
-    memset(entry, 0, sizeof(entry));
-
-    if (BCM_STG_DEFAULT == stg) {
-        entry[0] = 0xfffffffc;
-        entry[1] = 0xffffffff;
-        entry[2] = 0xffffffff;
-        entry[3] = 0x000c0fff;
-        entry[4] = 0xffffc000;
-        entry[5] = 0xffffffff;
-        entry[6] = 0xffffffff;
-        entry[7] = 0xffffffff;
-        entry[8] = 0x0000ffff;
-        entry[9] = 0x00000000;
-    }
-    
-    _soc_mem_write(bcmsw->dev, EGR_VLAN_STGm+stg,
-                   SCHAN_BLK_EPIPE, 
-                   BYTES2WORDS(EGR_VLAN_STGm_BYTES), 
-                   entry); 
-    
-    return (SOC_E_NONE);
-}
-
-
-static int
-_bcm_stg_pvp_translate(int pvp_state, int *bcm_state)
-{
-    if (NULL == bcm_state) {
-        return (SOC_E_PARAM);
-    }
-
-    switch (pvp_state) {
-      case PVP_STP_FORWARDING:
-          *bcm_state = BCM_STG_STP_FORWARD;
-          break;
-      case PVP_STP_BLOCKING:
-          *bcm_state = BCM_STG_STP_BLOCK;
-          break;
-      case PVP_STP_LEARNING:
-          *bcm_state = BCM_STG_STP_LEARN;
-          break;
-      case PVP_STP_DISABLED:
-          *bcm_state = BCM_STG_STP_DISABLE;
-          break;
-      default:
-          return (SOC_E_INTERNAL);
-    }
-    return (SOC_E_NONE);
-}
-
-
-static int
-_bcm_xgs3_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port,
-                      int *stp_state)
-{
-    uint32 entry[SOC_MAX_MEM_WORDS];    /* STP group ports state map.   */
-    int hw_stp_state;                   /* STP port state in hw format. */
-    int rv;                             /* Operation return status.     */
-
-  
-    memset(entry, 0, sizeof(entry));
-
-    rv=  _soc_mem_read(bcmsw->dev, STG_TABm+stg,
-                  SCHAN_BLK_IPIPE, 
-                  BYTES2WORD(STG_TABm_BYTES), 
-                  entry); 
-
-    /* Get specific port state from the entry. */
-    hw_stp_state = entry[STG_WORD(port)] >> STG_BITS_SHIFT(port);
-    hw_stp_state &= STG_PORT_MASK;
-
-    /* Translate hw stp port state to API format. */
-    rv = _bcm_stg_pvp_translate(hw_stp_state, stp_state);
-
-    return (SOC_E_NONE);
-}
-
-int
-bcm_xgs3_stg_stp_init(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
-{
-    // init STG_TABm
-    _bcm_xgs3_stg_stp_init_stg(bcmsw, stg);
-
-    // init EGR_VLAN_STGms
-    _bcm_xgs3_stg_stp_init_egr(bcmsw, stg);
-
-    return (BCM_E_NONE);
-}
-
-
-//Get the Spanning tree state for a port in specified STG.
-int
-bcm_esw_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port, int *stp_state)
-{
-    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
-    int			    rv = SOC_E_NONE;
-    uint32_t        val;
-
-
-    if(!stg_info) {
-       return SOC_E_INTERNAL;
-    }
-
-    if(stg < 0 || stg > stg_info->stg_max) {
-        return SOC_E_PARAM;
-    }
-
-    //if (!STG_BITMAP_TST(si, stg)) {
-    val = 0;
-    _mem_field_get(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
-    if (!val) {
-        rv = SOC_E_NOT_FOUND;
-        goto cleanup;
-    }
-
-    rv = _bcm_xgs3_stg_stp_get(bcmsw,stg, port, stp_state);
-
-cleanup:
-    return rv;
-}
-
-int
-bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
-{
-    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
-
-    int                 stg_defl, rv;
-
-    if (stg_info->stg_defl >= 0) {
-        rv = bcm_esw_stg_stp_get(unit, stg_defl, port, stp_state);
-    } else {  
-        *stp_state = BCM_STG_STP_FORWARD;
-        rv = SOC_E_NONE;
-    }
-
-    printk("bcm_port_stp_get: p=%d state=%d rv=%d\n",
-           port, *stp_state, rv);
-
-    return rv;
-}
-
-int
-bcm_esw_stg_create_id(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
-{
-    bcm_stg_info_t	*stg_info = bcmsw->stg_info;
-    int			    rv = SOC_E_NONE;
-    uint32_t        val;
-
-    //if (STG_BITMAP_TST(si, stg)) 
-    val = 0;
-    _mem_field_get(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
-    if (val) {
-        return SOC_E_EXISTS;
-    }
-
-    /* Write an entry with all ports DISABLED */
-    //bcm_xgs3_stg_stp_init
-    bcm_xgs3_stg_stp_init(bcmsw, stg);
-
-
-    //STG_BITMAP_SET(si, stg);
-    val = 1;
-    _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
-    STG_BITMAP_SET(si, 0);
-
-
-    si->stg_count++;
-
-
-    return rv;
-}
-
-int
-bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
-{
-    bcm_stg_info_t	*stg_info;
-    uint32_t         val;
-    //int			alloc_size, idx;
-    //int vlan_vfi_count;    
-
-    stg_info = kmalloc(sizeof(bcm_stg_info_t), GFP_KERNEL); 
-    memset(stg_info, 0, sizeof(bcm_stg_info_t));
-    bcmsw->stg_info = stg_info;
-
-    stg_info->stg_min = 1;
-    stg_info->stg_max = STG_TABm_MAX_INDEX;
- 
-    /*
-     * For practical ease of use, the initial default STG is always 1
-     * since that ID is valid on all chips.
-     */
-
-    stg_info->stg_defl = BCM_STG_DEFAULT; 
-
-    /*
-     * XGS switches have a special STG 0 entry that is used
-     * only for tagged packets with invalid VLAN.  XGS hardware does not
-     * automatically initialize it to all 1s.
-     * STG is marked valid so the bcm_stg_stp_set/get APIs can be used
-     * to manage entry 0, but this is generally for internal purposes.
-     */
-    // /bcm_xgs3_stg_stp_init
-    //BCM_IF_ERROR_RETURN(mbcm_driver[unit]->mbcm_stg_stp_init(unit, 0));
-    bcm_xgs3_stg_stp_init(bcmsw, 0);
-    //set bit 0
-    val = 1;
-    _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, 0, 1, &val, 0 );
-
-     /*
-      * Create default STG and add all VLANs to it.  Calling this routine
-      * is safe because it does not reference other BCM driver modules.
-      */
- 
-     //BCM_IF_ERROR_RETURN(bcm_esw_stg_create_id(unit, si->stg_defl));
-     bcm_esw_stg_create_id(bcmsw, si->stg_defl);
- 
-     //_bcm_stg_map_add(unit, si->stg_defl, BCM_VLAN_DEFAULT);
- 
-     return SOC_E_NONE;     
-}
 
 /*****************************************************************************************/
 /*                             switch                                                    */
