@@ -2115,12 +2115,31 @@ typedef uint8 bcm_mac_t[6];
 } while (0)
 
 
+typedef enum _shr_port_encap_e {
+    SOC_ENCAP_IEEE = 0,               /* IEEE 802.3 Ethernet-II  */
+    SOC_ENCAP_HIGIG = 1,              /* HIGIG Header mode       */
+    SOC_ENCAP_B5632 = 2,              /* BCM5632 Header mode     */
+    SOC_ENCAP_HIGIG2 = 3,             /* HIGIG2 Header mode      */
+    SOC_ENCAP_HIGIG2_LITE = 4,        /* HIGIG2 Header mode (Raptor style) */
+    SOC_ENCAP_HIGIG2_L2 = 5,          /* HIGIG2 L2 Tunnel mode   */
+    SOC_ENCAP_HIGIG2_IP_GRE = 6,      /* HIGIG2 L3 (IP-GRE) Tunnel mode    */
+    SOC_ENCAP_OBSOLETE = 7,           /* Obsolete header mode         */
+    SOC_ENCAP_PREAMBLE_SOP_ONLY = 8,  /* 1B preamble mode        */
+    SOC_ENCAP_HIGIG_OVER_ETHERNET = 9,/* HIGIG over Ethernet     */
+    SOC_ENCAP_CPRI = 10 ,             /* CPRI  radio port encap*/
+    SOC_ENCAP_RSVD4 = 11 ,            /* RSVD4 radio port encap*/
+    SOC_ENCAP_HIGIG3 = 12,            /* HIGIG3 Header mode      */
+    SOC_ENCAP_COUNT                   /* last, please */
+} bcm_port_encap_t;
+
+
+
 /* Device-independent L2 cache address structure. */
 typedef struct bcm_l2_cache_addr_s {
     uint32_t   flags;               /* BCM_L2_CACHE_xxx flags.               */
     uint32_t   station_flags;       /* BCM_L2_STATION_xxx flags.             */
-    _mac_t     mac;                 /* Destination MAC address to match.     */
-    _mac_t     mac_mask;            /* MAC address mask.                     */
+    bcm_mac_t     mac;                 /* Destination MAC address to match.     */
+    bcm_mac_t     mac_mask;            /* MAC address mask.                     */
     uint16_t   vlan;                /* VLAN to match.                        */
     uint16_t   vlan_mask;           /* VLAN mask.                            */
     int        src_port;            /* Ingress port to match (BCM5660x).     */
@@ -2141,16 +2160,16 @@ typedef struct bcm_l2_cache_addr_s {
 } bcm_l2_cache_addr_t;
 
 
-const _mac_t _mac_spanning_tree =
+const bcm_mac_t _mac_spanning_tree =
 	{0x01, 0x80, 0xc2, 0x00, 0x00, 0x00};
 
-const _mac_t _mac_all_routers =
+const bcm_mac_t _mac_all_routers =
 	{0x01, 0x00, 0x5e, 0x00, 0x00, 0x02};
 
-const _mac_t _mac_all_zeroes =
+const bcm_mac_t _mac_all_zeroes =
 	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-const _mac_t _mac_all_ones =
+const bcm_mac_t _mac_all_ones =
 	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
@@ -3299,7 +3318,7 @@ typedef struct _shr_port_ability_s {
     uint32_t flags;
     uint32_t eee;
     uint32_t rsvd;
-    uint32_ts  encap;
+    uint32_t encap;
     uint32_t fec;
     uint32_t channel;
 } bcm_port_ability_t;

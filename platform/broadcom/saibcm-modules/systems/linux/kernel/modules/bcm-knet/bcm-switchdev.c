@@ -2762,16 +2762,17 @@ phy_bcm542xx_reg_read(uint16_t phy_addr, uint16_t reg_bank,
                 rv = SOC_E_PARAM;
             }
             break;
-        }
-        if ( rv >= 0 ) {
-            rv = phy_reg_read(phy_addr, reg_addr, data);
-        }
+        default:
+            break;
+    }
+    if ( rv >= 0 ) {
+        rv = phy_reg_read(phy_addr, reg_addr, data);
     }
 
     if ( rv < 0 ) {
         printk("phy_bcm542xx_reg_read: failed:"
                "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
-                "rv=%d\n", phy_addr, reg_bank, reg_addr, rv));
+                "rv=%d\n", phy_addr, reg_bank, reg_addr, rv);
     }
     return rv;
 }
@@ -4210,6 +4211,7 @@ phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *en
         *enable = 1;
     }
     //return phy_fe_ge_enable_get(pport, enable);
+    return 0;
 }
 
 
@@ -4219,12 +4221,14 @@ phy_bcm542xx_link_get(port_info_t *pport, int port, uint16_t phy_addr, int *link
 {
     int      count = 0;
     uint16_t mii_ctrl, mii_stat;
+    *link = FALSE;      /* Default return */
+
     //if ( PHY_COPPER_MODE(unit, port) ) {
     //    SOC_IF_ERROR_RETURN(phy_fe_ge_link_get(unit, port, link));
 
     phy_bcm542xx_reg_read(phy_addr,0x0000, MII_STAT_REG, &mii_stat);
 
-    printk("phy_bcm542xx_link_get: port =%d phy_addr=%d mii_stat=%d\n",port, phy_addr, mii_stat);
+    //printk("phy_bcm542xx_link_get: port =%d phy_addr=%d mii_stat=%d\n",port, phy_addr, mii_stat);
 
     if (!(mii_stat & MII_STAT_LA) || (mii_stat == 0xffff)) {
         /* mii_stat == 0xffff check is to handle removable PHY daughter cards */
@@ -4671,7 +4675,7 @@ int _pm4x10_qtc_port_enable_get(bcmsw_switch_t *bcmsw, int port, int *phy_enable
 
     port_info_t *pport = &si->ports[port];
 
-    return phy_bcm542xx_enable_get(pport,port, enable);
+    return phy_bcm542xx_enable_get(pport,port, pport->ext_phy_addr, phy_enable);
 }
 
 int _pm4x10_qtc_port_link_get(bcmsw_switch_t *bcmsw, int port, int *up)
@@ -4680,7 +4684,7 @@ int _pm4x10_qtc_port_link_get(bcmsw_switch_t *bcmsw, int port, int *up)
 
     port_info_t *pport = &si->ports[port];
 
-    return phy_bcm542xx_link_get(pport, port, pport->ext_phy_addr, enable);
+    return phy_bcm542xx_link_get(pport, port, pport->ext_phy_addr, up);
 }
 
 
@@ -4837,7 +4841,7 @@ bcm_esw_port_link_status_get(bcmsw_switch_t *bcmsw, int port, int *up)
     //portmod_port_enable_get(unit, pport, PORTMOD_PORT_ENABLE_PHY, enable);
 
     if (port>= 1 && port <=48 ) {
-        return _pm4x10_qtc_port_link_get(bcmsw, port, enable);
+        return _pm4x10_qtc_port_link_get(bcmsw, port, up);
     }
 
     //TODO
@@ -5042,7 +5046,7 @@ err_port_create:
 
 //bcm_esw_port_encap_get->bcmi_esw_portctrl_encap_get
 static int 
-_esw_port_encap_get(bcmsw_switch_t *bcmsw, bcm_port_t port, int *mode)
+_esw_port_encap_get(bcmsw_switch_t *bcmsw, int port, int *encap)
 {
     // port 1 - 48 unimac_encap_get
     *encap = SOC_ENCAP_IEEE;
@@ -6605,7 +6609,7 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     vlan_tab_entry_t    ve;
     //bcm_pbmp_t          pbm;
     uint32_t            empty_entry[SOC_MAX_MEM_WORDS] = {0};
-    int                 rv;
+    //int                 rv;
     uint32_t            val;
     int                 index;
 
@@ -6853,7 +6857,7 @@ _portstat_show(struct seq_file *m, void *v)
 
     //TODO, add more ports
     for (index =1; index<=48; index++) {
-        bcm_port_selective_get(_bcmsw, port, &port_info);
+        bcm_esw_port_selective_get(_bcmsw, index, &port_info);
         //brief_port_info
         seq_printf(m, "%10s(%3d)  %4s ", si->ports[index].name, index,
             !port_info.enable ? "!ena" :
@@ -7005,13 +7009,13 @@ _proc_mem_show(struct seq_file *m, void *v)
 
     switch (p_data->reg_addr) {
         case EGR_PORTm:
-            egr_port_entry = (egr_port_entry_t *)entry;
             for (index =0; index < 72; index ++) {
                 _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
                                SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
-                               egr_port_entry);
+                               entry);
+                egr_port_entry = (egr_port_entry_t *)entry;
                 seq_printf(m, "%2d [%2d]  0x%08x 0x%08x\n", index, 
-                   egr_port_entry->port_type, egr_port_entry[0], egr_port_entry[1]);
+                   egr_port_entry->port_type, entry[0], entry[1]);
             }   
             break;
 
