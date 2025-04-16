@@ -1576,6 +1576,27 @@ typedef struct {
 #define PHY_BCM542XX_MII_CTRL_LPBK_EN        (1<<14) /* Loopback enable */
 #define PHY_BCM542XX_MII_CTRL_RESET          (1<<15) /* PHY reset */
 
+/* 
+ * MII Status Register: See 802.3, 1998 pg 544 
+ */
+#define PHY_BCM542XX_MII_STAT_EXT            (1 << 0) /* Extended Registers */
+#define PHY_BCM542XX_MII_STAT_JBBR           (1 << 1) /* Jabber Detected */
+#define PHY_BCM542XX_MII_STAT_LA             (1 << 2) /* Link Active */
+#define PHY_BCM542XX_MII_STAT_AN_CAP         (1 << 3) /* Autoneg capable */
+#define PHY_BCM542XX_MII_STAT_RF             (1 << 4) /* Remote Fault */
+#define PHY_BCM542XX_MII_STAT_AN_DONE        (1 << 5) /* Autoneg complete */
+#define PHY_BCM542XX_MII_STAT_MF_PS          (1 << 6) /* Preamble suppression */
+#define PHY_BCM542XX_MII_STAT_ES             (1 << 8) /* Extended status (R15) */
+#define PHY_BCM542XX_MII_STAT_HD_100_T2      (1 << 9) /* Half duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_FD_100_T2      (1 << 10)/* Full duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_HD_10          (1 << 11)/* Half duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_FD_10          (1 << 12)/* Full duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_HD_100         (1 << 13)/* Half duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_FD_100         (1 << 14)/* Full duplex 100Mb/s supported */
+#define PHY_BCM542XX_MII_STAT_100_T4         (1 << 15)/* Full duplex 100Mb/s supported */
+
+
+
 #define BCM542XX_AUTO_PWR_DOWN_DLL_DIS                  (1<<1)
 
 #define BMACSEC_TOP_MISC_REG_SIZE 1
@@ -2668,6 +2689,11 @@ typedef struct bcm_stg_info_s {
         (STG_BITS_PER_PORT * ((port) % STG_PORTS_PER_WORD))
 #define STG_BITS_MASK(port)     (STG_PORT_MASK << (STG_BITS_SHIFT(port)))
 
+
+#define PVP_STP_DISABLED	0	/* Disabled */
+#define PVP_STP_BLOCKING	1	/* Blocking/Listening */
+#define PVP_STP_LEARNING	2	/* Learning */
+#define PVP_STP_FORWARDING	3	/* Forwarding */
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */

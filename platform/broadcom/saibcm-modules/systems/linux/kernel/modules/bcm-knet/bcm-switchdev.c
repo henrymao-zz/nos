@@ -4214,8 +4214,8 @@ phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *en
     return 0;
 }
 
-STATIC int
-phy_bcm542xx_autoneg_get(port_info_t *pport, int port,
+static int
+phy_bcm542xx_autoneg_get(port_info_t *pport, int port, uint16_t phy_addr,
                          int *autoneg, int *autoneg_done)
 {
 
@@ -4227,8 +4227,8 @@ phy_bcm542xx_autoneg_get(port_info_t *pport, int port,
     //Copper only
     phy_bcm542xx_reg_read(phy_addr, 0x0000,  MII_CTRL_REG, &mii_ctrl);
     phy_bcm542xx_reg_read(phy_addr, 0x0000,  MII_STAT_REG, &mii_stat);
-    *autoneg      = (mii_ctrl & MII_CTRL_AN_EN)   ? 1 : 0;
-    *autoneg_done = (mii_stat & MII_STAT_AN_DONE) ? 1 : 0;
+    *autoneg      = (mii_ctrl & PHY_BCM542XX_MII_CTRL_AN_EN)   ? 1 : 0;
+    *autoneg_done = (mii_stat & PHY_BCM542XX_MII_STAT_AN_DONE) ? 1 : 0;
 
     return ( SOC_E_NONE );
 }
@@ -4707,7 +4707,7 @@ int _pm4x10_qtc_port_link_get(bcmsw_switch_t *bcmsw, int port, int *up)
 
 int _pm4x10_qtc_port_autoneg_get(bcmsw_switch_t *bcmsw, int port, phymod_autoneg_control_t *an)
 {
-    int autoneg, int autoneg_done;
+    int autoneg, autoneg_done;
     soc_info_t *si = bcmsw->si;
 
     port_info_t *pport = &si->ports[port];
@@ -4886,7 +4886,7 @@ bcm_esw_port_autoneg_get(bcmsw_switch_t *bcmsw, int port, int *autoneg)
 {
     phymod_autoneg_control_t an;
 
-    memset(an, 0, sizof(an));
+    memset(&an, 0, sizeof(an));
     
     _pm4x10_qtc_port_autoneg_get(bcmsw, port, &an);
 
@@ -4971,7 +4971,7 @@ _port_init(bcmsw_switch_t *bcmsw)
     // clear egress port blocking table MAC_BLOCKm
     for (index = 0; index <= 31; index++) {
         _soc_mem_write(bcmsw->dev, MAC_BLOCKm+index, 
-                       SCHAN_BLK_IPIPE, BYTES2WORD(MAC_BLOCKm_BYTES), empty_entry); 
+                       SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), empty_entry); 
     }    
 
     // STEP 3 - Probe for Ports -> bcm_esw_port_probe
@@ -5516,7 +5516,7 @@ _bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     }
 
 #endif
-    if ((BCM_STG_DEFAULT == stg)
+    if ((BCM_STG_DEFAULT == stg) {
         entry[0] = 0xfffffffc;
         entry[1] = 0xffffffff;
         entry[2] = 0xffffffff;
@@ -5532,7 +5532,7 @@ _bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     
     _soc_mem_write(bcmsw->dev, STG_TABm+stg,
                    SCHAN_BLK_IPIPE, 
-                   BYTES2WORD(STG_TABm_BYTES), 
+                   BYTES2WORDS(STG_TABm_BYTES), 
                    entry); 
     
     return (SOC_E_NONE);
@@ -5561,7 +5561,7 @@ _bcm_xgs3_stg_stp_init_egr(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     
     _soc_mem_write(bcmsw->dev, EGR_VLAN_STGm+stg,
                    SCHAN_BLK_EPIPE, 
-                   BYTES2WORD(EGR_VLAN_STGm_BYTES), 
+                   BYTES2WORDS(EGR_VLAN_STGm_BYTES), 
                    entry); 
     
     return (SOC_E_NONE);
@@ -5655,7 +5655,7 @@ bcm_esw_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port, int *stp_sta
     val = 0;
     _mem_field_get(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
     if (!val) {
-        rv = BCM_E_NOT_FOUND;
+        rv = SOC_E_NOT_FOUND;
         goto cleanup;
     }
 
@@ -5679,7 +5679,7 @@ bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
         rv = SOC_E_NONE;
     }
 
-    printk("bcm_port_stp_get: p=%d state=%d rv=%d\n"),
+    printk("bcm_port_stp_get: p=%d state=%d rv=%d\n",
            port, *stp_state, rv);
 
     return rv;
@@ -5736,7 +5736,7 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
      * since that ID is valid on all chips.
      */
 
-     si->stg_defl = BCM_STG_DEFAULT; 
+    stg_info->stg_defl = BCM_STG_DEFAULT; 
 
     /*
      * XGS switches have a special STG 0 entry that is used
@@ -5751,7 +5751,6 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
     //set bit 0
     val = 1;
     _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, 0, 1, &val, 0 );
-    STG_BITMAP_SET(si, 0);
 
      /*
       * Create default STG and add all VLANs to it.  Calling this routine
@@ -7138,6 +7137,24 @@ static const char *discard_mode[] = {
     "None", "All", "Untag", "Tag", NULL, NULL
 };
 
+static char *
+if_fmt_speed(char *b, int speed)
+{
+    if (speed >= 1000) {        /* Use Gb */
+        if (speed % 1000) {     /* Use Decimal */
+            sprintf(b, "%d.%dG", speed / 1000, (speed % 1000) / 100);
+        } else {
+            sprintf(b, "%dG", speed / 1000);
+        }
+    } else if (speed == 0) {
+        sprintf(b, "-");
+    } else {                    /* Use Mb */
+        sprintf(b, "%dM", speed);
+    }
+    return (b);
+}
+
+
 //if_esw_port_stat()
 static int
 _portstat_show(struct seq_file *m, void *v)
@@ -7146,6 +7163,9 @@ _portstat_show(struct seq_file *m, void *v)
     soc_info_t *si;
     bcm_port_info_t port_info;
     char *spt_str, *discrd_str;
+    char sbuf[6];
+    char lrn_str[4];
+    int lrn_ptr;
     char *disp_str =
     "%15s "                 /* port number */
     "%5s  "                 /* enable/link state */
@@ -7217,46 +7237,46 @@ _portstat_show(struct seq_file *m, void *v)
             (port_info.linkstatus == PORT_LINK_STATUS_FAILED) ? "fail" :
             (port_info.linkstatus == PORT_LINK_STATUS_UP ? "up  " : "down"));
 
-        seq_printf(m, "%5s ", if_fmt_speed(sbuf, info->speed));
-        seq_printf(m, "%3s ", info->speed == 0 ? "" : info->duplex ? "FD" : "HD");
+        seq_printf(m, "%5s ", if_fmt_speed(sbuf, port_info.speed));
+        seq_printf(m, "%3s ", port_info.speed == 0 ? "" : port_info.duplex ? "FD" : "HD");
 
-        seq_printf(m, "%4s ", LINKSCAN_MODE(info->linkscan));
-        seq_printf(m, "%4s ", info->autoneg ? " Yes" : " No ");
+        seq_printf(m, "%4s ", LINKSCAN_MODE(port_info.linkscan));
+        seq_printf(m, "%4s ", port_info.autoneg ? " Yes" : " No ");
 
-        spt_str = FORWARD_MODE(info->stp_state);
+        spt_str = FORWARD_MODE(port_info.stp_state);
         seq_printf(m, " %7s  ", spt_str); //STP
 
-        seq_printf(m, "%2s ", info->pause_tx ? "TX" : "");
-        seq_printf(m, "%2s ", info->pause_rx ? "RX" : "");
+        seq_printf(m, "%2s ", port_info.pause_tx ? "TX" : "");
+        seq_printf(m, "%2s ", port_info.pause_rx ? "RX" : "");
 
-        discrd_str = DISCARD_MODE(info->discard);
+        discrd_str = DISCARD_MODE(port_info.discard);
         seq_printf(m, "%6s  ", discrd_str);
 
         lrn_ptr = 0;
         memset(lrn_str, 0, sizeof(lrn_str));
         lrn_str[0] = 'D';
-        if (info->learn & BCM_PORT_LEARN_FWD) {
+        if (port_info.learn & BCM_PORT_LEARN_FWD) {
             lrn_str[lrn_ptr++] = 'F';
         }
-        if (info->learn & BCM_PORT_LEARN_ARL) {
+        if (port_info.learn & BCM_PORT_LEARN_ARL) {
             lrn_str[lrn_ptr++] = 'A';
         }
-        if (info->learn & BCM_PORT_LEARN_CPU) {
+        if (port_info.learn & BCM_PORT_LEARN_CPU) {
             lrn_str[lrn_ptr++] = 'C';
         }
         seq_printf(m, "%3s ", lrn_str);
 
-        seq_printf(m, "%5d ", info->frame_max);
+        seq_printf(m, "%5d ", port_info.frame_max);
 
         seq_printf(m, "%5s",
-                  info->loopback != BCM_PORT_LOOPBACK_NONE ?
-                  LOOPBACK_MODE(info->loopback) : "     ");
+                  port_info.loopback != BCM_PORT_LOOPBACK_NONE ?
+                  LOOPBACK_MODE(port_info.loopback) : "     ");
         
         //TODO asf cut-through
         seq_printf(m, "%5s ", "     ");                  
         seq_printf(m, " %7s",
-             info->encap_mode != SOC_ENCAP_COUNT ?
-             ENCAP_MODE(info->encap_mode) : " ");
+             port_info.encap_mode != SOC_ENCAP_COUNT ?
+             ENCAP_MODE(port_info.encap_mode) : " ");
 
         seq_printf(m, "\n");    
     }
@@ -7517,6 +7537,7 @@ _proc_mem_show(struct seq_file *m, void *v)
                         entry[8],
                         entry[9],
                         entry[10]);
+                }
             }
             break;
 
@@ -7530,7 +7551,7 @@ _proc_mem_show(struct seq_file *m, void *v)
                         SCHAN_BLK_EPIPE, 
                         BYTES2WORDS(STG_TABm_BYTES), 
                         entry);                    
-                    seq_printf(m, "[%2d]   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n", 
+                    seq_printf(m, "[%2d]   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n", 
                         index,
                         entry[0],
                         entry[1],
