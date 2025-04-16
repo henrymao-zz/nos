@@ -3111,8 +3111,8 @@ _helix5_idb_obm_reset_buffer(bcmsw_switch_t *bcmsw, int port, int reset_buffer)
     offset = offset/4;
 
     _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
-    printk("IDB port Up rval 0x%x pm_num %1d subp=%1d reset_buffer=%1d offset=%1d  \n",
-           reg_obm.word, pm_num, subp,reset_buffer,offset);
+    //printk("IDB port Up rval 0x%x pm_num %1d subp=%1d reset_buffer=%1d offset=%1d  \n",
+    //       reg_obm.word, pm_num, subp,reset_buffer,offset);
     if (subp == 0) {
         reg_obm.reg.PORT0_RESETf = reset_buffer;
     } else if (subp == 1) {
@@ -3126,8 +3126,8 @@ _helix5_idb_obm_reset_buffer(bcmsw_switch_t *bcmsw, int port, int reset_buffer)
     _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), reg_obm.word);
     _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, reg+(offset<<8), &reg_obm.word);
 
-    printk("IDB port Up rval_update 0x%x pm_num %1d sbup=%1d reset_buffer=%1d offset=%1d \n",
-           reg_obm.word, pm_num, subp,reset_buffer,offset);
+    //printk("IDB port Up rval_update 0x%x pm_num %1d sbup=%1d reset_buffer=%1d offset=%1d \n",
+    //       reg_obm.word, pm_num, subp,reset_buffer,offset);
 
     return SOC_E_NONE;
 }
@@ -3354,7 +3354,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
     } else {
         qmode = 0;
     }
-    printk("_helix5_flex_mac_port_up port %d qmode %d\n", port, qmode);
+    //printk("_helix5_flex_mac_port_up port %d qmode %d\n", port, qmode);
 
     if(phy_port < 65) {
         if((phy_port < 49) && (qmode)){
@@ -3647,7 +3647,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
 #endif                                                    
     }
 
-    printk("END soc_helix5_flex_mac_port_up\n");
+    //printk("END soc_helix5_flex_mac_port_up\n");
     return SOC_E_NONE;
 }
 
@@ -3865,11 +3865,11 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
     }
 
     if(update0 == 1) {
-    printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%llx\n", enable_val_0);
+         //printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%llx\n", enable_val_0);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     }
     if(update1 == 1) {
-    printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%llx\n", enable_val_1);
+        //printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%llx\n", enable_val_1);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
@@ -4636,7 +4636,7 @@ static int _phyctrl_init(bcmsw_switch_t *bcmsw, int port)
 
     p_port = &si->ports[port];
 
-    printk("entered soc_phyctrl_init: port %d , probed %d\n", port, p_port->probed);
+    //printk("entered soc_phyctrl_init: port %d , probed %d\n", port, p_port->probed);
 
     if(p_port->probed) {  
        //Call Phy Model specific init -> pd_init = phy_bcm542xx_init
@@ -8725,6 +8725,8 @@ int bcmsw_switch_init(void)
     soc_info_t *si;
     bcmsw_switch_t *bcmsw;
         
+    printk("Initializing switchdev...\n");
+
     bcmsw = kzalloc(sizeof(*bcmsw), GFP_KERNEL);
     if (!bcmsw)
     return -ENOMEM;
