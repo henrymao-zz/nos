@@ -155,7 +155,7 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
         schan_timeout++;
         //300ms 
         if (schan_timeout >= 300 ) { 
-	    gprintk(" failed after 300 polls\n");
+        gprintk(" failed after 300 polls\n");
             rv = -ETIME;
             break;
         }                
@@ -179,7 +179,7 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
 
 
     if (schanCtrl & SC_CHx_MSG_TIMEOUT_TST) {
-	gprintk("  Hardware Timeout Error.\n");
+    gprintk("  Hardware Timeout Error.\n");
         rv = -EFAULT;
     }
 
@@ -217,7 +217,7 @@ _cmicx_schan_poll_wait(struct net_device *dev, schan_msg_t *msg, int ch)
                         "err_code=%u, data_len=%u, src_port=%u, dst_port=%u,"
                         "op_code=%u Full reg value=0x%x\n",
                         schan_err.reg.err_code, schan_err.reg.data_len, schan_err.reg.src_port, 
-			schan_err.reg.dst_port, schan_err.reg.op_code, schan_err.word);
+            schan_err.reg.dst_port, schan_err.reg.op_code, schan_err.word);
 
         bkn_dev_write32(dev, CMIC_COMMON_POOL_SCHAN_CHx_CTRL(ch), SC_CHx_MSG_CLR);
         rv = -EFAULT;
@@ -1459,7 +1459,7 @@ int soc_cancun_file_load(bcmsw_switch_t *sw, uint8* buf, long buf_bytes, uint32*
                                            (buf_bytes/BYTES_PER_UINT32));
 
         } else if(*format == CANCUN_SOC_FILE_FORMAT_PACK) {
-	        if(SOC_WARM_BOOT(unit)) {
+            if(SOC_WARM_BOOT(unit)) {
                 rv = SOC_E_NONE;
             } else {
                 cc->cih->status = status;
@@ -1658,229 +1658,229 @@ static struct workqueue_struct *bcmsw_switchdev_wq;
 
 static void bcmsw_fdb_event_work(struct work_struct *work)
 {
-	//struct switchdev_notifier_fdb_info *fdb_info;
-	struct bcmsw_switchdev_event_work *switchdev_work;
-	//struct prestera_port *port;
-	struct net_device *dev;
+    //struct switchdev_notifier_fdb_info *fdb_info;
+    struct bcmsw_switchdev_event_work *switchdev_work;
+    //struct prestera_port *port;
+    struct net_device *dev;
 
-	switchdev_work = container_of(work, struct bcmsw_switchdev_event_work, work);
-	dev = switchdev_work->dev;
+    switchdev_work = container_of(work, struct bcmsw_switchdev_event_work, work);
+    dev = switchdev_work->dev;
 
-	rtnl_lock();
+    rtnl_lock();
 
 #if 0
-	port = prestera_port_dev_lower_find(dev);
-	if (!port)
-		goto out_unlock;
+    port = prestera_port_dev_lower_find(dev);
+    if (!port)
+        goto out_unlock;
 
-	switch (switchdev_work->event) {
-	case SWITCHDEV_FDB_ADD_TO_DEVICE:
-		fdb_info = &switchdev_work->fdb_info;
-		if (!fdb_info->added_by_user || fdb_info->is_local)
-			break;
+    switch (switchdev_work->event) {
+    case SWITCHDEV_FDB_ADD_TO_DEVICE:
+        fdb_info = &switchdev_work->fdb_info;
+        if (!fdb_info->added_by_user || fdb_info->is_local)
+            break;
 
-		err = bcmsw_port_fdb_set(port, fdb_info, true);
-		if (err)
-			break;
+        err = bcmsw_port_fdb_set(port, fdb_info, true);
+        if (err)
+            break;
 
-		bcmsw_fdb_offload_notify(port, fdb_info);
-		break;
+        bcmsw_fdb_offload_notify(port, fdb_info);
+        break;
 
-	case SWITCHDEV_FDB_DEL_TO_DEVICE:
-		fdb_info = &switchdev_work->fdb_info;
-		bcmsw_port_fdb_set(port, fdb_info, false);
-		break;
-	}
+    case SWITCHDEV_FDB_DEL_TO_DEVICE:
+        fdb_info = &switchdev_work->fdb_info;
+        bcmsw_port_fdb_set(port, fdb_info, false);
+        break;
+    }
 
 out_unlock:
 #endif
-	rtnl_unlock();
+    rtnl_unlock();
 
-	kfree(switchdev_work->fdb_info.addr);
-	kfree(switchdev_work);
-	dev_put(dev);
+    kfree(switchdev_work->fdb_info.addr);
+    kfree(switchdev_work);
+    dev_put(dev);
 }
 
 extern bool bkn_port_dev_check(const struct net_device *dev);
 
 static int bcmsw_switchdev_event(struct notifier_block *unused,
-				    unsigned long event, void *ptr)
+                    unsigned long event, void *ptr)
 {
-	struct net_device *dev = switchdev_notifier_info_to_dev(ptr);
-	struct switchdev_notifier_fdb_info *fdb_info;
-	struct switchdev_notifier_info *info = ptr;
-	struct bcmsw_switchdev_event_work *switchdev_work;
-	struct net_device *upper;
-	//int err;
+    struct net_device *dev = switchdev_notifier_info_to_dev(ptr);
+    struct switchdev_notifier_fdb_info *fdb_info;
+    struct switchdev_notifier_info *info = ptr;
+    struct bcmsw_switchdev_event_work *switchdev_work;
+    struct net_device *upper;
+    //int err;
 
-	if (event == SWITCHDEV_PORT_ATTR_SET) {
+    if (event == SWITCHDEV_PORT_ATTR_SET) {
 #if 0
-		err = switchdev_handle_port_attr_set(dev, ptr,
-						     bkn_port_dev_check,
-						     bcmsw_port_obj_attr_set);
-		return notifier_from_errno(err);
+        err = switchdev_handle_port_attr_set(dev, ptr,
+                             bkn_port_dev_check,
+                             bcmsw_port_obj_attr_set);
+        return notifier_from_errno(err);
 #endif
-		return NOTIFY_DONE;
-	}
+        return NOTIFY_DONE;
+    }
 
-	if (!bkn_port_dev_check(dev))
-		return NOTIFY_DONE;
+    if (!bkn_port_dev_check(dev))
+        return NOTIFY_DONE;
 
-	upper = netdev_master_upper_dev_get_rcu(dev);
-	if (!upper)
-		return NOTIFY_DONE;
+    upper = netdev_master_upper_dev_get_rcu(dev);
+    if (!upper)
+        return NOTIFY_DONE;
 
-	if (!netif_is_bridge_master(upper))
-		return NOTIFY_DONE;
+    if (!netif_is_bridge_master(upper))
+        return NOTIFY_DONE;
 
-	switchdev_work = kzalloc(sizeof(*switchdev_work), GFP_ATOMIC);
-	if (!switchdev_work)
-		return NOTIFY_BAD;
+    switchdev_work = kzalloc(sizeof(*switchdev_work), GFP_ATOMIC);
+    if (!switchdev_work)
+        return NOTIFY_BAD;
 
-	switchdev_work->event = event;
-	switchdev_work->dev = dev;
+    switchdev_work->event = event;
+    switchdev_work->dev = dev;
 
-	switch (event) {
-	case SWITCHDEV_FDB_ADD_TO_DEVICE:
-	case SWITCHDEV_FDB_DEL_TO_DEVICE:
-		fdb_info = container_of(info,
-					struct switchdev_notifier_fdb_info,
-					info);
+    switch (event) {
+    case SWITCHDEV_FDB_ADD_TO_DEVICE:
+    case SWITCHDEV_FDB_DEL_TO_DEVICE:
+        fdb_info = container_of(info,
+                    struct switchdev_notifier_fdb_info,
+                    info);
 
-		INIT_WORK(&switchdev_work->work, bcmsw_fdb_event_work);
-		memcpy(&switchdev_work->fdb_info, ptr,
-		       sizeof(switchdev_work->fdb_info));
+        INIT_WORK(&switchdev_work->work, bcmsw_fdb_event_work);
+        memcpy(&switchdev_work->fdb_info, ptr,
+               sizeof(switchdev_work->fdb_info));
 
-		switchdev_work->fdb_info.addr = kzalloc(ETH_ALEN, GFP_ATOMIC);
-		if (!switchdev_work->fdb_info.addr)
-			goto out_bad;
+        switchdev_work->fdb_info.addr = kzalloc(ETH_ALEN, GFP_ATOMIC);
+        if (!switchdev_work->fdb_info.addr)
+            goto out_bad;
 
-		ether_addr_copy((u8 *)switchdev_work->fdb_info.addr,
-				fdb_info->addr);
-		dev_hold(dev);
-		break;
+        ether_addr_copy((u8 *)switchdev_work->fdb_info.addr,
+                fdb_info->addr);
+        dev_hold(dev);
+        break;
 
-	default:
-		kfree(switchdev_work);
-		return NOTIFY_DONE;
-	}
+    default:
+        kfree(switchdev_work);
+        return NOTIFY_DONE;
+    }
 
-	queue_work(bcmsw_switchdev_wq, &switchdev_work->work);
-	return NOTIFY_DONE;
+    queue_work(bcmsw_switchdev_wq, &switchdev_work->work);
+    return NOTIFY_DONE;
 
 out_bad:
-	kfree(switchdev_work);
-	return NOTIFY_BAD;
+    kfree(switchdev_work);
+    return NOTIFY_BAD;
 }
 
 
 int bcmsw_port_obj_add(struct net_device *dev, const void *ctx,
-				 const struct switchdev_obj *obj,
-				 struct netlink_ext_ack *extack)
+                 const struct switchdev_obj *obj,
+                 struct netlink_ext_ack *extack)
 {
-	return 0;
+    return 0;
 }
 int bcmsw_port_obj_del(struct net_device *dev, const void *ctx,
-				 const struct switchdev_obj *obj)
+                 const struct switchdev_obj *obj)
 {
-	return 0;
+    return 0;
 }
 int bcmsw_port_obj_attr_set(struct net_device *dev, const void *ctx,
-				  const struct switchdev_attr *attr,
-				  struct netlink_ext_ack *extack)
+                  const struct switchdev_attr *attr,
+                  struct netlink_ext_ack *extack)
 {
-	return 0;
+    return 0;
 }
 
 
 static int bcmsw_switchdev_blk_event(struct notifier_block *unused,
-					unsigned long event, void *ptr)
+                    unsigned long event, void *ptr)
 {
-	struct net_device *dev = switchdev_notifier_info_to_dev(ptr);
-	int err;
+    struct net_device *dev = switchdev_notifier_info_to_dev(ptr);
+    int err;
 
-	switch (event) {
-	case SWITCHDEV_PORT_OBJ_ADD:
-		err = switchdev_handle_port_obj_add(dev, ptr,
-						    bkn_port_dev_check,
-						    bcmsw_port_obj_add);
-		break;
-	case SWITCHDEV_PORT_OBJ_DEL:
-		err = switchdev_handle_port_obj_del(dev, ptr,
-						    bkn_port_dev_check,
-						    bcmsw_port_obj_del);
-		break;
-	case SWITCHDEV_PORT_ATTR_SET:
-		err = switchdev_handle_port_attr_set(dev, ptr,
-						     bkn_port_dev_check,
-						     bcmsw_port_obj_attr_set);
-		break;
-	default:
-		return NOTIFY_DONE;
-	}
+    switch (event) {
+    case SWITCHDEV_PORT_OBJ_ADD:
+        err = switchdev_handle_port_obj_add(dev, ptr,
+                            bkn_port_dev_check,
+                            bcmsw_port_obj_add);
+        break;
+    case SWITCHDEV_PORT_OBJ_DEL:
+        err = switchdev_handle_port_obj_del(dev, ptr,
+                            bkn_port_dev_check,
+                            bcmsw_port_obj_del);
+        break;
+    case SWITCHDEV_PORT_ATTR_SET:
+        err = switchdev_handle_port_attr_set(dev, ptr,
+                             bkn_port_dev_check,
+                             bcmsw_port_obj_attr_set);
+        break;
+    default:
+        return NOTIFY_DONE;
+    }
 
-	return notifier_from_errno(err);
+    return notifier_from_errno(err);
 }
 
 
 static int bcmsw_switchdev_handler_init(struct bcmsw_switchdev *swdev)
 {
-	int err;
+    int err;
 
-	swdev->swdev_nb.notifier_call = bcmsw_switchdev_event;
-	err = register_switchdev_notifier(&swdev->swdev_nb);
-	if (err)
-		goto err_register_swdev_notifier;
+    swdev->swdev_nb.notifier_call = bcmsw_switchdev_event;
+    err = register_switchdev_notifier(&swdev->swdev_nb);
+    if (err)
+        goto err_register_swdev_notifier;
 
-	swdev->swdev_nb_blk.notifier_call = bcmsw_switchdev_blk_event;
-	err = register_switchdev_blocking_notifier(&swdev->swdev_nb_blk);
-	if (err)
-		goto err_register_blk_swdev_notifier;
+    swdev->swdev_nb_blk.notifier_call = bcmsw_switchdev_blk_event;
+    err = register_switchdev_blocking_notifier(&swdev->swdev_nb_blk);
+    if (err)
+        goto err_register_blk_swdev_notifier;
 
-	return 0;
+    return 0;
 
 err_register_blk_swdev_notifier:
-	unregister_switchdev_notifier(&swdev->swdev_nb);
+    unregister_switchdev_notifier(&swdev->swdev_nb);
 err_register_swdev_notifier:
-	destroy_workqueue(bcmsw_switchdev_wq);
-	return err;
+    destroy_workqueue(bcmsw_switchdev_wq);
+    return err;
 }
 
 
 
 int bcmsw_switchdev_init(bcmsw_switch_t *sw)
 {
-	struct bcmsw_switchdev *swdev;
-	int err;
+    struct bcmsw_switchdev *swdev;
+    int err;
 
-	swdev = kzalloc(sizeof(*swdev), GFP_KERNEL);
-	if (!swdev)
-		return -ENOMEM;
+    swdev = kzalloc(sizeof(*swdev), GFP_KERNEL);
+    if (!swdev)
+        return -ENOMEM;
 
-	sw->swdev = swdev;
-	swdev->sw = sw;
+    sw->swdev = swdev;
+    swdev->sw = sw;
 
-	INIT_LIST_HEAD(&swdev->bridge_list);
+    INIT_LIST_HEAD(&swdev->bridge_list);
 
-	bcmsw_switchdev_wq = alloc_ordered_workqueue("%s_ordered", 0, "bcmsw_switchdev");
-	if (!bcmsw_switchdev_wq) {
-		err = -ENOMEM;
-		goto err_alloc_wq;
-	}
+    bcmsw_switchdev_wq = alloc_ordered_workqueue("%s_ordered", 0, "bcmsw_switchdev");
+    if (!bcmsw_switchdev_wq) {
+        err = -ENOMEM;
+        goto err_alloc_wq;
+    }
 
-	err = bcmsw_switchdev_handler_init(swdev);
-	if (err)
-		goto err_swdev_init;
+    err = bcmsw_switchdev_handler_init(swdev);
+    if (err)
+        goto err_swdev_init;
 
-	return 0;
+    return 0;
 
 //err_fdb_init:
 err_swdev_init:
-	destroy_workqueue(bcmsw_switchdev_wq);
+    destroy_workqueue(bcmsw_switchdev_wq);
 err_alloc_wq:
-	kfree(swdev);
+    kfree(swdev);
 
-	return err;
+    return err;
 }
 
 
@@ -2111,11 +2111,11 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_pipe[port] = 0;
         si->port_speed_max[port] = n3248te_ports[index].bandwidth * 1000;
         si->port_init_speed[port] = n3248te_ports[index].bandwidth * 1000;
-	    if (phy_port <= 48) {
+        if (phy_port <= 48) {
             si->port_serdes[port] = (phy_port - 1) / _HX5_PORTS_PER_PMQ_PBLK;
         } else {
             si->port_serdes[port] = ((phy_port - 1) / _HX5_PORTS_PER_PBLK) - 9;
-	    }
+        }
 
         if (n3248te_ports[index].bandwidth <= 10) {
             si->port_num_lanes[port] = 1;
@@ -2301,7 +2301,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
 
     //Update ING_DEVICE_PORTm
-    memset(&ing_device_port_entry, 0 sizeof(ing_device_port_entry));
+    memset(&ing_device_port_entry, 0, sizeof(ing_device_port_entry));
 
     //SRC_SYS_PORT_ID start 117, len 7
     val = port;
@@ -2317,12 +2317,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     val = port_type;
     _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
 
-
-PORT_TYPE
-    _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
-
-
-
+    _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
 
 
     if (cpu_hg_index != -1) {
@@ -2465,7 +2460,7 @@ _cmicx_miim_operation_cl22(int is_write, uint32 phy_id, uint32_t phy_reg_addr, u
    _iproc_setreg(MIIM_CH0_PARAMSr, ch_params.word);
 
    //printk("read id=0x%02x addr=0x%02x real_phy_id=0x%x, mdio_buses=0x%x internal 0x%x cycle 0x%x\n",
-   //	  phy_id, phy_reg_addr, real_phy_id, mdio_buses, internal_select, cycle_type);
+   //     phy_id, phy_reg_addr, real_phy_id, mdio_buses, internal_select, cycle_type);
 
     /* start transaction */
     ch_control.reg.STARTf = 1;
@@ -2742,21 +2737,21 @@ phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
                 if (reg_bank == 0x0007) {
                     data |= 0x8000;
                 }
-		data = (data & ~(0x0007)) | reg_bank;
+        data = (data & ~(0x0007)) | reg_bank;
             } else {
                 rv = SOC_E_PARAM;
             }
             break;
         case 0x1C:
             if ( reg_bank <= 0x001F ) {
-		data = 0x8000 | (reg_bank << 10) | (data & 0x03FF);
+        data = 0x8000 | (reg_bank << 10) | (data & 0x03FF);
             } else {
                 rv = SOC_E_PARAM;
             }
             break;
         case 0x1D:
             if ( reg_bank == 0x0000 ) {
-		data = data & 0x07FFF;
+        data = data & 0x07FFF;
             } else {
                 rv = SOC_E_PARAM;
             }
@@ -3275,7 +3270,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, rval32);
         }  else {
 #if 0
-	        printk("Bringing Eagle mac rx port %0d up\n", phy_port);
+            printk("Bringing Eagle mac rx port %0d up\n", phy_port);
 
             _reg64_read(bcmsw->dev, blk_no, XLMAC_RX_CTRLr+index, &rval64);
             //soc_reg64_field32_set(unit, XLMAC_RX_CTRLr, &rval64, RX_ANY_STARTf, 0);
@@ -3286,9 +3281,9 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             //                    64);
             _reg64_write(bcmsw->dev, blk_no, XLMAC_RX_CTRLr+index, rval64);
 #endif            
-	    }
-	} else {
-	    printk("Bringing Falcon mac rx port %0d up\n", phy_port);
+        }
+    } else {
+        printk("Bringing Falcon mac rx port %0d up\n", phy_port);
 #if 0        
         _reg64_read(bcmsw->dev, blk_no, CLMAC_RX_CTRLr+index, &rval64);
         //soc_reg64_field32_set(unit, CLMAC_RX_CTRLr, &rval64, RX_ANY_STARTf, 0);
@@ -3299,12 +3294,12 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
         //                        64);
         _reg64_write(bcmsw->dev, blk_no, CLMAC_RX_CTRLr+index, rval64);
 #endif        
-	}
+    }
 
     /*CLPORT_CONFIG */
     if(phy_port < 65) { 
         if ( qmode != 1 ){
-	  printk("Setting Eagle mac xl port %0d up\n", phy_port);
+      printk("Setting Eagle mac xl port %0d up\n", phy_port);
 #if 0
             _reg32_read(bcmsw->dev, blk_no, XLPORT_CONFIGr+index, &rval32);
 
@@ -3316,7 +3311,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
                                                       phy_port, 0, rval32));
 #endif
         }
-    } else {	
+    } else {    
         printk("Setting Falcon mac cl port %0d up\n", phy_port);
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, CLPORT_CONFIGr,
@@ -3330,10 +3325,10 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
 #endif                                                      
     }
 
-    /*CLPORT Enable: */	   
+    /*CLPORT Enable: */    
     if(phy_port < 65) { 
         if( qmode != 1 ) {
-	    printk("Setting Eagle enable port %0d up\n", phy_port);
+        printk("Setting Eagle enable port %0d up\n", phy_port);
 #if 0            
             _reg32_read(bcmsw->dev, blk_no, XLPORT_ENABLE_REGr+index, &rval32);
 
@@ -3349,8 +3344,8 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_set(unit, XLPORT_ENABLE_REGr,
                                                       phy_port, 0, rval32));
 #endif                                                      
-	    }
-	} else {
+        }
+    } else {
             printk("Setting Falcon enable port %0d up\n", phy_port);
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, CLPORT_ENABLE_REGr,
@@ -3367,7 +3362,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_set(unit, CLPORT_ENABLE_REGr,
                                                       phy_port, 0, rval32));
 #endif                                                      
-	}
+    }
 
     msleep(1);
 
@@ -3377,11 +3372,11 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
     } else {
         speed_100g = 0;
     }
-#if 0  	   
-	if(phy_port < 65 ){ 
+#if 0      
+    if(phy_port < 65 ){ 
       
-	    if ( qmode != 1) {
-			LOG_DEBUG(BSL_LS_SOC_PORT, (BSL_META_U(unit, "Setting mode port %0d %0d %d\n"), phy_port, mode, clport_mode_values[mode]));
+        if ( qmode != 1) {
+            LOG_DEBUG(BSL_LS_SOC_PORT, (BSL_META_U(unit, "Setting mode port %0d %0d %d\n"), phy_port, mode, clport_mode_values[mode]));
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, XLPORT_MODE_REGr,
                                                       phy_port, 0, &rval32));
             soc_reg_field_set(unit, XLPORT_MODE_REGr, &rval32,
@@ -3392,9 +3387,9 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
                               clport_mode_values[mode]);
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_set(unit, XLPORT_MODE_REGr,
                                                       phy_port, 0, rval32));
-	    }
-	} else {
-			LOG_DEBUG(BSL_LS_SOC_PORT, (BSL_META_U(unit, "Setting mode port %0d %0d %d\n"), phy_port, mode, clport_mode_values[mode]));
+        }
+    } else {
+            LOG_DEBUG(BSL_LS_SOC_PORT, (BSL_META_U(unit, "Setting mode port %0d %0d %d\n"), phy_port, mode, clport_mode_values[mode]));
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_get(unit, CLPORT_MODE_REGr,
                                                       phy_port, 0, &rval32));
             soc_reg_field_set(unit, CLPORT_MODE_REGr, &rval32,
@@ -3408,7 +3403,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
                               clport_mode_values[mode]);
             SOC_IF_ERROR_RETURN(soc_reg32_rawport_set(unit, CLPORT_MODE_REGr,
                                                       phy_port, 0, rval32));
-	}
+    }
     sleep(200);
 #endif    
 
@@ -3475,8 +3470,8 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             //soc_reg64_field32_set(unit, FLUSH_CONTROLr, &rval64, FLUSHf, 0);
             //SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, FLUSH_CONTROLr, phy_port,
             //                                        0, rval64));
-						    
-	    } else {
+                            
+        } else {
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, XLMAC_TX_CTRLr,
                                                     phy_port, 0, &rval64));
@@ -3492,8 +3487,8 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, XLMAC_CTRLr, phy_port,
                                                     0, rval64));
 #endif                                                    
-	    }
-	} else {
+        }
+    } else {
 #if 0        
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, CLMAC_TX_CTRLr,
                                                     phy_port, 0, &rval64));
@@ -3509,7 +3504,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, CLMAC_CTRLr, phy_port,
                                                     0, rval64));
 #endif                                                    
-	}
+    }
 
     /* CLMAC MODE */
     //hdr_mode = 0;
@@ -3535,7 +3530,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
 
             _reg32_read(dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
             //printk("soc_helix5_flex_mac_port_up port %d command_config 0x%x\n", phy_port, ctrl.word);
-	 } else {
+     } else {
 #if 0            
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, XLMAC_MODEr,
                                                     phy_port, 0, &rval64));
@@ -3544,7 +3539,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
             SOC_IF_ERROR_RETURN(soc_reg_rawport_set(unit, XLMAC_MODEr,
                                                     phy_port, 0, rval64));
 #endif                                                    
-	  }
+      }
     } else {
 #if 0        
             SOC_IF_ERROR_RETURN(soc_reg_rawport_get(unit, CLMAC_MODEr,
@@ -3556,7 +3551,7 @@ _helix5_flex_mac_port_up(bcmsw_switch_t *bcmsw, int port)
 #endif                                                    
     }
 
-	printk("END soc_helix5_flex_mac_port_up\n");
+    printk("END soc_helix5_flex_mac_port_up\n");
     return SOC_E_NONE;
 }
 
@@ -3741,44 +3736,44 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
 
     if (lcl_mmu_port < 64) {
         //COMPILER_64_SHL(new_val_0, lcl_mmu_port);
-	new_val_0 <<= lcl_mmu_port;
+    new_val_0 <<= lcl_mmu_port;
 
         if (set_val == temp64) {
-	    if (physical_port == -1) {
+        if (physical_port == -1) {
                 COMPILER_64_OR(enable_val_0, new_val_0);
                 update0 = 1;
             }
         } else {
-	    if (physical_port != -1){
+        if (physical_port != -1){
                 COMPILER_64_NOT(new_val_0);
-	        COMPILER_64_AND(enable_val_0, new_val_0);
-	        update0 = 1;
-	    }
+            COMPILER_64_AND(enable_val_0, new_val_0);
+            update0 = 1;
+        }
         }   
     } else {
         //COMPILER_64_SHL(new_val_1, (lcl_mmu_port - 64));
-	new_val_1 <<= (lcl_mmu_port - 64);
-	        
+    new_val_1 <<= (lcl_mmu_port - 64);
+            
         if (set_val == temp64) {
-	    if (physical_port == -1){
+        if (physical_port == -1){
                 COMPILER_64_OR(enable_val_1, new_val_1);
                 update1 = 1; 
             }
         } else {
-	    if (physical_port != -1){
- 	       COMPILER_64_NOT(new_val_1);
-	       COMPILER_64_AND(enable_val_1, new_val_1);
-	       update1 = 1; 
-	    }
+        if (physical_port != -1){
+           COMPILER_64_NOT(new_val_1);
+           COMPILER_64_AND(enable_val_1, new_val_1);
+           update1 = 1; 
+        }
         }
     }
 
     if(update0 == 1) {
-	printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%llx\n", enable_val_0);
+    printk("Q_SCHED_PORT_FLUSH_SPLIT0r 0x%llx\n", enable_val_0);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg1, enable_val_0, 20);
     }
     if(update1 == 1) {
-	printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%llx\n", enable_val_1);
+    printk("Q_SCHED_PORT_FLUSH_SPLIT1r 0x%llx\n", enable_val_1);
         _schan_reg64_write(bcmsw->dev, SCHAN_BLK_MMU_SC, reg2, enable_val_1, 20);
     }
 
@@ -3886,12 +3881,12 @@ _helix5_flex_mmu_port_up_top(bcmsw_switch_t *bcmsw, int port)
     /* Per-Port configuration */
     //for (pipe = 0; pipe < HELIX5_TDM_PIPES_PER_DEV; pipe++) {
     //    soc_helix5_mmu_get_pipe_flexed_status(
-	//    unit, port_schedule_state_t, pipe, &pipe_flexed);
-	    
-	//if (pipe_flexed == 1) {
+    //    unit, port_schedule_state_t, pipe, &pipe_flexed);
+        
+    //if (pipe_flexed == 1) {
     _helix5_mmu_vbs_port_flush(bcmsw, port, temp64);
     _helix5_mmu_rqe_port_flush(bcmsw, port, temp64);
-	//}
+    //}
     //}
 
     /* Per-Pipe configuration */
@@ -3901,7 +3896,7 @@ _helix5_flex_mmu_port_up_top(bcmsw_switch_t *bcmsw, int port)
     if(phy_port < 49){
         qmode = _helix5_get_qmode(bcmsw, phy_port);
     } else {
-	    qmode = 0;
+        qmode = 0;
     }
 
     if(qmode == 0 ) { //TODO
@@ -3910,7 +3905,7 @@ _helix5_flex_mmu_port_up_top(bcmsw_switch_t *bcmsw, int port)
     }
 
     _helix5_mmu_mtro_port_flush(bcmsw, port, temp64);
-	        
+            
     return SOC_E_NONE;
 }
 
@@ -4579,6 +4574,7 @@ bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
 
 
     //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
+    return 0;
 }
 
 
@@ -4741,9 +4737,9 @@ _port_init(bcmsw_switch_t *bcmsw)
     //enable ports
     // if ((rv = bcm_esw_port_enable_set(unit, p, port_enable)) < 0) {
     for (port =1; port < num_port; port++) {
-	    if(si->ports[port].valid == TRUE) {
+        if(si->ports[port].valid == TRUE) {
             bcm_esw_port_enable_set(bcmsw, port, TRUE);
-	    }
+        }
     }
     return 0;
 }
@@ -4824,15 +4820,15 @@ static int bcmsw_ports_init(bcmsw_switch_t *bcmsw)
     max_ports = COUNTOF(n3248te_ports);
     for (i = 0; i < max_ports; i++) {
         if (n3248te_ports[i].port != -1) {
-    	  err = bcmsw_port_create(bcmsw, n3248te_ports[i].port, n3248te_ports[i].name);
-    	  if (err)
-    		goto err_port_create;
+          err = bcmsw_port_create(bcmsw, n3248te_ports[i].port, n3248te_ports[i].name);
+          if (err)
+            goto err_port_create;
         }
     }
     
 err_port_cfg_init:
 err_port_create:
-	return err;
+    return err;
 }
 
 /*****************************************************************************************/
@@ -4843,7 +4839,7 @@ err_port_create:
 static int bcmsw_cmicx_dma_abort(bcmsw_switch_t *bcmsw)
 {
 
-	    /* abort s-bus DMA in all channels */
+        /* abort s-bus DMA in all channels */
     chans_group_init(&sbus_channels);
     if ((flags & SOC_DMA_ABORT_SKIP_SBUS) == 0) {
         /* For  CMCs x=0-1  and channels y=0-3 and [channel used by this CPU] */
@@ -5052,7 +5048,7 @@ static int _cmicx_pci_test(struct net_device *dev)
                 if (tmp != pat) {
                     goto error;
                 }
-                pat = (pat << 1) | ((pat >> 31) & 1);	/* Rotate left */
+                pat = (pat << 1) | ((pat >> 31) & 1);   /* Rotate left */
             }
         }
     //}
@@ -5099,7 +5095,7 @@ static int _trident3_mdio_rate_divisor_set(void)
         //soc_cmicx_miim_divider_set_ring(unit, ring_idx, int_divider, ext_divisor, delay);
         ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + (ring_idx<<2));
         ring_control.reg.CLOCK_DIVIDER_EXTf = ext_divisor;
-	ring_control.reg.CLOCK_DIVIDER_INTf = int_divisor;
+    ring_control.reg.CLOCK_DIVIDER_INTf = int_divisor;
         _iproc_setreg(MIIM_RING0_CONTROLr + (ring_idx<<2), ring_control.word);
     }
 
@@ -5254,8 +5250,8 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
             valid = 1;
         } else {
             memfld = 0x7f ; 
-	    valid = 0;
-        }	
+        valid = 0;
+        }   
         
         memset(&idb_entry, 0, sizeof(idb_entry));
         //DEVICE_PORT_NUMBERf start 0, len 7
@@ -5276,6 +5272,7 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
         _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + physical_port-1, SCHAN_BLK_IPIPE, 
                        BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
     }
+    return 0;
 }
 
 static int
@@ -5412,12 +5409,12 @@ _soc_hx5_thdo_hw_set(bcmsw_switch_t *bcmsw, int port, int enable)
         _reg64_read(bcmsw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], &rval64);                                  
 
         if (enable) {
-	    COMPILER_64_OR(rval64, rval64_tmp);
+        COMPILER_64_OR(rval64, rval64_tmp);
         } else {
-	    COMPILER_64_NOT(rval64_tmp);
-	    COMPILER_64_AND(rval64, rval64_tmp);
+        COMPILER_64_NOT(rval64_tmp);
+        COMPILER_64_AND(rval64, rval64_tmp);
         }
-	//printk("_soc_hx5_thdo_hw_set port %d pos %d reg 0x%x 0x%llx\n",port, pos, reg[i][split], rval64);
+    //printk("_soc_hx5_thdo_hw_set port %d pos %d reg 0x%x 0x%llx\n",port, pos, reg[i][split], rval64);
 
         _reg64_write(bcmsw->dev, SCHAN_BLK_MMU_XPE, reg[i][split], rval64);
     }
@@ -5635,10 +5632,10 @@ _bcm_l2_cache_to_l2u(l2u_entry_t *l2u_entry, bcm_l2_cache_addr_t *l2caddr)
 #endif
 
         // DESTINATIONf start 177, len 18
-	// Do not support stack, use port_in
-	// _soc_mem_dest_value_construct SOC_MEM_FIF_DEST_DGPP : type DEST_TYPE0f = 2
-	val = 2<<16 | mod_in << 8 | port_in;
-	_mem_field_set((uint32_t *)l2u_entry, L2_USER_ENTRYm_BYTES, 177, 18, &val, SOCF_LE); 
+    // Do not support stack, use port_in
+    // _soc_mem_dest_value_construct SOC_MEM_FIF_DEST_DGPP : type DEST_TYPE0f = 2
+    val = 2<<16 | mod_in << 8 | port_in;
+    _mem_field_set((uint32_t *)l2u_entry, L2_USER_ENTRYm_BYTES, 177, 18, &val, SOCF_LE); 
     }
         
 
@@ -5698,7 +5695,7 @@ _soc_l2u_find_free_entry(bcmsw_switch_t *bcmsw, l2u_entry_t *key, int *free_inde
     }
     for (index = start; index != end; index += step) {
         rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, 
-			   SCHAN_BLK_IPIPE, BYTES2WORDS(L2_USER_ENTRYm_BYTES), &entry);
+               SCHAN_BLK_IPIPE, BYTES2WORDS(L2_USER_ENTRYm_BYTES), &entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -5875,7 +5872,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
     uint32 profile_ptr = 0;
 
     _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, 
-		  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &egr_vtab); 
+          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &egr_vtab); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_get((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
@@ -5887,7 +5884,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, _pbmp_t pbmp)
 
     //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
     _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
-		          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), &egr_vlan_vfi); 
+                  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), &egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
     _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
@@ -5952,7 +5949,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
     _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, 
-		  SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &vlan_attrs); 
+          SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &vlan_attrs); 
 
     //STGf start 2, len 9
     val = 1; //default STG
@@ -5986,17 +5983,17 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //readback 
     //printk("_vlan_table_init_egr_vlan write %d 0x%08x 0x%08x 0x%08x\n", 
-    //    	    vd->vlan_tag,
-    //    	    ve.entry_data[0],
-    //    	    ve.entry_data[1],
-    //    	    ve.entry_data[2]);
+    //          vd->vlan_tag,
+    //          ve.entry_data[0],
+    //          ve.entry_data[1],
+    //          ve.entry_data[2]);
     //memcpy(&ve, empty_entry, 12);
     //_soc_mem_read(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve);
     //printk("_vlan_table_init_egr_vlan read %d 0x%08x 0x%08x 0x%08x\n", 
-    //		    vd->vlan_tag,
-    //		    ve.entry_data[0],
-    //		    ve.entry_data[1],
-    //		    ve.entry_data[2]);
+    //          vd->vlan_tag,
+    //          ve.entry_data[0],
+    //          ve.entry_data[1],
+    //          ve.entry_data[2]);
  
 
     _td3_vlan_vfi_untag_init(bcmsw, vd->vlan_tag, vd->ut_port_bitmap);
@@ -6139,14 +6136,14 @@ _sinfo_show(struct seq_file *m, void *v)
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	return 0;
+    return 0;
     }
 
     si = _bcmsw->si;
 
     if (!si) {
-	seq_printf(m, " si Not initialized\n"); 
-	return 0;
+    seq_printf(m, " si Not initialized\n"); 
+    return 0;
     }
 
     seq_printf(m, "SOC INFO for BCM56371:\n");
@@ -6211,17 +6208,17 @@ _proc_reg32_show(struct seq_file *m, void *v)
             break;
         case IDB_OBM0_Q_CONTROLr:
             for (index =0; index < 10; index ++) { 
-	            _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
-	            seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, obm_ctrl_regs[index], val);
+                _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
+                seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, obm_ctrl_regs[index], val);
             }
-	        break;
+            break;
  
         case IDB_OBM0_Q_CA_CONTROLr:
             for (index =0; index < 10; index ++) { 
-	            _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, soc_helix5_obm_ca_ctrl_regs[index], &val);
-	            seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, soc_helix5_obm_ca_ctrl_regs[index], val);
+                _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, soc_helix5_obm_ca_ctrl_regs[index], &val);
+                seq_printf(m, "%2d [0x%08x]  0x%08x\n", index, soc_helix5_obm_ca_ctrl_regs[index], val);
             }
-	        break;
+            break;
 
         case MMU_GCFG_MISCCONFIGr:
            _schan_reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, MMU_GCFG_MISCCONFIGr, &val, 20);
@@ -6230,28 +6227,28 @@ _proc_reg32_show(struct seq_file *m, void *v)
 
         case EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr:
             for (index =0; index < HX5_NUM_PORT; index ++) { 
-	            _reg32_read(_bcmsw->dev,SCHAN_BLK_EPIPE, 
+                _reg32_read(_bcmsw->dev,SCHAN_BLK_EPIPE, 
                             EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr+index,
                             &val);
-	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+                seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
 
         case MMU_PORT_TO_PHY_PORT_MAPPINGr:
             for (index =0; index < HX5_NUM_PORT; index ++) { 
-	            _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
                             MMU_PORT_TO_PHY_PORT_MAPPINGr+index,
                             &val);
-	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+                seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
 
         case MMU_PORT_TO_DEVICE_PORT_MAPPINGr:
             for (index =0; index < HX5_NUM_PORT; index ++) { 
-	            _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
                             MMU_PORT_TO_DEVICE_PORT_MAPPINGr+index,
                             &val);
-	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
+                seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
 
@@ -6265,7 +6262,7 @@ _proc_reg32_show(struct seq_file *m, void *v)
             break;
                     
        default:
-	   seq_printf(m," Not implemented\n");
+       seq_printf(m," Not implemented\n");
     } 
     return 0;
 }
@@ -6312,35 +6309,36 @@ _proc_mem_show(struct seq_file *m, void *v)
 
     switch (p_data->reg_addr) {
         case EGR_PORTm:
-	        egr_port_entry = (egr_port_entry_t *)entry;
+            egr_port_entry = (egr_port_entry_t *)entry;
             for (index =0; index < 72; index ++) {
                 _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
-			                   SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
-			                   egr_port_entry);
-                seq_printf(m, "%2d [%2d]  0x%016llx\n", index, egr_port_entry->port_type, *egr_port_entry);
+                               SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
+                               egr_port_entry);
+                seq_printf(m, "%2d [%2d]  0x%08x 0x%08x\n", index, 
+                   egr_port_entry->port_type, egr_port_entry[0], egr_port_entry[1]);
             }   
             break;
 
         case LPORT_TABm:
             for (index =0; index < 72; index ++) {
-	            _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
-			                  SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
-			                  entry);
-	            //PORT_VIDf start 3, len 12
-	            _mem_field_get(entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
+                _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), 
+                              entry);
+                //PORT_VIDf start 3, len 12
+                _mem_field_get(entry, LPORT_TABm_BYTES, 3, 12, &val, SOCF_LE);
                 seq_printf(m, "%2d vid:%4d ", index, val);
-	            for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
+                for (i = 0;i< (LPORT_TABm_BYTES/4); i++) {
                     seq_printf(m, "0x%08x ", entry[i]);
-	            }
+                }
                seq_printf(m, "\n");
            }   
            break; 
 
         case ING_DEVICE_PORTm:
             for (index =0; index < 72; index ++) {
-	            _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
-			                  SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
-			                  entry);
+                _soc_mem_read(_bcmsw->dev, ING_DEVICE_PORTm+index, 
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), 
+                              entry);
                 seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
                           index,
                           entry[0],
@@ -6354,8 +6352,8 @@ _proc_mem_show(struct seq_file *m, void *v)
         case MAC_BLOCKm:
             for (index =0; index < 32; index ++) {
                 _soc_mem_read(_bcmsw->dev, MAC_BLOCKm+index, 
-			                  SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), 
-			                  entry);
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), 
+                              entry);
                 seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
                            index,
                            entry[0],
@@ -6366,9 +6364,9 @@ _proc_mem_show(struct seq_file *m, void *v)
 
         case SYS_PORTMAPm:
             for (index =0; index < HX5_NUM_PORT; index ++) {
-	            _soc_mem_read(_bcmsw->dev, SYS_PORTMAPm+index, 
-			                  SCHAN_BLK_IPIPE, BYTES2WORDS(SYS_PORTMAPm_BYTES), 
-			                  entry);
+                _soc_mem_read(_bcmsw->dev, SYS_PORTMAPm+index, 
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(SYS_PORTMAPm_BYTES), 
+                              entry);
                 seq_printf(m, "[%2d]   0x%08x \n", 
                            index,
                            entry[0]);
@@ -6380,22 +6378,22 @@ _proc_mem_show(struct seq_file *m, void *v)
                 _soc_mem_read(_bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm+index, 
                               SCHAN_BLK_IPIPE, BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), 
                               entry);
-		//VALIDf bit 0
-		if(entry[0] & 0x1) {
+        //VALIDf bit 0
+        if(entry[0] & 0x1) {
                     seq_printf(m, "[%2d]   0x%08x \n", 
                                index,
                                entry[0]);
-		}
+        }
             }    
             break;
 
         case ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm:
             for (index =0; index < HX5_NUM_PORT; index ++) {
-	            _soc_mem_read(_bcmsw->dev, 
+                _soc_mem_read(_bcmsw->dev, 
                               ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm+index, 
-			                  SCHAN_BLK_IPIPE, 
+                              SCHAN_BLK_IPIPE, 
                               BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), 
-			                  entry);
+                              entry);
                 seq_printf(m, "[%2d]   0x%08x \n", 
                            index,
                            entry[0]);
@@ -6403,7 +6401,7 @@ _proc_mem_show(struct seq_file *m, void *v)
             break;
 
         default:
-	        seq_printf(m," Not implemented\n");
+            seq_printf(m," Not implemented\n");
             break;
     } 
     return 0;
@@ -6443,7 +6441,7 @@ _egr_vlan_show(struct seq_file *m, void *v)
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	    return 0;
+        return 0;
     }
 
     seq_printf(m, "EGR_VLAN base 0x%x (10 bytes):\n", EGR_VLANm);
@@ -6451,10 +6449,10 @@ _egr_vlan_show(struct seq_file *m, void *v)
     for (index = 0; index < 4095; index ++) {
         //EGR_VLANm entry is 10 bytes, 3 word
         _soc_mem_read(_bcmsw->dev, 
-		      EGR_VLANm+index, 
-		      SCHAN_BLK_EPIPE, 
-		      BYTES2WORDS(EGR_VLANm_BYTES), 
-		      &ve); 
+              EGR_VLANm+index, 
+              SCHAN_BLK_EPIPE, 
+              BYTES2WORDS(EGR_VLANm_BYTES), 
+              &ve); 
 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, 0);
@@ -6545,7 +6543,7 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	    return 0;
+        return 0;
     }
 
     seq_printf(m, "VLAN_ATTRS_1 base 0x%x (%d bytes):\n", VLAN_ATTRS_1m, VLAN_ATTRS_1m_BYTES);
@@ -6554,10 +6552,10 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
         _soc_mem_read(_bcmsw->dev, 
-		      VLAN_ATTRS_1m+index, 
-		      SCHAN_BLK_IPIPE, 
-		      BYTES2WORDS(VLAN_ATTRS_1m_BYTES), 
-		      &vlan_attrs); 
+              VLAN_ATTRS_1m+index, 
+              SCHAN_BLK_IPIPE, 
+              BYTES2WORDS(VLAN_ATTRS_1m_BYTES), 
+              &vlan_attrs); 
 
         //VALIDf start 58, len 1
         _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
@@ -6636,7 +6634,7 @@ _vlan_tab_show(struct seq_file *m, void *v)
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	    return 0;
+        return 0;
     }
 
     seq_printf(m, "VLAN_TAB base 0x%x (%d bytes):\n", VLAN_TABm, VLAN_TABm_BYTES);
@@ -6645,10 +6643,10 @@ _vlan_tab_show(struct seq_file *m, void *v)
     for (index = 0; index < 4095; index ++) {
         //VLAN_ATTRS_1 entry is 9 bytes, 3 word
         _soc_mem_read(_bcmsw->dev, 
-		      VLAN_TABm+index, 
-		      SCHAN_BLK_IPIPE, 
-		      BYTES2WORDS(VLAN_TABm_BYTES), 
-		      &vt); 
+              VLAN_TABm+index, 
+              SCHAN_BLK_IPIPE, 
+              BYTES2WORDS(VLAN_TABm_BYTES), 
+              &vt); 
 
         //VALIDf start 150, len 1
         _mem_field_get((uint32_t *)&vt, VLAN_TABm_BYTES, 150, 1, &val, 0);
@@ -6701,12 +6699,11 @@ static int
 _egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
 {
     int                 index;
-    uint32_t            val;
     egr_vlan_vfi_untag_entry_t    vt;
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	    return 0;
+        return 0;
     }
 
     seq_printf(m, "EGR_VLAN_VFI_UNTAG base 0x%x (%d bytes):\n", EGR_VLAN_VFI_UNTAGm, EGR_VLAN_VFI_UNTAGm_BYTES);
@@ -6715,10 +6712,10 @@ _egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
     for (index = 0; index < 4; index ++) {
         //VLAN_ATTRS_1 entry is 19 bytes, 5 word
         _soc_mem_read(_bcmsw->dev, 
-		      EGR_VLAN_VFI_UNTAGm+index, 
-		      SCHAN_BLK_EPIPE, 
-		      BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
-		      &vt); 
+              EGR_VLAN_VFI_UNTAGm+index, 
+              SCHAN_BLK_EPIPE, 
+              BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
+              &vt); 
 
         seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
                    vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], vt.entry_data[4]);
@@ -6756,7 +6753,7 @@ _l2_user_entry_show(struct seq_file *m, void *v)
 
     if (!_bcmsw) {
         seq_printf(m, " Not initialized\n");
-	    return 0;
+        return 0;
     }
 
     seq_printf(m, "L2_USER_ENTRY base 0x%x (%d bytes):\n", L2_USER_ENTRYm, L2_USER_ENTRYm_BYTES);
@@ -6765,10 +6762,10 @@ _l2_user_entry_show(struct seq_file *m, void *v)
     for (index = 0; index < 512; index ++) {
         //L2_USER_ENTRY entry is 27 bytes, 7 word
         _soc_mem_read(_bcmsw->dev, 
-		      L2_USER_ENTRYm+index, 
-		      SCHAN_BLK_IPIPE, 
-		      BYTES2WORDS(L2_USER_ENTRYm_BYTES), 
-		      &vt); 
+              L2_USER_ENTRYm+index, 
+              SCHAN_BLK_IPIPE, 
+              BYTES2WORDS(L2_USER_ENTRYm_BYTES), 
+              &vt); 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&vt, L2_USER_ENTRYm_BYTES, 0, 1, &val, 0);        
 
@@ -6884,7 +6881,7 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
     // /proc/switchdev/reg/IDB_CA_LPBK_CONTROL
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
-    p_data->reg_addr = IDB_CA_LPBK_CONTROL;
+    p_data->reg_addr = IDB_CA_LPBK_CONTROLr;
     entry = proc_create_data("IDB_CA_LPBK_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
     if (entry == NULL) {
         printk("proc_create failed!\n");
@@ -6893,7 +6890,7 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
     // /proc/switchdev/reg/IDB_CA_CPU_CONTROL
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
-    p_data->reg_addr = IDB_CA_CPU_CONTROL;
+    p_data->reg_addr = IDB_CA_CPU_CONTROLr;
     entry = proc_create_data("IDB_CA_CPU_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
     if (entry == NULL) {
         printk("proc_create failed!\n");
@@ -6902,7 +6899,7 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
     // /proc/switchdev/reg/IDB_CA_BSK_CONTROL
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
-    p_data->reg_addr = IDB_CA_BSK_CONTROL;
+    p_data->reg_addr = IDB_CA_BSK_CONTROLr;
     entry = proc_create_data("IDB_CA_BSK_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
     if (entry == NULL) {
         printk("proc_create failed!\n");
@@ -7106,8 +7103,8 @@ static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
     //create ports
     err = bcmsw_ports_init(bcmsw);
     if (err) {
-    	//dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
-    	goto err_ports_create;
+        //dev_err(mlxsw_sp->bus_info->dev, "Failed to create ports\n");
+        goto err_ports_create;
     }      
 
 
@@ -7527,13 +7524,13 @@ int bcmsw_switch_init(void)
         
     bcmsw = kzalloc(sizeof(*bcmsw), GFP_KERNEL);
     if (!bcmsw)
-	return -ENOMEM;
+    return -ENOMEM;
     //save to global variable 
     _bcmsw = bcmsw;
 
     err = bcmsw_switchdev_init(bcmsw);
     if (err)
-	goto err_swdev_register;
+    goto err_swdev_register;
   
     //get bcm0 netdev
     bcmsw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
@@ -7558,7 +7555,7 @@ int bcmsw_switch_init(void)
 
     //load m0 firmware
     //BCM: m0 load 0 0x0 linkscan_led_fw.bin
-    //	   m0 load 0 0x3800 custom_led.bin
+    //     m0 load 0 0x3800 custom_led.bin
 
     // init cancun, and load cancun pkgs
     //BCM: cancun load cch
@@ -7588,5 +7585,6 @@ int bcmsw_switch_uninit(void)
 {
     bcmsw_switch_t *bcmsw = _bcmsw;
 
-     _procfs_uninit(bcmsw);
+    _procfs_uninit(bcmsw);
+    return 0;
 }
