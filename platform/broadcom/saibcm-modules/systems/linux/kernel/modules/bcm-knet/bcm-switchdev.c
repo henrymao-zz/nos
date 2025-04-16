@@ -2301,6 +2301,24 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
 
     //Update ING_DEVICE_PORTm
+    memset(&ing_device_port_entry, 0 sizeof(ing_device_port_entry));
+
+    //SRC_SYS_PORT_ID start 117, len 7
+    val = port;
+    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE); 
+
+    //SYS_PORT_IDf start 13, len 7
+    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE); 
+
+    //PP_PORT_NUM start 20, len 7
+    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE); 
+
+    //PORT_TYPE start 0, len 3
+    val = port_type;
+    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
+
+
+PORT_TYPE
     _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
 
 
@@ -3103,13 +3121,13 @@ _helix5_idb_lpbk_ca_reset_buffer(bcmsw_switch_t *bcmsw, int reset_buffer)
 {
     idb_lpbk_ca_t val32;
 
-    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, &val32.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROLr, &val32.word);
          
     val32.reg.PORT_RESETf = reset_buffer;
 
-    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROL_PIPE0r, val32.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROLr, val32.word);
 
-    printk("_helix5_idb_lpbk_ca_reset_buffer reset_buffer=%1d", reset_buffer);
+    //printk("_helix5_idb_lpbk_ca_reset_buffer reset_buffer=%1d", reset_buffer);
 
     return SOC_E_NONE;
 }
@@ -3120,13 +3138,13 @@ _helix5_idb_cpu_ca_reset_buffer(bcmsw_switch_t *bcmsw, int reset_buffer)
 {
     idb_ca_cpu_t val32;
 
-    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, &val32.word);
+    _reg32_read(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROLr, &val32.word);
 
     val32.reg.PORT_RESETf = reset_buffer;
 
-    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROL_PIPE0r, val32.word);
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROLr, val32.word);
     
-    printk("_helix5_idb_cpu_ca_reset_buffer reset_buffer=%1d", reset_buffer);
+    //printk("_helix5_idb_cpu_ca_reset_buffer reset_buffer=%1d", reset_buffer);
 
     return SOC_E_NONE;
 }
@@ -5260,6 +5278,44 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
     }
 }
 
+static int
+_soc_helix5_idb_init(bcmsw_switch_t *bcmsw)
+{
+    uint32_t val32;
+
+    /* Toggle cpu port cell assembly reset to send initial credit to EP */
+    //TODO soc_cmicx_verify_before_idb_reset(unit);
+
+    val32 = 1; //PORT_RESETf = 1
+
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROLr, val32);    
+
+    //if (!SOC_WARM_BOOT(unit)) {
+    //    soc_cmicx_top_ip_intf_credit_reset(unit);
+    //}
+    val32 = 0;
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_CPU_CONTROLr, val32);  
+
+    //soc_cmicx_verify_after_idb_reset(unit);
+
+    /* Toggle loopback cell assembly reset to send initial credit to EP */
+    //reg = IDB_CA_LPBK_CONTROLr;
+    val32 = 1; //PORT_RESETf = 1
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROLr, val32);  
+    val32 = 0;
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_LPBK_CONTROLr, val32);  
+
+
+    /* Toggle FAE port cell assembly reset to send initial credit to EP */
+    val32 = 1; //PORT_RESETf = 1
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_BSK_CONTROLr, val32);  
+    val32 = 0;
+    _reg32_write(bcmsw->dev,SCHAN_BLK_IPIPE, IDB_CA_BSK_CONTROLr, val32);  
+    //_soc_hx5_set_idb_dpp_ctrl(unit);
+
+    return SOC_E_NONE;
+}
+
 //_soc_helix5_misc_init
 static int _misc_init(bcmsw_switch_t *bcmsw)
 {
@@ -5271,6 +5327,7 @@ static int _misc_init(bcmsw_switch_t *bcmsw)
     _soc_helix5_flex_idb_reconfigure(bcmsw);
 
     //_soc_helix5_idb_init
+    _soc_helix5_idb_init(bcmsw);
 
     //_soc_helix5_edb_init
 
@@ -6197,6 +6254,15 @@ _proc_reg32_show(struct seq_file *m, void *v)
 	            seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
+
+        case IDB_CA_CPU_CONTROLr:
+        case IDB_CA_LPBK_CONTROLr:
+        case IDB_CA_BSK_CONTROLr:
+            _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, 
+                       p_data->reg_addr, 
+                       &val);
+            seq_printf(m, "0x%08x\n", val);
+            break;
                     
        default:
 	   seq_printf(m," Not implemented\n");
@@ -6814,6 +6880,35 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }    
+
+    // /proc/switchdev/reg/IDB_CA_LPBK_CONTROL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = IDB_CA_LPBK_CONTROL;
+    entry = proc_create_data("IDB_CA_LPBK_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+    // /proc/switchdev/reg/IDB_CA_CPU_CONTROL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = IDB_CA_CPU_CONTROL;
+    entry = proc_create_data("IDB_CA_CPU_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+    // /proc/switchdev/reg/IDB_CA_BSK_CONTROL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = IDB_CA_BSK_CONTROL;
+    entry = proc_create_data("IDB_CA_BSK_CONTROL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }                
+
     return 0;
 create_fail:
     return -1;

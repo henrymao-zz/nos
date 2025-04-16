@@ -1051,7 +1051,7 @@ soc_field_info_t soc_ING_DEVICE_PORT_BCM56370_A0m_fields[] = {
 
 
 typedef struct {
-    uint32_t entry_data[18];
+    uint32_t entry_data[5];
 }ing_device_port_entry_t;
 
 //Memory: ING_DEVICE_PORT.ipipe0 aka PORT alias PORT0 address 0x4c000000
@@ -1937,11 +1937,26 @@ typedef union idb_lpbk_ca_s {
     uint32_t word;
 } idb_lpbk_ca_t;
 
-#define IDB_CA_LPBK_CONTROL_PIPE0r      0x02000700
+//Register: IDB_CA_LPBK_CONTROL.ipipe0 alias IDB_CA_LPBK_CONTROL general register address 0x02000700
+//Flags:
+//Blocks: ipipe0 (1 copy)
+//Description: IDB LPBK-CA Control Register
+#define IDB_CA_LPBK_CONTROLr      0x02000700
  
 typedef idb_lpbk_ca_t idb_ca_cpu_t;
 
-#define IDB_CA_CPU_CONTROL_PIPE0r       0x02000200
+//Register: IDB_CA_CPU_CONTROL.ipipe0 alias IDB_CA_CPU_CONTROL general register address 0x02000200
+//Flags:
+//Blocks: ipipe0 (1 copy)
+//Description: IDB CPU-CA Control Register
+#define IDB_CA_CPU_CONTROLr       0x02000200
+
+
+//Register: IDB_CA_BSK_CONTROL.ipipe0 alias IDB_CA_BSK_CONTROL general register address 0x02000300
+//Flags:
+//Blocks: ipipe0 (1 copy)
+//Description: IDB BSK-CA Control Register
+#define IDB_CA_BSK_CONTROLr       0x02000300
 
 /*****************************************************************************************/
 /*                             MMU                                                       */
