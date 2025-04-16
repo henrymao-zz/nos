@@ -1618,6 +1618,28 @@ typedef struct {
 #define PHY_BCM542XX_REG_15_RDB_DIS             (0x8000)
 #define PHY_BCM542XX_REG_1E_SELECT_RDB          (0x0087)
 
+typedef enum phymod_an_mode_type_e {
+    phymod_AN_MODE_NONE = 0,
+    phymod_AN_MODE_CL73,
+    phymod_AN_MODE_CL37,
+    phymod_AN_MODE_CL73BAM,
+    phymod_AN_MODE_CL37BAM,
+    phymod_AN_MODE_HPAM,
+    phymod_AN_MODE_SGMII,
+    phymod_AN_MODE_CL37BAM_10P9375G_VCO,
+    phymod_AN_MODE_CL37_SGMII,
+    phymod_AN_MODE_CL73_MSA,
+    phymod_AN_MODE_MSA,
+    phymod_AN_MODE_Count
+} phymod_an_mode_type_t;
+
+typedef struct phymod_autoneg_control_s {
+    phymod_an_mode_type_t an_mode;
+    uint32_t num_lane_adv; /**< The number of lanes the autoneg advert */
+    uint32_t flags; /**< see AN_F */
+    uint32_t enable;
+} phymod_autoneg_control_t;
+
 /*****************************************************************************************/
 /*                              MAC related                                              */
 /*****************************************************************************************/
@@ -2114,6 +2136,22 @@ typedef uint8 bcm_mac_t[6];
                 ((uint32)(mac)[1]));       \
 } while (0)
 
+/* 
+ * Flags for learn mode
+ * 
+ * This call takes flags to turn on and off mutually-independent actions
+ * that should be taken when a packet is received with an unknown source
+ * address, or source lookup failure (SLF).
+ * 
+ * The set call returns BCM_E_UNAVAIL for flag combinations that are not
+ * supported by the hardware.
+ */
+#define BCM_PORT_LEARN_ARL      0x01       /* Learn SLF address. */
+#define BCM_PORT_LEARN_CPU      0x02       /* Copy SLF packet to CPU. */
+#define BCM_PORT_LEARN_FWD      0x04       /* Forward SLF packet */
+#define BCM_PORT_LEARN_PENDING  0x08       /* Mark learned SLF as pending */
+#define BCM_PORT_LEARN_ON       0x01       /* Deprecated name */
+#define BCM_PORT_LEARN_SWITCH   0x04       /* Deprecated name */
 
 typedef enum _shr_port_encap_e {
     SOC_ENCAP_IEEE = 0,               /* IEEE 802.3 Ethernet-II  */
@@ -2132,7 +2170,54 @@ typedef enum _shr_port_encap_e {
     SOC_ENCAP_COUNT                   /* last, please */
 } bcm_port_encap_t;
 
+/* Port loopback modes. */
+typedef enum bcm_port_loopback_e {
+    BCM_PORT_LOOPBACK_NONE = 0, 
+    BCM_PORT_LOOPBACK_MAC  = 1, 
+    BCM_PORT_LOOPBACK_PHY  = 2, 
+    BCM_PORT_LOOPBACK_PHY_REMOTE = 3, 
+    BCM_PORT_LOOPBACK_MAC_REMOTE = 4, 
+    BCM_PORT_LOOPBACK_EDB  = 5, 
+    BCM_PORT_LOOPBACK_COUNT = 6 
+} bcm_port_loopback_t;
 
+typedef enum bcm_stg_stp_e {
+    BCM_STG_STP_DISABLE = 0, /* Disabled. */
+    BCM_STG_STP_BLOCK   = 1, /* BPDUs/no learns. */
+    BCM_STG_STP_LISTEN  = 2, /* BPDUs/no learns. */
+    BCM_STG_STP_LEARN   = 3, /* BPDUs/learns. */
+    BCM_STG_STP_FORWARD = 4, /* Normal operation. */
+    BCM_STG_STP_COUNT   = 5 
+} bcm_stg_stp_t;
+
+typedef enum bcm_linkscan_mode_e {
+    BCM_LINKSCAN_MODE_NONE     = 0, 
+    BCM_LINKSCAN_MODE_SW       = 1, 
+    BCM_LINKSCAN_MODE_HW       = 2, 
+    BCM_LINKSCAN_MODE_OVERRIDE = 3, 
+    BCM_LINKSCAN_MODE_COUNT    = 4 
+} bcm_linkscan_mode_t;
+
+/* bcm_port_discard_e */
+typedef enum bcm_port_discard_e {
+    BCM_PORT_DISCARD_NONE  = 0, 
+    BCM_PORT_DISCARD_ALL   = 1, 
+    BCM_PORT_DISCARD_UNTAG = 2, 
+    BCM_PORT_DISCARD_TAG   = 3, 
+    BCM_PORT_DISCARD_INGRESS = 4, 
+    BCM_PORT_DISCARD_EGRESS = 5, 
+    BCM_PORT_DISCARD_COUNT = 6 
+} bcm_port_discard_t;
+
+#define _E2S(x, max, string_array) \
+    ((((size_t)(x) < (max))) ?  (string_array)[(x)] : "?")
+
+
+#define ENCAP_MODE(x)      _E2S(x, COUNTOF(encap_mode), encap_mode)
+#define LOOPBACK_MODE(x)   _E2S(x, BCM_PORT_LOOPBACK_COUNT, loopback_mode)
+#define LINKSCAN_MODE(x)   _E2S(x, BCM_LINKSCAN_MODE_COUNT, linkscan_mode)
+#define FORWARD_MODE(x)	   _E2S(x, BCM_STG_STP_COUNT, forward_mode)
+#define DISCARD_MODE(x)    _E2S(x, BCM_PORT_DISCARD_COUNT, discard_mode)
 
 /* Device-independent L2 cache address structure. */
 typedef struct bcm_l2_cache_addr_s {
@@ -2534,6 +2619,55 @@ typedef struct {
     uint32_t entry_data[14];
 }vlan_tab_entry_t;
  
+
+/*****************************************************************************************/
+/*                            Spanning Tree (STG)                                        */
+/*****************************************************************************************/
+
+#define BCM_STG_DEFAULT                 1
+typedef int bcm_stg_t;
+
+typedef struct bcm_stg_info_s {
+    int         init;       /* TRUE if STG module has been initialized */
+    bcm_stg_t   stg_min;    /* STG table min index */
+    bcm_stg_t   stg_max;    /* STG table max index */
+    bcm_stg_t   stg_defl;   /* Default STG */
+    uint32_t    stg_bitmap[16];  /* Bitmap of allocated STGs */
+//PARSER_HINT_ARR bcm_pbmp_t *stg_enable; /* array of port bitmaps indicating whether the
+//                               port+stg has STP enabled */
+//PARSER_HINT_ARR bcm_pbmp_t *stg_state_h;/* array of port bitmaps indicating STP state for the */
+//PARSER_HINT_ARR bcm_pbmp_t *stg_state_l;/* port+stg combo. Only valid if stg_enable = TRUE */
+    int         stg_count;  /* Number STGs allocated */
+    /* STG reverse map - keep a linked list of VLANs in each STG */
+//PARSER_HINT_ARR bcm_vlan_t *vlan_first; /* Indexed by STG (also links free list) */
+//PARSER_HINT_ARR bcm_vlan_t *vlan_next;  /* Indexed by  VLAN ID */
+} bcm_stg_info_t;
+
+//Memory: STG_TAB.ipipe0 aka VLAN_STG alias STG address 0x64400000
+//Flags: valid cachable(on)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 512 with indices 0-511 (0x0-0x1ff), each 42 bytes 11 words
+#define STG_TABm                        0x64400000
+#define STG_TABm_BYTES                  42
+#define STG_TABm_MAX_INDEX              511
+
+//Memory: EGR_VLAN_STG.epipe0 address 0x09140000
+//Flags: valid cachable(on)
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 512 with indices 0-511 (0x0-0x1ff), each 37 bytes 10 words
+//Entry mask: -1 -1 -1 -1 -1 -1 -1 -1 0xffc0ffff 0x000000ff
+//Description: Egress Spanning Tree Stage Table
+#define EGR_VLAN_STGm                   0x09140000
+#define EGR_VLAN_STGm_BYTES             37
+
+#define STG_BITS_PER_PORT       2
+#define STG_PORT_MASK           ((1 << STG_BITS_PER_PORT)-1)
+#define STG_PORTS_PER_WORD      (32 / STG_BITS_PER_PORT)
+#define STG_WORD(port)          ((port) / STG_PORTS_PER_WORD)
+#define STG_BITS_SHIFT(port)    \
+        (STG_BITS_PER_PORT * ((port) % STG_PORTS_PER_WORD))
+#define STG_BITS_MASK(port)     (STG_PORT_MASK << (STG_BITS_SHIFT(port)))
+
 
 /*****************************************************************************************/
 /*                            N3248TE hardware&ports info                                */
@@ -3507,6 +3641,9 @@ typedef struct _bcmsw_switch_s {
 
     //ING/EGR_VLAN_VFI_MEMBERSHIP
     //soc_profile_mem_t *egr_vlan_vfi_untag_profile;
+
+
+    bcm_stg_info_t *stg_info;
 } bcmsw_switch_t;
 
 
