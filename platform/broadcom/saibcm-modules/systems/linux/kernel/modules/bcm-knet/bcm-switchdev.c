@@ -2047,6 +2047,8 @@ static void bcmsw_soc_info_init(soc_info_t *si)
     int num_phy_port = HX5_NUM_PHY_PORT;
     int num_mmu_port = HX5_NUM_MMU_PORT;
 
+    memset(si,0,sizeof(si));
+
     si->bandwidth = 2048000;
 
     //reset array to default
@@ -2133,6 +2135,14 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         //FIXME, only GE port supported
         if (si->port_init_speed[port] == 1000) {
             si->ports[port].eth_port_type = ETH_GE_PORT;
+        }
+
+        if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_GXPORT) {
+           sprintf(si->ports[index].name, "ge(%d)",index);
+        } else if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_XLPORT) {
+           sprintf(si->ports[index].name, "xe(%d)",index);
+        } else if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_CLPORT) {
+           sprintf(si->ports[index].name, "ce(%d)",index);
         }
     }
     si->cpu_hg_index = 72;
@@ -2352,7 +2362,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     return 0;
 }
 
-
+ 
 
 /*****************************************************************************************/
 /*                            CMICX MIIM read/write                                      */
@@ -2716,6 +2726,56 @@ phy_bcm542xx_rdb_reg_modify(uint16_t phy_addr, uint16_t reg_addr, uint16 data, u
 }
 
 /* General - PHY register access */
+
+int
+phy_bcm542xx_reg_read(uint16_t phy_addr, uint16_t reg_bank,
+                      uint8_t reg_addr, uint16_t *data)
+{
+    int     rv = SOC_E_NONE;
+    uint16  val;
+
+    switch ( reg_addr ) {
+        /* Map shadow registers */
+        case 0x15:
+            phy_reg_write(phy_addr, 0x17, reg_bank);
+            break;
+        case 0x18:
+            if ( reg_bank <= 0x0007 ) {
+                val = (reg_bank << 12) | 0x7;
+                phy_reg_write(phy_addr, reg_addr, val);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1C:
+            if ( reg_bank <= 0x001F ) {
+                val = (reg_bank << 10);
+                phy_reg_write(phy_addr, reg_addr, val);
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        case 0x1D:
+            if ( reg_bank <= 0x0001 ) {
+                val = reg_bank << 15;
+            } else {
+                rv = SOC_E_PARAM;
+            }
+            break;
+        }
+        if ( rv >= 0 ) {
+            rv = phy_reg_read(phy_addr, reg_addr, data);
+        }
+    }
+
+    if ( rv < 0 ) {
+        printk("phy_bcm542xx_reg_read: failed:"
+               "phy_id=0x%2x reg_bank=0x%04x reg_addr=0x%02x "
+                "rv=%d\n", phy_addr, reg_bank, reg_addr, rv));
+    }
+    return rv;
+}
+
 static int
 phy_bcm542xx_reg_write(uint16_t phy_addr, uint16_t reg_bank,
                        uint8_t reg_addr, uint16_t data)
@@ -2920,28 +2980,26 @@ _ext_phy_probe(bcmsw_switch_t *bcmsw, int port)
 /*                             UNI MAC                                                   */
 /*****************************************************************************************/
 
-
+static const uint32_t cmd_cfg_blk[6] = {
+    SCHAN_BLK_GXPORT0,
+    SCHAN_BLK_GXPORT1,
+    SCHAN_BLK_GXPORT2,
+    SCHAN_BLK_GXPORT3,
+    SCHAN_BLK_GXPORT4,
+    SCHAN_BLK_GXPORT5,
+};
 static int unimac_reset_check(bcmsw_switch_t *bcmsw, int port, int enable, int *reset)
 {
     command_config_t ctrl, octrl, swctrl;
     int index, blk_no;
-    
-    uint32_t blk[6] = {
-        SCHAN_BLK_GXPORT0,
-        SCHAN_BLK_GXPORT1,
-        SCHAN_BLK_GXPORT2,
-        SCHAN_BLK_GXPORT3,
-        SCHAN_BLK_GXPORT4,
-        SCHAN_BLK_GXPORT5,
-    };
-        
+
     *reset = 1;
 
     if (port > 48) {
         return -1;
     }
     index = (port-1)%8;
-    blk_no = blk[(port-1)/8];
+    blk_no = cmd_cfg_blk[(port-1)/8];
 
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
     octrl.word = ctrl.word;
@@ -2965,6 +3023,43 @@ static int unimac_reset_check(bcmsw_switch_t *bcmsw, int port, int enable, int *
 
     return SOC_E_NONE;
 }
+
+/*
+ * Function:
+ *      mac_uni_enable_get
+ * Purpose:
+ *      Get UniMAC enable state
+ * Parameters:
+ *      unit - StrataSwitch unit #.
+ *      port - Port number on unit.
+ *      flags - UNIMAC_ENABLE_SET_FLAGS_TX_EN or UNIMAC_ENABLE_SET_FLAGS_RX_EN
+ *      enable - (OUT) TRUE if enabled, FALSE if disabled
+ * Returns:
+ *      SOC_E_XXX
+ */
+int unimac_enable_get(bcmsw_switch_t *bcmsw, int port, int *enable)
+{
+    int index, blk_no;
+    command_config_t command_config;
+
+    if (port > 48) {
+        return -1;
+    }
+    index = (port-1)%8;
+    blk_no = cmd_cfg_blk[(port-1)/8];
+
+    _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+
+    if (command_config.reg.TX_ENAf && command_config.reg.RX_ENAf) {
+        *enable = 1;
+    } else {
+        *enable = 0;
+    }
+    return SOC_E_NONE;
+}
+
+
+
 //soc_helix5_idb_obm_reset_buffer
 static const uint32_t obm_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
      IDB_OBM0_Q_CONTROLr, 
@@ -4100,14 +4195,80 @@ phy_bcm542xx_enable_set(port_info_t *pport, int port, uint16_t phy_addr, int ena
     /* Update software state */
     phy_fe_ge_enable_set(pport, port, enable);
 
-
     return 0;
 }
 
 static int 
-phy_bcm542xx_enable_get(port_info_t *pport,  int *enable)
+phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *enable)
 {
-    return phy_fe_ge_enable_get(pport, enable);
+    uint16    power;
+    phy_bcm542xx_reg_read(phy_addr, 0x0000,  PHY_BCM542XX_MII_CTRL_REG, &power);
+
+    if (power &PHY_BCM542XX_MII_CTRL_PWR_DOWN ) {
+        *enable = 0;
+    } else {
+        *enable = 1;
+    }
+    //return phy_fe_ge_enable_get(pport, enable);
+}
+
+
+//Determine the current link up/down status for a 542xx device.
+static int
+phy_bcm542xx_link_get(port_info_t *pport, int port, uint16_t phy_addr, int *link)
+{
+    int      count = 0;
+    uint16_t mii_ctrl, mii_stat;
+    //if ( PHY_COPPER_MODE(unit, port) ) {
+    //    SOC_IF_ERROR_RETURN(phy_fe_ge_link_get(unit, port, link));
+
+    phy_bcm542xx_reg_read(phy_addr,0x0000, MII_STAT_REG, &mii_stat);
+
+    printk("phy_bcm542xx_link_get: port =%d phy_addr=%d mii_stat=%d\n",port, phy_addr, mii_stat);
+
+    if (!(mii_stat & MII_STAT_LA) || (mii_stat == 0xffff)) {
+        /* mii_stat == 0xffff check is to handle removable PHY daughter cards */
+        return SOC_E_NONE;
+    }
+    
+    /* Link appears to be up; we are done if autoneg is off. */
+    phy_bcm542xx_reg_read(phy_addr,0x0000, MII_CTRL_REG, &mii_ctrl);
+
+    if (!(mii_ctrl & MII_CTRL_AE)) {
+        *link = TRUE;
+        return SOC_E_NONE;
+    }
+        
+   /*
+     * If link appears to be up but autonegotiation is still in
+     * progress, wait for it to complete.  For BCM5228, autoneg can
+     * still be busy up to about 200 usec after link is indicated.  Also
+     * continue to check link state in case it goes back down.
+     */
+    //250ms
+    count = 0;
+    for (;;) {
+        phy_bcm542xx_reg_read(phy_addr,0x0000, MII_STAT_REG, &mii_stat);
+
+        if (!(mii_stat & MII_STAT_LA)) {
+            return SOC_E_NONE;
+        }
+
+        if (mii_stat & MII_STAT_AN_DONE) {
+            break;
+        }
+
+        msleep(10);
+        count++;
+        if (count > 20) { 
+            return SOC_E_BUSY;
+        }
+    }
+
+    /* Return link state at end of polling */
+    *link = ((mii_stat & MII_STAT_LA) != 0);        
+
+    return SOC_E_NONE;
 }
 
 //Reset PHY and wait for it to come out of reset.
@@ -4502,6 +4663,27 @@ static int _pm4x10_qtc_port_enable_set(bcmsw_switch_t *bcmsw, int port, int enab
     return phy_bcm542xx_enable_set(pport, port, pport->ext_phy_addr, enable);
 }
 
+
+//Get PHY enable state
+int _pm4x10_qtc_port_enable_get(bcmsw_switch_t *bcmsw, int port, int *phy_enable)
+{
+    soc_info_t *si = bcmsw->si;
+
+    port_info_t *pport = &si->ports[port];
+
+    return phy_bcm542xx_enable_get(pport,port, enable);
+}
+
+int _pm4x10_qtc_port_link_get(bcmsw_switch_t *bcmsw, int port, int *up)
+{
+    soc_info_t *si = bcmsw->si;
+
+    port_info_t *pport = &si->ports[port];
+
+    return phy_bcm542xx_link_get(pport, port, pport->ext_phy_addr, enable);
+}
+
+
 static int 
 _bcm_esw_portctrl_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
 {
@@ -4635,6 +4817,33 @@ int bcm_esw_port_autoneg_set(bcmsw_switch_t *bcmsw, int port, int speed)
     }
 #endif   
     return 0;                                            
+}
+
+int
+bcm_esw_port_enable_get(bcmsw_switch_t *bcmsw, int port, int *enable)
+{
+    //bcmi_esw_portctrl_enable_get
+
+    //portmod_port_enable_get(unit, pport, PORTMOD_PORT_ENABLE_PHY, enable);
+
+    return _pm4x10_qtc_port_enable_get(bcmsw, port, enable);
+
+}
+int
+bcm_esw_port_link_status_get(bcmsw_switch_t *bcmsw, int port, int *up)
+{
+    //bcmi_esw_portctrl_enable_get
+
+    //portmod_port_enable_get(unit, pport, PORTMOD_PORT_ENABLE_PHY, enable);
+
+    if (port>= 1 && port <=48 ) {
+        return _pm4x10_qtc_port_link_get(bcmsw, port, enable);
+    }
+
+    //TODO
+    *up = 0;
+    return 0;
+
 }
 
 
@@ -4829,6 +5038,394 @@ static int bcmsw_ports_init(bcmsw_switch_t *bcmsw)
 err_port_cfg_init:
 err_port_create:
     return err;
+}
+
+//bcm_esw_port_encap_get->bcmi_esw_portctrl_encap_get
+static int 
+_esw_port_encap_get(bcmsw_switch_t *bcmsw, bcm_port_t port, int *mode)
+{
+    // port 1 - 48 unimac_encap_get
+    *encap = SOC_ENCAP_IEEE;
+    //
+
+    return SOC_E_NONE;
+}
+
+/*
+ * Function:
+ *      bcm_port_selective_get
+ * Purpose:
+ *      Get requested port parameters
+ * Parameters:
+ *      unit - switch Unit
+ *      port - switch port
+ *      info - (IN/OUT) port information structure
+ * Returns:
+ *      BCM_E_XXX
+ * Notes:
+ *      The action_mask field of the info argument is used as an input
+ */
+
+ int
+ bcm_esw_port_selective_get(bcmsw_switch_t *bcmsw, int port, bcm_port_info_t *info)
+ {
+    int                 rc;
+    uint32_t             mask;
+    int                 speed;
+ 
+    mask = info->action_mask;
+
+    if (mask & BCM_PORT_ATTR_ENCAP_MASK) {
+        rc = _esw_port_encap_get(bcmsw, port, &info->encap_mode);
+    }
+ 
+    if (mask & BCM_PORT_ATTR_ENABLE_MASK) {
+        rc = bcm_esw_port_enable_get(bcmsw, port, &info->enable);
+    }
+ 
+
+    if (mask & BCM_PORT_ATTR_LINKSTAT_MASK) {
+        rc = bcm_esw_port_link_status_get(bcmsw, port, &info->linkstatus);
+    }
+# if 0
+     if (mask & BCM_PORT_ATTR_AUTONEG_MASK) {
+         r = bcm_esw_port_autoneg_get(unit, port, &info->autoneg);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_autoneg_getfailed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_LOCAL_ADVERT_MASK) {
+         r = bcm_esw_port_ability_advert_get(unit, port,
+                                             &info->local_ability);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_ability_advert_getfailed:%s\n"),
+                          bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+         r = soc_port_ability_to_mode(&info->local_ability,
+                                      &info->local_advert);
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_REMOTE_ADVERT_MASK) {
+ 
+         if ((r = bcm_esw_port_ability_remote_get(unit, port,
+                                                  &info->remote_ability)) < 0) {
+             info->remote_advert = 0;
+             info->remote_advert_valid = FALSE;
+         } else {
+             r = soc_port_ability_to_mode(&info->remote_ability,
+                                          &info->remote_advert);
+             BCM_IF_ERROR_RETURN(r);
+             info->remote_advert_valid = TRUE;
+         }
+     }
+ 
+     if (mask & BCM_PORT_ATTR_SPEED_MASK) {
+         if ((r = bcm_esw_port_speed_get(unit, port, &info->speed)) < 0) {
+             if (r != BCM_E_BUSY) {
+                 LOG_VERBOSE(BSL_LS_BCM_PORT,
+                             (BSL_META_U(unit,
+                                         "bcm_port_speed_get failed: %s\n"), bcm_errmsg(r)));
+                 return(r);
+             } else {
+                 info->speed = 0;
+             }
+         }
+     }
+ 
+     if (mask & BCM_PORT_ATTR_DUPLEX_MASK) {
+         if ((r = bcm_esw_port_duplex_get(unit, port, &info->duplex)) < 0) {
+             if (r != BCM_E_BUSY) {
+                 LOG_VERBOSE(BSL_LS_BCM_PORT,
+                             (BSL_META_U(unit,
+                                         "bcm_port_duplex_get failed: %s\n"), bcm_errmsg(r)));
+                 return r;
+             } else {
+                 info->duplex = 0;
+             }
+         }
+     }
+ 
+     /* get both if either mask bit set */
+     if (mask & (BCM_PORT_ATTR_PAUSE_TX_MASK |
+                 BCM_PORT_ATTR_PAUSE_RX_MASK)) {
+         r = bcm_esw_port_pause_get(unit, port,
+                                    &info->pause_tx, &info->pause_rx);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_pause_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_PAUSE_MAC_MASK) {
+         r = bcm_esw_port_pause_addr_get(unit, port, info->pause_mac);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_pause_addr_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_LINKSCAN_MASK) {
+         r = bcm_esw_port_linkscan_get(unit, port, &info->linkscan);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_linkscan_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_LEARN_MASK) {
+         r = bcm_esw_port_learn_get(unit, port, &info->learn);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_learn_getfailed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_DISCARD_MASK) {
+         r = bcm_esw_port_discard_get(unit, port, &info->discard);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_discard_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_VLANFILTER_MASK) {
+         r = bcm_esw_port_vlan_member_get(unit, port, &info->vlanfilter);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_esw_port_vlan_member_get failed:%s\n"),
+                          bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_UNTAG_PRI_MASK) {
+         r = bcm_esw_port_untagged_priority_get(unit, port,
+                                                &info->untagged_priority);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_untagged_priority_get failed:%s\n"),
+                          bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_UNTAG_VLAN_MASK) {
+         r = bcm_esw_port_untagged_vlan_get(unit, port,
+                                            &info->untagged_vlan);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_untagged_vlan_get failed:%s\n"),
+                          bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_STP_STATE_MASK) {
+         r = bcm_esw_port_stp_get(unit, port, &info->stp_state);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_stp_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_PFM_MASK) {
+         r = bcm_esw_port_pfm_get(unit, port, &info->pfm);
+         if (r != BCM_E_UNAVAIL) {
+             if (BCM_FAILURE(r)) {
+                 LOG_VERBOSE(BSL_LS_BCM_PORT,
+                             (BSL_META_U(unit,
+                                         "bcm_port_pfm_get failed:%s\n"), bcm_errmsg(r)));
+             }
+         }
+         BCM_IF_ERROR_NOT_UNAVAIL_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_LOOPBACK_MASK) {
+         r = bcm_esw_port_loopback_get(unit, port, &info->loopback);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_loopback_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_PHY_MASTER_MASK) {
+         r = bcm_esw_port_master_get(unit, port, &info->phy_master);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_master_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_INTERFACE_MASK) {
+         r = bcm_esw_port_interface_get(unit, port, &info->interface);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_interface_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_RATE_MCAST_MASK) {
+         r = bcm_esw_rate_mcast_get(unit, &info->mcast_limit,
+                                    &info->mcast_limit_enable, port);
+         if (r == BCM_E_UNAVAIL) {
+             r = BCM_E_NONE;     /* Ignore if not supported on chip */
+         }
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_rate_mcast_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_RATE_BCAST_MASK) {
+         r = bcm_esw_rate_bcast_get(unit, &info->bcast_limit,
+                                    &info->bcast_limit_enable, port);
+         if (r == BCM_E_UNAVAIL) {
+             r = BCM_E_NONE;     /* Ignore if not supported on chip */
+         }
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_rate_bcast_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_RATE_DLFBC_MASK) {
+         r = bcm_esw_rate_dlfbc_get(unit, &info->dlfbc_limit,
+                                    &info->dlfbc_limit_enable, port);
+         if (r == BCM_E_UNAVAIL) {
+             r = BCM_E_NONE;     /* Ignore if not supported on chip */
+         }
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_rate_dlfbc_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_SPEED_MAX_MASK) {
+         r = bcm_esw_port_speed_max(unit, port, &info->speed_max);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_speed_max failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_ABILITY_MASK) {
+         r = bcm_esw_port_ability_local_get(unit, port, &info->port_ability);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_ability_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+         r = soc_port_ability_to_mode(&info->port_ability,
+                                      &info->ability);
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_FRAME_MAX_MASK) {
+         r = bcm_esw_port_frame_max_get(unit, port, &info->frame_max);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_frame_max_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_MDIX_MASK) {
+         r = bcm_esw_port_mdix_get(unit, port, &info->mdix);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_mdix_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_MDIX_STATUS_MASK) {
+         r = bcm_esw_port_mdix_status_get(unit, port, &info->mdix_status);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_mdix_status_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_MEDIUM_MASK) {
+         r = bcm_esw_port_medium_get(unit, port, &info->medium);
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_medium_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ 
+     if (mask & BCM_PORT_ATTR_FAULT_MASK) {
+         r = bcm_esw_port_fault_get(unit, port, &info->fault);
+         if (r == BCM_E_PORT) {
+             r = BCM_E_NONE;     /* Ignore if not supported on chip/port */
+         }
+         if (BCM_FAILURE(r)) {
+             LOG_VERBOSE(BSL_LS_BCM_PORT,
+                         (BSL_META_U(unit,
+                                     "bcm_port_fault_get failed:%s\n"), bcm_errmsg(r)));
+         }
+         BCM_IF_ERROR_RETURN(r);
+     }
+ #endif
+     return SOC_E_NONE;
+ }
+
+static int
+bcm_esw_port_info_get(bcmsw_switch_t *bcmsw, int port, bcm_port_info_t *info)
+{
+    if (info != NULL) {
+        memset(info, 0, sizeof(bcm_port_info_t));
+    } else {
+        return -1;
+    }
+
+    info->action_mask = BCM_PORT_ATTR_ALL_MASK;
+
+    return bcm_esw_port_selective_get(bcmsw, port, info);
 }
 
 /*****************************************************************************************/
@@ -5802,8 +6399,8 @@ _bcm_esw_l2_cache_init(bcmsw_switch_t *bcmsw)
     addr.flags = BCM_L2_CACHE_CPU | BCM_L2_CACHE_BPDU;
 
     /* Set default BPDU addresses (01:80:c2:00:00:00) */
-    memcpy(addr.mac, _mac_spanning_tree, sizeof(_mac_t));
-    memcpy(addr.mac_mask, _mac_all_ones, sizeof(_mac_t));
+    memcpy(addr.mac, _mac_spanning_tree, sizeof(bcm_mac_t));
+    memcpy(addr.mac_mask, _mac_all_ones, sizeof(bcm_mac_t));
 
     addr.dest_modid = 0;
     addr.dest_port = 0; //CMIC_PORT(unit);
@@ -6184,6 +6781,105 @@ static struct proc_ops sinfo_ops =
     proc_release:    single_release,
 };
 
+// /proc/switchdev/portstat
+//if_esw_port_stat()
+static int
+_portstat_show(struct seq_file *m, void *v)
+{
+    int index;
+    soc_info_t *si;
+    bcm_port_info_t port_info;
+    char *disp_str =
+    "%15s "                 /* port number */
+    "%5s  "                 /* enable/link state */
+    "%3s"                   /* lanes */
+    "%9s "                  /* speed/duplex */
+    "%4s "                  /* link scan mode */
+    "%4s "                  /* auto negotiate? */
+    "%7s   "                /* spantree state */
+    "%5s  "                 /* pause tx/rx */
+    "%6s "                  /* discard mode */
+    "%3s "                  /* learn to CPU, ARL, FWD or discard */
+    "%6s "                  /* interface */
+    "%5s "                  /* max frame */
+    "%6s "                  /* cutthrough */
+    "%5s "                  /* loopback */
+    "%7s\n";                /* encap */
+    char *asf[2] = {"cut ", "thru?"};
+
+    if (!_bcmsw) {
+        seq_printf(m, " Not initialized\n");
+    return 0;
+    }
+
+    si = _bcmsw->si;
+
+    if (!si) {
+    seq_printf(m, " si Not initialized\n"); 
+    return 0;
+    }
+    seq_printf(m, disp_str,
+        " ",                 /* port number */
+        "ena/",              /* enable/link state */
+        "  ",                /* number of lanes */
+        "speed/",            /* speed/duplex */
+        "link",              /* link scan mode */
+        "auto",              /* auto negotiate? */
+        " STP ",             /* spantree state */
+        "",                  /* pause tx/rx or ilkn FC status */
+        " ",                 /* discard mode */
+        "lrn",               /* learn to CPU, ARL, FWD or discard */
+        "inter",             /* interface */
+        "max",               /* max frame */
+        asf[0],              /* cutthrough */
+        "loop",              /* loopback */
+        " ");                /* encap */
+    seq_printf(m, disp_str,
+        "port",              /* port number */
+        "link",              /* enable/link state */
+        "Lns",                  /* number of lanes */
+        "duplex",            /* speed/duplex */
+        "scan",              /* link scan mode */
+        "neg?",              /* auto negotiate? */
+        "state",             /* spantree state */
+        "pause",             /* pause tx/rx */
+        "discrd",            /* discard mode */
+        "ops",               /* learn to CPU, ARL, FWD or discard */
+        "face",              /* interface */
+        "frame",             /* max frame */
+        asf[1],              /* cutthrough */
+        "back",              /* loopback */
+        "encap");            /* encap */
+
+    //TODO, add more ports
+    for (index =1; index<=48; index++) {
+        bcm_port_selective_get(_bcmsw, port, &port_info);
+        //brief_port_info
+        seq_printf(m, "%10s(%3d)  %4s ", si->ports[index].name, index,
+            !port_info.enable ? "!ena" :
+            (port_info.linkstatus == PORT_LINK_STATUS_FAILED) ? "fail" :
+            (port_info.linkstatus == PORT_LINK_STATUS_UP ? "up  " : "down"));
+
+        seq_printf(m, "\n");    
+    }
+
+    return 0;
+}
+
+static int _portstat_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _portstat_show, NULL);
+}
+
+static struct proc_ops portstat_ops = 
+{
+    proc_open:       _portstat_open,
+    proc_read:       seq_read,
+    proc_lseek:     seq_lseek,
+    proc_release:    single_release,
+};
+
+
 // /proc/switchdev/reg/*
 static int
 _proc_reg32_show(struct seq_file *m, void *v)
@@ -6378,12 +7074,12 @@ _proc_mem_show(struct seq_file *m, void *v)
                 _soc_mem_read(_bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm+index, 
                               SCHAN_BLK_IPIPE, BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), 
                               entry);
-        //VALIDf bit 0
-        if(entry[0] & 0x1) {
+                //VALIDf bit 0
+                if(entry[0] & 0x1) {
                     seq_printf(m, "[%2d]   0x%08x \n", 
                                index,
                                entry[0]);
-        }
+                }
             }    
             break;
 
@@ -7047,6 +7743,13 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
 
     // /proc/switchdev/sinfo
     entry = proc_create("sinfo", 0666, proc_switchdev_base, &sinfo_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/portstat
+    entry = proc_create("portstat", 0666, proc_switchdev_base, &portstat_ops);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;

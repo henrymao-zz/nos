@@ -1236,6 +1236,25 @@ typedef union miim_ch_status_s {
 #define PHY_ID_BUSMAP_SHIFT       16
 #define PHY_ID_BUSMAP(_id)        (_id >> PHY_ID_BUSMAP_SHIFT)
 
+/* 
+ * MII Status Register: See 802.3, 1998 pg 544 
+ */
+#define MII_STAT_EXT            (1 << 0) /* Extended Registers */
+#define MII_STAT_JBBR           (1 << 1) /* Jabber Detected */
+#define MII_STAT_LA             (1 << 2) /* Link Active */
+#define MII_STAT_AN_CAP         (1 << 3) /* Autoneg capable */
+#define MII_STAT_RF             (1 << 4) /* Remote Fault */
+#define MII_STAT_AN_DONE        (1 << 5) /* Autoneg complete */
+#define MII_STAT_MF_PS          (1 << 6) /* Preamble suppression */
+#define MII_STAT_ES             (1 << 8) /* Extended status (R15) */
+#define MII_STAT_HD_100_T2      (1 << 9) /* Half duplex 100Mb/s supported */
+#define MII_STAT_FD_100_T2      (1 << 10)/* Full duplex 100Mb/s supported */
+#define MII_STAT_HD_10          (1 << 11)/* Half duplex 100Mb/s supported */
+#define MII_STAT_FD_10          (1 << 12)/* Full duplex 100Mb/s supported */
+#define MII_STAT_HD_100         (1 << 13)/* Half duplex 100Mb/s supported */
+#define MII_STAT_FD_100         (1 << 14)/* Full duplex 100Mb/s supported */
+#define MII_STAT_100_T4         (1 << 15)/* Full duplex 100Mb/s supported */
+
 
 /* Standard MII Registers */
 
@@ -2035,7 +2054,7 @@ typedef union ing_config64_s {
 
 
 /* bcm_mac_t */
-typedef uint8 _mac_t[6];
+typedef uint8 bcm_mac_t[6];
 
 #define BCM_MAC_IS_MCAST(_mac_)  \
     (_mac_[0] & 0x1) 
@@ -2347,7 +2366,7 @@ typedef struct {
 /*                            VLAN                                                       */
 /*****************************************************************************************/
 
-//typedef uint16 bcm_vlan_t;
+typedef uint16 bcm_vlan_t;
 //typedef _shr_pbmp_t bcm_pbmp_t;
 //typedef uint32 _shr_pbmp_t;
 
@@ -2536,6 +2555,13 @@ typedef enum{
 #define ETH_INTLB_PORT 0x0200
 
 
+#define PORT_LINK_STATUS_DOWN                   0          
+#define PORT_LINK_STATUS_UP                     1          
+#define PORT_LINK_STATUS_FAILED                 2          
+#define PORT_LINK_STATUS_REMOTE_FAULT           3          
+#define PORT_LINK_STATUS_LOCAL_FAULT            4          
+#define PORT_LINK_STATUS_LOCAL_AND_REMOTE_FAULT 5        
+
 typedef struct port_cb_s {
     uint32_t  eth_port_type;
     uint8_t   valid;    
@@ -2547,6 +2573,7 @@ typedef struct port_cb_s {
     int32_t   pm_num;
     int32_t   subp;
     int32_t   pipe_num;
+    char      name[8];
 
     struct phy_ctrl_ {
        uint32_t flags; 
@@ -3176,6 +3203,275 @@ typedef struct soc_cancun_udf_stage_info_s {
 /*                              profile mem                                              */
 /*****************************************************************************************/
 
+
+/*****************************************************************************************/
+/*                              port info                                                */
+/*****************************************************************************************/
+
+typedef enum _shr_port_if_e {
+    _SHR_PORT_IF_NOCXN, /* No physical connection */
+    _SHR_PORT_IF_NULL,  /* Pass-through connection without PHY */
+    _SHR_PORT_IF_MII,
+    _SHR_PORT_IF_GMII,
+    _SHR_PORT_IF_SGMII,
+    _SHR_PORT_IF_TBI,
+    _SHR_PORT_IF_XGMII,
+    _SHR_PORT_IF_RGMII,
+    _SHR_PORT_IF_RvMII,
+    _SHR_PORT_IF_SFI,
+    _SHR_PORT_IF_XFI,
+    _SHR_PORT_IF_KR,
+    _SHR_PORT_IF_KR4,
+    _SHR_PORT_IF_CR,
+    _SHR_PORT_IF_CR4,
+    _SHR_PORT_IF_XLAUI,
+    _SHR_PORT_IF_SR,
+    _SHR_PORT_IF_RXAUI,
+    _SHR_PORT_IF_XAUI,
+    _SHR_PORT_IF_SPAUI,
+    _SHR_PORT_IF_QSGMII,
+    _SHR_PORT_IF_ILKN,
+    _SHR_PORT_IF_RCY,
+    _SHR_PORT_IF_FAT_PIPE,
+    _SHR_PORT_IF_CGMII,
+    _SHR_PORT_IF_CAUI,
+    _SHR_PORT_IF_LR,
+    _SHR_PORT_IF_LR4,
+    _SHR_PORT_IF_SR4,
+    _SHR_PORT_IF_KX,
+    _SHR_PORT_IF_ZR,
+    _SHR_PORT_IF_SR10,
+    _SHR_PORT_IF_OTL,
+    _SHR_PORT_IF_CPU,
+    _SHR_PORT_IF_OLP,
+    _SHR_PORT_IF_OAMP,
+    _SHR_PORT_IF_ERP,
+    _SHR_PORT_IF_TM_INTERNAL_PKT,   
+    _SHR_PORT_IF_SR2,
+    _SHR_PORT_IF_KR2,
+    _SHR_PORT_IF_CR2,
+    _SHR_PORT_IF_XFI2,
+    _SHR_PORT_IF_XLAUI2,
+    _SHR_PORT_IF_CR10,
+    _SHR_PORT_IF_KR10,
+    _SHR_PORT_IF_LR10,
+    _SHR_PORT_IF_ER,
+    _SHR_PORT_IF_ER2,
+    _SHR_PORT_IF_ER4,
+    _SHR_PORT_IF_CX,
+    _SHR_PORT_IF_CX2,
+    _SHR_PORT_IF_CX4,
+    _SHR_PORT_IF_CAUI_C2C,
+    _SHR_PORT_IF_CAUI_C2M,
+    _SHR_PORT_IF_VSR,
+    _SHR_PORT_IF_LR2,
+    _SHR_PORT_IF_LRM,
+    _SHR_PORT_IF_XLPPI,
+    _SHR_PORT_IF_2500X,
+    _SHR_PORT_IF_SAT,
+    _SHR_PORT_IF_IPSEC,
+    _SHR_PORT_IF_LBG,
+    _SHR_PORT_IF_CAUI4,
+    _SHR_PORT_IF_5000X,
+    _SHR_PORT_IF_EVENTOR,
+    _SHR_PORT_IF_RCY_MIRROR,
+    _SHR_PORT_IF_CPRI,
+    _SHR_PORT_IF_RSVD4,
+    _SHR_PORT_IF_NIF_ETH,
+    _SHR_PORT_IF_FLEXE_CLIENT,
+    _SHR_PORT_IF_VIRTUAL_FLEXE_CLIENT,
+    _SHR_PORT_IF_SCH,
+    _SHR_PORT_IF_TUNNEL,
+    _SHR_PORT_IF_CRPS,
+    _SHR_PORT_IF_COUNT /* last, please */
+} bcm_port_if_t;
+
+
+typedef uint32_t bcm_port_abil_t;
+
+typedef struct _shr_port_ability_s {
+    uint32_t speed_half_duplex;
+    uint32_t speed_full_duplex;
+    uint32_t pause;
+    uint32_t interface;
+    uint32_t medium;
+    uint32_t loopback;
+    uint32_t flags;
+    uint32_t eee;
+    uint32_t rsvd;
+    uint32_ts  encap;
+    uint32_t fec;
+    uint32_t channel;
+} bcm_port_ability_t;
+
+/*
+ * Defines:
+ *      _SHR_PORT_MDIX_*
+ * Purpose:
+ *      Defines the MDI crossover (MDIX) modes for the port
+ */
+typedef enum _shr_port_mdix_e {
+    _SHR_PORT_MDIX_AUTO,
+    _SHR_PORT_MDIX_FORCE_AUTO,
+    _SHR_PORT_MDIX_NORMAL,
+    _SHR_PORT_MDIX_XOVER,
+    _SHR_PORT_MDIX_COUNT    /* last, please */
+} bcm_port_mdix_t;
+
+
+/*
+ * Defines:
+ *      _SHR_PORT_MDIX_STATUS_*
+ * Purpose:
+ *      Defines the MDI crossover state
+ */
+typedef enum _shr_port_mdix_status_e {
+    _SHR_PORT_MDIX_STATUS_NORMAL,
+    _SHR_PORT_MDIX_STATUS_XOVER,
+    _SHR_PORT_MDIX_STATUS_COUNT       /* last, please */
+} bcm_port_mdix_status_t;
+
+/*
+ * Defines:
+ *      _SHR_PORT_MEDIUM_*
+ * Purpose:
+ *      Supported physical mediums
+ */
+typedef enum _shr_port_medium_e {
+    _SHR_PORT_MEDIUM_NONE              = 0,
+    _SHR_PORT_MEDIUM_COPPER            = 1,
+    _SHR_PORT_MEDIUM_FIBER             = 2,
+    _SHR_PORT_MEDIUM_BACKPLANE,
+    _SHR_PORT_MEDIUM_ALL,              /* this defines mainly for local_ability_get function */
+    _SHR_PORT_MEDIUM_COUNT             /* last, please */
+} bcm_port_medium_t;
+
+/* 
+ * Port information valid fields
+ * 
+ * Each field in the bcm_port_info_t structure has a corresponding mask
+ * bit to control whether to get or set that value during the execution
+ * of the bcm_port_selective_get/_set functions. The OR of all requested
+ * ATTR masks should be stored in the action_mask field and the OR of all
+ * requested ATTR2 masks should be stored in the action_mask2 field of
+ * the bcm_port_info_t before calling the functions.
+ */
+#define BCM_PORT_ATTR_ENABLE_MASK           0x00000001 
+#define BCM_PORT_ATTR_LINKSTAT_MASK         0x00000002 /* Get only. */
+#define BCM_PORT_ATTR_AUTONEG_MASK          0x00000004 
+#define BCM_PORT_ATTR_SPEED_MASK            0x00000008 
+#define BCM_PORT_ATTR_DUPLEX_MASK           0x00000010 
+#define BCM_PORT_ATTR_LINKSCAN_MASK         0x00000020 
+#define BCM_PORT_ATTR_LEARN_MASK            0x00000040 
+#define BCM_PORT_ATTR_DISCARD_MASK          0x00000080 
+#define BCM_PORT_ATTR_VLANFILTER_MASK       0x00000100 
+#define BCM_PORT_ATTR_UNTAG_PRI_MASK        0x00000200 
+#define BCM_PORT_ATTR_UNTAG_VLAN_MASK       0x00000400 
+#define BCM_PORT_ATTR_STP_STATE_MASK        0x00000800 
+#define BCM_PORT_ATTR_PFM_MASK              0x00001000 
+#define BCM_PORT_ATTR_LOOPBACK_MASK         0x00002000 
+#define BCM_PORT_ATTR_PHY_MASTER_MASK       0x00004000 
+#define BCM_PORT_ATTR_INTERFACE_MASK        0x00008000 
+#define BCM_PORT_ATTR_PAUSE_TX_MASK         0x00010000 
+#define BCM_PORT_ATTR_PAUSE_RX_MASK         0x00020000 
+#define BCM_PORT_ATTR_PAUSE_MAC_MASK        0x00040000 
+#define BCM_PORT_ATTR_LOCAL_ADVERT_MASK     0x00080000 
+#define BCM_PORT_ATTR_REMOTE_ADVERT_MASK    0x00100000 /* Get only. */
+#define BCM_PORT_ATTR_ENCAP_MASK            0x00200000 
+#define BCM_PORT_ATTR_RATE_MCAST_MASK       0x00400000 
+#define BCM_PORT_ATTR_RATE_BCAST_MASK       0x00800000 
+#define BCM_PORT_ATTR_RATE_DLFBC_MASK       0x01000000 
+#define BCM_PORT_ATTR_SPEED_MAX_MASK        0x02000000 /* Get only. */
+#define BCM_PORT_ATTR_ABILITY_MASK          0x04000000 /* Get only. */
+#define BCM_PORT_ATTR_FRAME_MAX_MASK        0x08000000 
+#define BCM_PORT_ATTR_MDIX_MASK             0x10000000 
+#define BCM_PORT_ATTR_MDIX_STATUS_MASK      0x20000000 
+#define BCM_PORT_ATTR_MEDIUM_MASK           0x40000000 
+#define BCM_PORT_ATTR_FAULT_MASK            0x80000000 /* Get only. */
+#define BCM_PORT_ATTR2_PORT_ABILITY         0x00000001 
+
+/* Backward compatibility. */
+#define BCM_PORT_ATTR_SPEED_MAX BCM_PORT_ATTR_SPEED_MAX_MASK 
+#define BCM_PORT_ATTR_ABILITY   BCM_PORT_ATTR_ABILITY_MASK 
+
+#define BCM_PORT_ATTR_ALL_MASK      0xffffffff 
+#define BCM_PORT_ATTR_PAUSE_MASK    \
+    (BCM_PORT_ATTR_PAUSE_TX_MASK    | \
+     BCM_PORT_ATTR_PAUSE_RX_MASK) 
+#define BCM_PORT_ATTR_RATE_MASK     \
+    (BCM_PORT_ATTR_RATE_MCAST_MASK  | \
+     BCM_PORT_ATTR_RATE_BCAST_MASK  | \
+     BCM_PORT_ATTR_RATE_DLFBC_MASK) 
+
+/* Attributes that can be controlled on BCM5670/75. */
+#define BCM_PORT_HERC_ATTRS     \
+    (BCM_PORT_ATTR_ENABLE_MASK      | \
+     BCM_PORT_ATTR_LINKSTAT_MASK    | \
+     BCM_PORT_ATTR_SPEED_MASK       | \
+     BCM_PORT_ATTR_DUPLEX_MASK      | \
+     BCM_PORT_ATTR_LINKSCAN_MASK    | \
+     BCM_PORT_ATTR_INTERFACE_MASK   | \
+     BCM_PORT_ATTR_LOOPBACK_MASK    | \
+     BCM_PORT_ATTR_PAUSE_TX_MASK    | \
+     BCM_PORT_ATTR_PAUSE_RX_MASK    | \
+     BCM_PORT_ATTR_PAUSE_MAC_MASK   | \
+     BCM_PORT_ATTR_FRAME_MAX_MASK   | \
+     BCM_PORT_ATTR_ENCAP_MASK) 
+
+/* Attributes specific to XGS devices. */
+#define BCM_PORT_XGS_ATTRS      (BCM_PORT_ATTR_ENCAP_MASK) 
+
+/* Auto-negotiated values. */
+#define BCM_PORT_AN_ATTRS       \
+    (BCM_PORT_ATTR_SPEED_MASK       | \
+     BCM_PORT_ATTR_DUPLEX_MASK      | \
+     BCM_PORT_ATTR_PAUSE_MASK) 
+
+
+/* bcm_port_info_s */
+typedef struct bcm_port_info_s {
+    uint32_t action_mask;                 /* BCM_PORT_ATTR_xxx. */
+    uint32_t action_mask2;                /* BCM_PORT_ATTR2_xxx. */
+    int enable; 
+    int linkstatus; 
+    int autoneg; 
+    int speed; 
+    int duplex; 
+    int linkscan; 
+    uint32_t learn; 
+    int discard; 
+    uint32_t vlanfilter; 
+    int untagged_priority; 
+    bcm_vlan_t untagged_vlan; 
+    int stp_state; 
+    int pfm; 
+    int loopback; 
+    int phy_master; 
+    bcm_port_if_t interface; 
+    int pause_tx; 
+    int pause_rx; 
+    int encap_mode; 
+    bcm_mac_t pause_mac; 
+    bcm_port_abil_t local_advert; 
+    bcm_port_ability_t local_ability; 
+    int remote_advert_valid; 
+    bcm_port_abil_t remote_advert; 
+    bcm_port_ability_t remote_ability; 
+    int mcast_limit; 
+    int mcast_limit_enable; 
+    int bcast_limit; 
+    int bcast_limit_enable; 
+    int dlfbc_limit; 
+    int dlfbc_limit_enable; 
+    int speed_max; 
+    bcm_port_abil_t ability; 
+    bcm_port_ability_t port_ability; 
+    int frame_max; 
+    bcm_port_mdix_t mdix; 
+    bcm_port_mdix_status_t mdix_status; 
+    bcm_port_medium_t medium; 
+    uint32_t fault; 
+} bcm_port_info_t;
 
 
 /*****************************************************************************************/
