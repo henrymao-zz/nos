@@ -5150,7 +5150,7 @@ _bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     }
 
 #endif
-    if ((BCM_STG_DEFAULT == stg) {
+    if (BCM_STG_DEFAULT == stg) {
         entry[0] = 0xfffffffc;
         entry[1] = 0xffffffff;
         entry[2] = 0xffffffff;
@@ -5242,7 +5242,7 @@ _bcm_xgs3_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port,
 
     rv=  _soc_mem_read(bcmsw->dev, STG_TABm+stg,
                   SCHAN_BLK_IPIPE, 
-                  BYTES2WORD(STG_TABm_BYTES), 
+                  BYTES2WORDS(STG_TABm_BYTES), 
                   entry); 
 
     /* Get specific port state from the entry. */
@@ -5264,7 +5264,7 @@ bcm_xgs3_stg_stp_init(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     // init EGR_VLAN_STGms
     _bcm_xgs3_stg_stp_init_egr(bcmsw, stg);
 
-    return (BCM_E_NONE);
+    return (SOC_E_NONE);
 }
 
 
@@ -5307,7 +5307,7 @@ bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
     int                 stg_defl, rv;
 
     if (stg_info->stg_defl >= 0) {
-        rv = bcm_esw_stg_stp_get(unit, stg_defl, port, stp_state);
+        rv = bcm_esw_stg_stp_get(bcmsw, stg_defl, port, stp_state);
     } else {  
         *stp_state = BCM_STG_STP_FORWARD;
         rv = SOC_E_NONE;
@@ -5341,10 +5341,8 @@ bcm_esw_stg_create_id(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
     //STG_BITMAP_SET(si, stg);
     val = 1;
     _mem_field_set(stg_info->stg_bitmap,(STG_TABm_MAX_INDEX+1)/8, stg, 1, &val, 0 );
-    STG_BITMAP_SET(si, 0);
 
-
-    si->stg_count++;
+    stg_info->stg_count++;
 
 
     return rv;
@@ -5392,7 +5390,7 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
       */
  
      //BCM_IF_ERROR_RETURN(bcm_esw_stg_create_id(unit, si->stg_defl));
-     bcm_esw_stg_create_id(bcmsw, si->stg_defl);
+     bcm_esw_stg_create_id(bcmsw, stg_info->stg_defl);
  
      //_bcm_stg_map_add(unit, si->stg_defl, BCM_VLAN_DEFAULT);
  
