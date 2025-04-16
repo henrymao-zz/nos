@@ -3005,7 +3005,7 @@ static int unimac_reset_check(bcmsw_switch_t *bcmsw, int port, int enable, int *
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &ctrl.word);
     octrl.word = ctrl.word;
 
-    printk("unimac_reset_check port %d ctrl 0x%x\n", port, ctrl.word);
+    //printk("unimac_reset_check port %d ctrl 0x%x\n", port, ctrl.word);
     ctrl.reg.TX_ENAf = enable ? 1:0;
     ctrl.reg.RX_ENAf = enable ? 1:0;
 
@@ -5246,8 +5246,12 @@ _bcm_xgs3_stg_stp_get(bcmsw_switch_t *bcmsw, bcm_stg_t stg, int port,
                   entry); 
 
     /* Get specific port state from the entry. */
+    //printk("_bcm_xgs3_stg_stp_get stg %d port %d entry 0x%08x\n",stg, port, entry[STG_WORD(port)]);;
+
     hw_stp_state = entry[STG_WORD(port)] >> STG_BITS_SHIFT(port);
     hw_stp_state &= STG_PORT_MASK;
+
+    //printk("_bcm_xgs3_stg_stp_get port %d hw_state %d\n", port, hw_stp_state);
 
     /* Translate hw stp port state to API format. */
     rv = _bcm_stg_pvp_translate(hw_stp_state, stp_state);
@@ -5304,10 +5308,10 @@ bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
 {
     bcm_stg_info_t	*stg_info = bcmsw->stg_info;
 
-    int                 stg_defl, rv;
+    int              rv;
 
     if (stg_info->stg_defl >= 0) {
-        rv = bcm_esw_stg_stp_get(bcmsw, stg_defl, port, stp_state);
+        rv = bcm_esw_stg_stp_get(bcmsw, stg_info->stg_defl, port, stp_state);
     } else {  
         *stp_state = BCM_STG_STP_FORWARD;
         rv = SOC_E_NONE;
