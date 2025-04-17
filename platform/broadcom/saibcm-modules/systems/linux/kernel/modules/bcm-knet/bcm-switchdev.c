@@ -6194,13 +6194,13 @@ _soc_helix5_flex_mmu_reconfigure_phase2(bcmsw_switch_t *bcmsw)
 
     /* Per-Port configuration */
     for(index = 0; index < HX5_NUM_PORT; index++) {
-        physical_port = si->port_l2p_mapping[index];
+        physical_port = bcmsw->si->port_l2p_mapping[index];
 
         if (physical_port == -1) {
             //during init process, we do not expect coming here
             continue;
         } 
-        mmu_port = si->port_p2m_mapping[physical_port];
+        mmu_port = bcmsw->si->port_p2m_mapping[physical_port];
 
         /* Re-adjust phy port mapping for valid ports */
 
