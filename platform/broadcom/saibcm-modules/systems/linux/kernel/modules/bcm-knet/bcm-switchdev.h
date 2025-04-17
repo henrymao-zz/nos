@@ -1459,21 +1459,35 @@ typedef struct {
 //  PHYSICAL_PORT_NUMBER<6:0> = 0x7f
 #define EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr           0x28004100
 
+/*
+SOC_REG_INT_MMU_PORT_TO_PHY_PORT_MAPPING_BCM56370_A0r
+base 0x8110000 
+acc_type (20 << SOC_REG_FLAG_ACC_TYPE_SHIFT),
+soc_field_info_t soc_MMU_PORT_TO_PHY_PORT_MAPPING_BCM56960_A0r_fields[] = {
+    { PHY_PORTf, 8, 0, SOCF_LE }
+};
+ */
 //Register: MMU_PORT_TO_PHY_PORT_MAPPING.cpu0 port register address 0x08110046
 //Blocks: mmu_glb0 (1 copy)
 //Description: MMU port to Physical port number mapping
 //Displaying: reset defaults, reset value 0xff mask 0xff
 //  PHY_PORT<7:0> = 0xff
+#define MMU_PORT_TO_PHY_PORT_MAPPINGr                         0x08110000
 
-#define MMU_PORT_TO_PHY_PORT_MAPPINGr                         0x08110046
-
-
+/*
+SOC_REG_INT_MMU_PORT_TO_DEVICE_PORT_MAPPING_BCM56370_A0r
+base 0x8100000
+acc_type 20
+soc_field_info_t soc_MMU_PORT_TO_DEVICE_PORT_MAPPINGr_fields[] = {
+    { DEVICE_PORTf, 8, 0, SOCF_LE }
+};
+ */
 //Register: MMU_PORT_TO_DEVICE_PORT_MAPPING.cpu0 port register address 0x08100046
 //Blocks: mmu_glb0 (1 copy)
 //Description: MMU port to DEVICE port number mapping
 //Displaying: reset defaults, reset value 0xff mask 0xff
 //  DEVICE_PORT<7:0> = 0xff
-#define MMU_PORT_TO_DEVICE_PORT_MAPPINGr                      0x08100046
+#define MMU_PORT_TO_DEVICE_PORT_MAPPINGr                      0x08100000
 
 
 //Memory: SYS_PORTMAP.ipipe0 address 0x80f40000

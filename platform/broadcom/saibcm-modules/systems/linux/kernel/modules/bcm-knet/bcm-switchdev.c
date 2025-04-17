@@ -6150,11 +6150,11 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
 
         /* MMU port to physical port mapping */
         val = phy_port;
-        _reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+port, val);
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+port, val, 20);
 
         /* MMU port to device port mapping */
         val = phy_port;
-        _reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val);
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val);
 
     }
     /* Ingress GPP port to device port mapping */
@@ -7634,18 +7634,18 @@ _proc_reg32_show(struct seq_file *m, void *v)
 
         case MMU_PORT_TO_PHY_PORT_MAPPINGr:
             for (index =0; index < HX5_NUM_PORT; index ++) { 
-                _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                _schan_reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
                             MMU_PORT_TO_PHY_PORT_MAPPINGr+index,
-                            &val);
+                            &val, 20);
                 seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
 
         case MMU_PORT_TO_DEVICE_PORT_MAPPINGr:
             for (index =0; index < HX5_NUM_PORT; index ++) { 
-                _reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
+                _schan_reg32_read(_bcmsw->dev,SCHAN_BLK_MMU_GLB, 
                             MMU_PORT_TO_DEVICE_PORT_MAPPINGr+index,
-                            &val);
+                            &val, 20);
                 seq_printf(m, "[%2d]  0x%08x\n", index, val);
             }
             break;
