@@ -5449,8 +5449,8 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
         rc = bcm_esw_port_autoneg_get(bcmsw, port, &info->autoneg);
      }
 
-     port_info->speed = 1000;
-     port_info->phy_master = 1;
+     info->speed = 1000;
+     info->phy_master = 1;
 # if 0 
      if (mask & BCM_PORT_ATTR_LOCAL_ADVERT_MASK) {
          r = bcm_esw_port_ability_advert_get(unit, port,
@@ -7330,7 +7330,7 @@ _portstat_show(struct seq_file *m, void *v)
             (port_info.linkstatus == PORT_LINK_STATUS_FAILED) ? "fail" :
             (port_info.linkstatus == PORT_LINK_STATUS_UP ? "up  " : "down"));
 
-        seq_printf(m, " %2d ", info->phy_master);
+        seq_printf(m, " %2d ", port_info.phy_master);
 
         seq_printf(m, "%5s ", if_fmt_speed(sbuf, port_info.speed));
         seq_printf(m, "%3s ", port_info.speed == 0 ? "" : port_info.duplex ? "FD" : "HD");
