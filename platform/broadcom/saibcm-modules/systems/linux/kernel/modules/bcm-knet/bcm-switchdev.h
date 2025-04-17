@@ -212,6 +212,48 @@ typedef int soc_mem_t;
 #define HX5_MMU_FLUSH_ON                         1
 
 /*****************************************************************************************/
+/*                              COMMON type definition                                   */
+/*****************************************************************************************/
+
+
+#define _SHR_PBMP_PORT_MAX 128
+#define	_SHR_PBMP_WIDTH		(((_SHR_PBMP_PORT_MAX + 32 - 1)/32)*32)
+#define	_SHR_PBMP_WORD_WIDTH		32
+#define	_SHR_PBMP_WORD_MAX		\
+	((_SHR_PBMP_WIDTH + _SHR_PBMP_WORD_WIDTH-1) / _SHR_PBMP_WORD_WIDTH)
+
+typedef struct _shr_pbmp {
+        uint32	pbits[_SHR_PBMP_WORD_MAX];
+} bcm_pbmp_t;
+    
+typedef int bcm_trunk_t;
+typedef int bcm_cos_t;
+typedef int bcm_if_t;
+typedef int bcm_multicast_t;
+typedef uint16_t bcm_vlan_t;
+
+/* bcm_mac_t */
+typedef uint8 bcm_mac_t[6];
+
+typedef struct bcm_flow_logical_field_s {
+    uint32_t id;      /* logical field id. */
+    uint32_t value;   /* logical field value. */
+} bcm_flow_logical_field_t;
+
+/* TSN flow set */
+typedef int bcm_tsn_flowset_t;
+
+/* SR flow set */
+typedef int bcm_tsn_sr_flowset_t;
+
+/* bcm_policer_t */
+typedef int bcm_policer_t;
+
+/* TSN priority map id */
+typedef int bcm_tsn_pri_map_t;
+
+
+/*****************************************************************************************/
 /*                              SCHAN                                                    */
 /*****************************************************************************************/
 
@@ -2095,10 +2137,6 @@ typedef union ing_config64_s {
 //SOC_REG_FLAG_CCH
 #define ING_CONFIG_64r                 0x4e018000
 
-
-/* bcm_mac_t */
-typedef uint8 bcm_mac_t[6];
-
 #define BCM_MAC_IS_MCAST(_mac_)  \
     (_mac_[0] & 0x1) 
 
@@ -2474,6 +2512,147 @@ typedef struct {
 }l2u_entry_t;
     
 
+
+typedef struct _bcm_gport_dest_s {
+    bcm_port_t      port;
+    bcm_module_t    modid;
+    bcm_trunk_t     tgid;
+    int             mpls_id;
+    int             mim_id;
+    int             wlan_id;
+    int             trill_id;
+    int             l2gre_id;
+    int             vxlan_id;
+    int             flow_id;
+    int             vlan_vp_id;
+    int             niv_id;
+    int             extender_id;
+    int             subport_id;
+    int             scheduker_id;
+    uint32_t          gport_type;
+} _bcm_gport_dest_t;
+
+/* 
+ * Flags for device-independent L2 address.
+ * 
+ * Special note on insert/delete/lookup-specific flags:
+ * 
+ *   BCM_L2_NATIVE
+ *   BCM_L2_MOVE
+ *   BCM_L2_FROM_NATIVE
+ *   BCM_L2_TO_NATIVE
+ *   BCM_L2_MOVE_PORT
+ *   BCM_L2_LOCAL_CPU
+ * 
+ * On a move, two calls occur: delete and insert. The from native/to
+ * native calls are set the same for both of these operations. On an age,
+ * the move bit is not set and only one delete operation occurs.
+ * 
+ * Suggested application operation:
+ * 
+ *      Insert:  If native is set, send insert op to all units.
+ *      Age:     If native is set, send delete operation to all units.
+ *      Move:    Ignore delete indication and wait for insert operation.
+ *               Treat insert like above.
+ * 
+ * That is, ignore move-delete operations; only forward other
+ * operations if native.
+ * 
+ * The BCM_L2_LOCAL_CPU flag indicates the entry is for the local CPU on
+ * the device. This is valid for _add operations only. Note that
+ * BCM_L2_LOCAL_CPU is related to the L2_NATIVE value. L2_NATIVE is valid
+ * on reads, L2_LOCAL_CPU is valid on move or write.
+ */
+#define BCM_L2_COS_SRC_PRI              0x00000001 /* Source COS has priority
+                                                      over destination COS. */
+#define BCM_L2_DISCARD_SRC              0x00000002 
+#define BCM_L2_DISCARD_DST              0x00000004 
+#define BCM_L2_COPY_TO_CPU              0x00000008 
+#define BCM_L2_L3LOOKUP                 0x00000010 
+#define BCM_L2_STATIC                   0x00000020 
+#define BCM_L2_HIT                      0x00000040 
+#define BCM_L2_TRUNK_MEMBER             0x00000080 
+#define BCM_L2_MCAST                    0x00000100 
+#define BCM_L2_REPLACE_DYNAMIC          0x00000200 
+#define BCM_L2_SRC_HIT                  0x00000400 
+#define BCM_L2_DES_HIT                  0x00000800 
+#define BCM_L2_REMOTE_TRUNK             0x00001000 
+#define BCM_L2_MIRROR                   0x00002000 
+#define BCM_L2_SETPRI                   0x00004000 
+#define BCM_L2_REMOTE_LOOKUP            0x00008000 
+#define BCM_L2_NATIVE                   0x00010000 
+#define BCM_L2_MOVE                     0x00020000 
+#define BCM_L2_FROM_NATIVE              0x00040000 
+#define BCM_L2_TO_NATIVE                0x00080000 
+#define BCM_L2_MOVE_PORT                0x00100000 
+#define BCM_L2_LOCAL_CPU                0x00200000 /* Entry is for the local CPU
+                                                      on the device. */
+#define BCM_L2_USE_FABRIC_DISTRIBUTION  0x00400000 /* Use specified fabric
+                                                      distribution class. */
+#define BCM_L2_PENDING                  0x00800000 
+#define BCM_L2_LEARN_LIMIT_EXEMPT       0x01000000 
+#define BCM_L2_LEARN_LIMIT              0x02000000 
+#define BCM_L2_ENTRY_OVERFLOW           0x04000000 
+#define BCM_L2_LEARN_LIMIT_EXEMPT_LOCAL 0x08000000 /* Only system wide MAC limit
+                                                      counter will be
+                                                      incremented. */
+#define BCM_L2_SET_ENCAP_VALID          0x10000000 /* DNX only: indication that
+                                                      encap_id_valid needs to
+                                                      set even when encap_id is
+                                                      not valid. */
+#define BCM_L2_SET_ENCAP_INVALID        0x20000000 /* DNX only: encap_id is
+                                                      added to MAC table as is,
+                                                      however valid bit is
+                                                      cleared. */
+#define BCM_L2_SR_SAN_DEST              0x40000000 /* Seamless Redundancy: the
+                                                      destination is a SAN */
+#define BCM_L2_ADD_OVERRIDE_PENDING     0x80000000 /* Override pending entry
+                                                      while the same hash bucket
+                                                      is full. */
+                                                      
+
+/* Device-independent L2 address structure. */
+typedef struct bcm_l2_addr_s {
+    uint32_t flags;                       /* BCM_L2_xxx flags. */
+    uint32_t flags2;                      /* BCM_L2_FLAGS2_xxx flags. */
+    uint32_t station_flags;               /* BCM_L2_STATION_xxx flags. */
+    bcm_mac_t mac;                      /* 802.3 MAC address. */
+    bcm_vlan_t vid;                     /* VLAN identifier. */
+    int port;                           /* Zero-based port number. */
+    int modid;                          /* XGS: modid. */
+    bcm_trunk_t tgid;                   /* Trunk group ID. */
+    bcm_cos_t cos_dst;                  /* COS based on dst addr. */
+    bcm_cos_t cos_src;                  /* COS based on src addr. */
+    bcm_multicast_t l2mc_group;         /* XGS: index in L2MC table */
+    bcm_if_t egress_if;                 /* XGS: index in Next Hop Tables. Used
+                                           it with BCM_L2_FLAGS2_ROE_NHI flag */
+    bcm_multicast_t l3mc_group;         /* XGS: index in L3_IPMC table. Use it
+                                           with BCM_L2_FLAGS2_L3_MULTICAST. */
+    bcm_pbmp_t block_bitmap;            /* XGS: blocked egress bitmap. */
+    int auth;                           /* Used if auth enabled on port. */
+    int group;                          /* Group number for FP. */
+    bcm_fabric_distribution_t distribution_class; /* Fabric Distribution Class. */
+    int encap_id;                       /* out logical interface */
+    int age_state;                      /* Age state of the entry */
+    uint32_t flow_handle;               /* FLOW handle for flex entries. */
+    uint32_t flow_option_handle;        /* FLOW option handle for flex entries. */
+    bcm_flow_logical_field_t logical_fields[BCM_FLOW_MAX_NOF_LOGICAL_FIELDS]; /* logical fields array for flex
+                                           entries. */
+                                           uint32_t num_of_fields;               /* number of logical fields. */
+    bcm_pbmp_t sa_source_filter_pbmp;   /* Source port filter bitmap for this SA */
+    bcm_tsn_flowset_t tsn_flowset;      /* Time-Sensitive Networking: associated
+                                           flow set */
+    bcm_tsn_sr_flowset_t sr_flowset;    /* Seamless Redundancy: associated flow
+                                           set */
+    bcm_policer_t policer_id;           /* Base policer to be used */
+    bcm_tsn_pri_map_t taf_gate_primap;  /* TAF (Time Aware Filtering) gate
+                                           priority mapping */
+    uint32_t stat_id;                   /* Object statistics ID */
+    int stat_pp_profile;                /* Statistics profile */
+    uint16_t gbp_src_id;                /* GBP Source ID */
+    int opaque_ctrl_id;                 /* Opaque control ID. */
+} bcm_l2_addr_t;
+
 /*****************************************************************************************/
 /*                            Egress Blocking Table                                      */
 /*****************************************************************************************/
@@ -2491,19 +2670,13 @@ typedef struct {
 /*                            VLAN                                                       */
 /*****************************************************************************************/
 
-typedef uint16 bcm_vlan_t;
-//typedef _shr_pbmp_t bcm_pbmp_t;
-//typedef uint32 _shr_pbmp_t;
 
-typedef struct _pbmp {
-	uint32	pbits[8];
-} _pbmp_t;
 
 /* Initialize a VLAN data information structure. */
 typedef struct _vlan_data_s {
     uint16_t vlan_tag; 
-    _pbmp_t  port_bitmap; 
-    _pbmp_t  ut_port_bitmap; 
+    bcm_pbmp_t  port_bitmap; 
+    bcm_pbmp_t  ut_port_bitmap; 
 } vlan_data_t;
 
 /*
@@ -3956,6 +4129,152 @@ typedef struct bcm_port_info_s {
     bcm_port_medium_t medium; 
     uint32_t fault; 
 } bcm_port_info_t;
+
+/*****************************************************************************************/
+/*                              L2                                                       */
+/*****************************************************************************************/
+/*
+soc_field_info_t soc_L2X_BCM56370_A0m_fields[] = {
+    { ACTION_PROFILE_PTRf, 5, 103, SOCF_LE | SOCF_GLOBAL },
+    { ASSOCIATED_DATAf, 37, 71, SOCF_LE },
+    { BASE_VALIDf, 3, 0, SOCF_LE | SOCF_GLOBAL },
+    { CLASS_IDf, 6, 90, SOCF_LE },
+    { CPUf, 1, 104, 0 },
+    { DATAf, 37, 71, SOCF_LE },
+    { DATA_TYPEf, 5, 103, SOCF_LE | SOCF_GLOBAL },
+    { DESTINATIONf, 18, 72, SOCF_LE },
+    { DST_DISCARDf, 1, 103, 0 },
+    { DUMMY_INDEXf, 1, 95, 0 },
+    { EVPN_AGE_DISABLEf, 1, 107, 0 },
+    { FCOE_ZONE__ACTIONf, 1, 101, 0 },
+    { FCOE_ZONE__ASSOCIATED_DATAf, 18, 90, SOCF_LE },
+    { FCOE_ZONE__CLASS_IDf, 10, 91, SOCF_LE },
+    { FCOE_ZONE__CPUf, 1, 90, 0 },
+    { FCOE_ZONE__DATAf, 18, 90, SOCF_LE },
+    { FCOE_ZONE__D_IDf, 24, 32, SOCF_LE },
+    { FCOE_ZONE__HASH_LSBf, 16, 8, SOCF_LE },
+    { FCOE_ZONE__KEYf, 68, 3, SOCF_LE },
+    { FCOE_ZONE__RESERVEDf, 19, 71, SOCF_LE },
+    { FCOE_ZONE__RESERVED_0f, 5, 103, SOCF_LE|SOCF_RES },
+    { FCOE_ZONE__RESERVED_KEY_PADDINGf, 3, 68, SOCF_LE|SOCF_RES },
+    { FCOE_ZONE__STATIC_BITf, 1, 102, 0 },
+    { FCOE_ZONE__S_IDf, 24, 8, SOCF_LE },
+    { FCOE_ZONE__VSAN_IDf, 12, 56, SOCF_LE },
+    { HASH_LSBf, 16, 22, SOCF_LE },
+    { HITDAf, 1, 108, 0 | SOCF_GLOBAL },
+    { HITSAf, 1, 109, 0 | SOCF_GLOBAL },
+    { KEYf, 68, 3, SOCF_LE },
+    { KEY_TYPEf, 5, 3, SOCF_LE | SOCF_GLOBAL },
+    { L2__ASSOCIATED_DATAf, 37, 71, SOCF_LE },
+    { L2__CLASS_IDf, 6, 90, SOCF_LE },
+    { L2__CPUf, 1, 104, 0 },
+    { L2__DATAf, 37, 71, SOCF_LE },
+    { L2__DESTINATIONf, 18, 72, SOCF_LE },
+    { L2__DST_DISCARDf, 1, 103, 0 },
+    { L2__DUMMY_INDEXf, 1, 95, 0 },
+    { L2__EVPN_AGE_DISABLEf, 1, 107, 0 },
+    { L2__HASH_LSBf, 16, 22, SOCF_LE },
+    { L2__KEYf, 68, 3, SOCF_LE },
+    { L2__MAC_ADDRf, 48, 22, SOCF_LE },
+    { L2__MAC_BLOCK_INDEXf, 5, 90, SOCF_LE },
+    { L2__PENDINGf, 1, 101, 0 },
+    { L2__PRIf, 4, 97, SOCF_LE },
+    { L2__RESERVED_KEY_PADDINGf, 1, 70, SOCF_RES },
+    { L2__RPEf, 1, 96, 0 },
+    { L2__SCPf, 1, 106, 0 },
+    { L2__SRC_DISCARDf, 1, 105, 0 },
+    { L2__STATIC_BITf, 1, 102, 0 },
+    { L2__VFIf, 12, 8, SOCF_LE },
+    { L2__VLAN_IDf, 12, 8, SOCF_LE },
+    { LOCAL_SAf, 1, 110, 0 | SOCF_GLOBAL },
+    { MAC_ADDRf, 48, 22, SOCF_LE },
+    { MAC_BLOCK_INDEXf, 5, 90, SOCF_LE },
+    { PENDINGf, 1, 101, 0 },
+    { PE_VID__ASSOCIATED_DATAf, 40, 68, SOCF_LE },
+    { PE_VID__CLASS_IDf, 6, 77, SOCF_LE },
+    { PE_VID__CPUf, 1, 69, 0 },
+    { PE_VID__DATAf, 40, 68, SOCF_LE },
+    { PE_VID__DESTINATIONf, 18, 84, SOCF_LE },
+    { PE_VID__DST_DISCARDf, 1, 70, 0 },
+    { PE_VID__DUMMY_1f, 1, 82, SOCF_RES },
+    { PE_VID__ETAG_VIDf, 14, 20, SOCF_LE },
+    { PE_VID__EVPN_AGE_DISABLEf, 1, 83, 0 },
+    { PE_VID__HASH_LSBf, 16, 8, SOCF_LE },
+    { PE_VID__KEYf, 32, 3, SOCF_LE },
+    { PE_VID__MAC_BLOCK_INDEXf, 5, 77, SOCF_LE },
+    { PE_VID__NAMESPACEf, 12, 8, SOCF_LE },
+    { PE_VID__PRIf, 4, 72, SOCF_LE },
+    { PE_VID__RESERVEDf, 33, 35, SOCF_LE },
+    { PE_VID__RESERVED_0f, 5, 103, SOCF_LE|SOCF_RES },
+    { PE_VID__RESERVED_KEY_PADDINGf, 1, 34, SOCF_RES },
+    { PE_VID__RPEf, 1, 76, 0 },
+    { PE_VID__SCPf, 1, 71, 0 },
+    { PE_VID__SRC_DISCARDf, 1, 68, 0 },
+    { PE_VID__STATIC_BITf, 1, 102, 0 },
+    { POLICY_DATAf, 95, 8, SOCF_LE | SOCF_GLOBAL },
+    { PRIf, 4, 97, SOCF_LE },
+    { RESERVED_KEY_PADDINGf, 1, 70, SOCF_RES },
+    { RPEf, 1, 96, 0 },
+    { SCPf, 1, 106, 0 },
+    { SRC_DISCARDf, 1, 105, 0 },
+    { STATIC_BITf, 1, 102, 0 | SOCF_GLOBAL },
+    { TABLE_FIELDSf, 95, 8, SOCF_LE | SOCF_GLOBAL },
+    { VFIf, 12, 8, SOCF_LE },
+    { VIF__ASSOCIATED_DATAf, 36, 72, SOCF_LE },
+    { VIF__CLASS_IDf, 6, 90, SOCF_LE },
+    { VIF__CPUf, 1, 104, 0 },
+    { VIF__DATAf, 36, 72, SOCF_LE },
+    { VIF__DESTINATIONf, 18, 72, SOCF_LE },
+    { VIF__DST_DISCARDf, 1, 103, 0 },
+    { VIF__DST_VIFf, 14, 20, SOCF_LE },
+    { VIF__DUMMY_INDEXf, 1, 95, 0 },
+    { VIF__EVPN_AGE_DISABLEf, 1, 107, 0 },
+    { VIF__HASH_LSBf, 16, 8, SOCF_LE },
+    { VIF__KEYf, 32, 3, SOCF_LE },
+    { VIF__MAC_BLOCK_INDEXf, 5, 90, SOCF_LE },
+    { VIF__NAMESPACEf, 12, 8, SOCF_LE },
+    { VIF__Pf, 1, 34, 0 },
+    { VIF__PRIf, 4, 97, SOCF_LE },
+    { VIF__RESERVEDf, 37, 35, SOCF_LE },
+    { VIF__RESERVED_0f, 1, 101, SOCF_RES },
+    { VIF__RPEf, 1, 96, 0 },
+    { VIF__SCPf, 1, 106, 0 },
+    { VIF__SRC_DISCARDf, 1, 105, 0 },
+    { VIF__STATIC_BITf, 1, 102, 0 },
+    { VLAN__ASSOCIATED_DATAf, 54, 54, SOCF_LE },
+    { VLAN__CLASS_IDf, 6, 90, SOCF_LE },
+    { VLAN__CPUf, 1, 104, 0 },
+    { VLAN__DATAf, 54, 54, SOCF_LE },
+    { VLAN__DESTINATIONf, 18, 72, SOCF_LE },
+    { VLAN__DESTINATION_1f, 18, 54, SOCF_LE },
+    { VLAN__DST_DISCARDf, 1, 103, 0 },
+    { VLAN__DUMMY_INDEXf, 1, 95, 0 },
+    { VLAN__EVPN_AGE_DISABLEf, 1, 107, 0 },
+    { VLAN__HASH_LSBf, 16, 8, SOCF_LE },
+    { VLAN__IVIDf, 12, 20, SOCF_LE },
+    { VLAN__KEYf, 32, 3, SOCF_LE },
+    { VLAN__MAC_BLOCK_INDEXf, 5, 90, SOCF_LE },
+    { VLAN__OVIDf, 12, 8, SOCF_LE },
+    { VLAN__PENDINGf, 1, 101, 0 },
+    { VLAN__PRIf, 4, 97, SOCF_LE },
+    { VLAN__RESERVEDf, 19, 35, SOCF_LE },
+    { VLAN__RESERVED_KEY_PADDINGf, 3, 32, SOCF_LE|SOCF_RES },
+    { VLAN__RPEf, 1, 96, 0 },
+    { VLAN__SCPf, 1, 106, 0 },
+    { VLAN__SRC_DISCARDf, 1, 105, 0 },
+    { VLAN__STATIC_BITf, 1, 102, 0 },
+    { VLAN_IDf, 12, 8, SOCF_LE }
+};
+ */
+//Memory: L2X.ipipe0 aka L2_ENTRY alias L2X address 0xa8000000
+//Flags: valid cachable(on) hashed multiview
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 32768 with indices 0-32767 (0x0-0x7fff), each 14 bytes 4 words
+//Entry mask: -1 -1 -1 0x00007fff
+//Description: Combined HW managed L2 entry table.  Includes L2_ENTRY, L2_HITDA, and L2_HITSA
+#define L2Xm                                0xa8000000
+#define L2Xm_BYTES                          14
+#define L2Xm_MAX_INDEX                      0x7fff
 
 
 /*****************************************************************************************/

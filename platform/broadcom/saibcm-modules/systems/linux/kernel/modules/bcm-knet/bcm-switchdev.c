@@ -7305,6 +7305,280 @@ static struct proc_ops portstat_ops =
     proc_release:    single_release,
 };
 
+//_bcm_esw_l2_from_l2x -> _bcm_fb_l2_from_l2x
+static int
+_bcm_esw_l2_from_l2x(bcm_l2_addr_t *l2addr, uint32_t *l2x_entry)
+{
+    int mb_index, rval;
+    uint32_t val;
+
+    memset(l2addr, 0, sizeof (*l2addr));
+
+    /* Valid bit is ignored here; entry is assumed valid */
+    // MAC_ADDRf start 22, len 48
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 22, 48, l2addr->mac, SOCF_LE);
+
+
+    // VLAN_IDf start 8, len 12
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 8, 12, &val, SOCF_LE);
+    l2addr->vid = val;
+
+    // PRIf start 97, len 4
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 97, 4, &val, SOCF_LE);
+    l2addr->cos_dst = val;
+    l2addr->cos_src = val;
+
+    // CPUf start 104, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 104, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_COPY_TO_CPU;
+    }
+
+    // DST_DISCARDf 103, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 103, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_DISCARD_DST;
+    }
+
+    // SRC_DISCARDf start 105, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 105, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_DISCARD_SRC;
+    }
+
+    // SCPf start 106, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 106, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_COS_SRC_PRI;
+    }
+
+    if (BCM_MAC_IS_MCAST(l2addr->mac)) {
+        l2addr->flags |= BCM_L2_MCAST;
+
+        // L2MC_PTRf start 
+        //l2addr->l2mc_group =
+        //    soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry, L2MC_PTRf);
+
+        /* Translate l2mc index */
+        //BCM_IF_ERROR_RETURN(
+        //    bcm_esw_switch_control_get(unit, bcmSwitchL2McIdxRetType, &rval));
+        //if (rval)  {
+        //   _BCM_MULTICAST_GROUP_SET(l2addr->l2mc_group, _BCM_MULTICAST_TYPE_L2,
+        //                                                        l2addr->l2mc_group);
+        //}
+    } else {
+#if 0        
+        int                     isGport, rv;
+        bcm_module_t    mod_in, mod_out;
+        bcm_port_t      port_in, port_out;
+
+        //if (soc_feature(unit,soc_feature_trunk_group_overlay)) {
+        //
+        port_in = soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry,
+                                                         PORT_NUMf);
+        mod_in = soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry, MODULE_IDf);
+        BCM_IF_ERROR_RETURN
+                (_bcm_esw_stk_modmap_map(unit, BCM_STK_MODMAP_GET,
+                                        mod_in, port_in, &mod_out, &port_out));
+        l2addr->modid = mod_out;
+        l2addr->port = port_out;
+
+        dest.port = l2addr->port;
+        dest.modid = l2addr->modid;
+        dest.gport_type = _SHR_GPORT_TYPE_MODPORT;
+
+        rv = bcm_esw_switch_control_get(unit, bcmSwitchUseGport, &isGport);
+
+        if (BCM_SUCCESS(rv) && isGport) {
+            BCM_IF_ERROR_RETURN(
+                _bcm_esw_gport_construct(unit, &dest, &(l2addr->port)));
+        }
+#endif                
+    }
+
+    //if (soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry, L3f)) {
+    //    l2addr->flags |= BCM_L2_L3LOOKUP;
+    //}
+
+    //MAC_BLOCK_INDEXf start 90, len 5
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 90, 5, &val, SOCF_LE);
+    l2addr->group = val;
+/*    
+    if (SOC_CONTROL(unit)->l2x_group_enable) {
+        l2addr->group = soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry,
+                                                       MAC_BLOCK_INDEXf);
+    } else {
+        mb_index = soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry,
+                                                  MAC_BLOCK_INDEXf);
+        if (mb_index) {
+            BCM_PBMP_ASSIGN(l2addr->block_bitmap,
+                            _mbi_entries[unit][mb_index].mb_pbmp);
+        }
+        l2addr->group = 0;
+    }
+*/
+    // RPEf start 96, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 96, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_SETPRI;
+    }
+
+    //STATIC_BITf start 102, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 102, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_STATIC;
+    }
+
+    //if (soc_L2_ENTRY_ONLYm_field32_get(unit, l2x_entry, MIRRORf)) {
+    //    l2addr->flags |= BCM_L2_MIRROR;
+    //}
+
+    //HITSAf start 109, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 109, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_SRC_HIT;
+        l2addr->flags |= BCM_L2_HIT;
+    }
+
+    //HITDAf start 109, len 1
+    _mem_field_get(l2x_entry, L2Xm_BYTES, 108, 1, &val, 0);
+    if (val) {
+        l2addr->flags |= BCM_L2_DES_HIT;
+        l2addr->flags |= BCM_L2_HIT;
+    }
+
+    return SOC_E_NONE;
+}
+
+//if_esw_l2()
+static int
+_l2_show(struct seq_file *m, void *v)
+{
+    int index;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
+    bcm_l2_addr_t l2addr;
+    
+    
+    //bcm_l2_traverse(unit, _l2addr_dump, NULL);-> bcm_esw_l2_traverse() -> _bcm_esw_l2_traverse()
+    //->_bcm_esw_l2_traverse_mem(unit, L2Xm, trav_st);
+    //TODO, how to traverse the entire table
+    for (index = 0; index < 1024; index++) {
+        //seq_printf(m, "base 0x%x\n", p_data->reg_addr);
+        //BASE_VALIDf start 0, len 3
+        _soc_mem_read(_bcmsw->dev, L2Xm+index, 
+            SCHAN_BLK_IPIPE, BYTES2WORDS(L2Xm_BYTES), 
+            entry);      
+
+        _mem_field_get(entry, L2Xm_BYTES, 0, 3, &val, SOCF_LE);
+
+        if (!valid) {
+            continue;
+        }
+
+        // _bcm_esw_l2_from_l2x()
+        _bcm_esw_l2_from_l2x(&l2addr, entry);
+
+        //_l2addr_dump()
+        seq_printf(m, "mac=%02x:%02x:%02x:%02x:%02x:%02x vlan=%d GPORT=0x%x",
+                   l2addr->mac[0], l2addr->mac[1], l2addr->mac[2],
+                   l2addr->mac[3], l2addr->mac[4], l2addr->mac[5],
+                   l2addr->vid, l2addr->port);
+
+        islocal = TRUE; //TODO
+
+        seq_printf(m, " modid=%d port=%d%s%s", l2addr->modid, l2addr->port,
+                    (islocal == TRUE) ? "/" : " ",
+                    (islocal == TRUE) ?" ":" ");
+                    //TODO mod_port_name(unit, l2addr->modid, l2addr->port) : " ");
+
+        if (l2addr->flags & BCM_L2_STATIC) {
+            seq_printf(m, " Static");
+        }
+                
+        if (l2addr->flags & BCM_L2_HIT) {
+            seq_printf(m, " Hit");
+        }
+                
+        if (l2addr->cos_src != 0 || l2addr->cos_dst != 0) {
+            seq_printf(m, " COS(src=%d,dst=%d)", l2addr->cos_src, l2addr->cos_dst);
+        }
+                
+        if (l2addr->flags & BCM_L2_COS_SRC_PRI) {
+            seq_printf(m, " SCP");
+        }
+                
+        if (l2addr->flags & BCM_L2_COPY_TO_CPU) {
+            seq_printf(m, " CPU");
+        } else if((l2addr->port == 0) && islocal) {
+            if(!(l2addr->flags & (BCM_L2_L3LOOKUP | BCM_L2_TRUNK_MEMBER))) {
+                seq_printf(m, " CPU");
+            }
+        }
+                
+        if (l2addr->flags & BCM_L2_MIRROR) {
+            seq_printf(m, " Mirror");
+        }
+                
+        if (l2addr->flags & BCM_L2_L3LOOKUP) {
+            seq_printf(m, " L3");
+        }
+                
+        if (l2addr->flags & BCM_L2_DISCARD_SRC) {
+            seq_printf(m, " DiscardSrc");
+        }
+                
+        if (l2addr->flags & BCM_L2_DISCARD_DST) {
+            seq_printf(m, " DiscardDest");
+        }
+                
+        if (l2addr->flags & BCM_L2_PENDING) {
+            seq_printf(m, " Pending");
+        }
+                
+        if (l2addr->flags & BCM_L2_SETPRI) {
+            seq_printf(m, " ReplacePriority");
+        }
+                
+        if (l2addr->flags & BCM_L2_MCAST) {
+            seq_printf(m, " MCast=%d", l2addr->l2mc_group);
+        }
+                
+        //if (SOC_PBMP_NOT_NULL(l2addr->block_bitmap)) {
+        //format_pbmp(unit, bmstr, sizeof (bmstr), l2addr->block_bitmap);
+        //cli_out(" MAC blocked port bitmap=%s: %s",
+        //    SOC_PBMP_FMT(l2addr->block_bitmap, pfmt), bmstr);
+        //}
+                
+        if (l2addr->group) {
+            seq_printf(m, " Group=%d", l2addr->group);
+        }
+   
+        seq_printf(m, "\n");
+    }
+    return 0;
+}
+
+static int _l2_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _l2_show, NULL);
+}
+static ssize_t
+_l2_write(struct file *file, const char *ubuf, size_t count, loff_t *ppos) 
+{
+    //_proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(file));
+    printk("_l2_write handler\n");
+    return -1;
+}
+
+
+static struct proc_ops l2_ops = 
+{
+    proc_open:       _l2_open,
+    proc_read:       seq_read,
+    proc_lseek:     seq_lseek,
+    proc_write:      _l2_write,
+    proc_release:    single_release,
+};
 
 // /proc/switchdev/reg/*
 static int
@@ -7575,6 +7849,28 @@ _proc_mem_show(struct seq_file *m, void *v)
             }        
             break;
 
+        case L2Xm:
+            for (index =0; index < 128; index ++) {
+                val = 0;
+                _soc_mem_read(_bcmsw->dev, L2Xm+index, 
+                              SCHAN_BLK_IPIPE, BYTES2WORDS(L2Xm_BYTES), 
+                               entry);      
+    
+                //VALIDf start 0, len 3
+                _mem_field_get(entry, L2Xm_BYTES, 0, 3, &val, SOCF_LE);
+    
+                if (!valid) {
+                    continue;
+                }
+                  
+                seq_printf(m, "[%2d]   0x%08x 0x%08x 0x%08x 0x%08x \n", 
+                    index,
+                    entry[0],
+                    entry[1],
+                    entry[2],
+                    entry[3]);
+            }   
+            break;           
         default:
             seq_printf(m," Not implemented\n");
             break;
@@ -8220,7 +8516,15 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }
-        
+    // /proc/switchdev/mem/L2X
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = L2Xm;
+    entry = proc_create_data("L2X", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }        
     
     return 0;
 
@@ -8250,6 +8554,13 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
 
     // /proc/switchdev/portstat
     entry = proc_create("portstat", 0666, proc_switchdev_base, &portstat_ops);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/l2
+    entry = proc_create("l2", 0666, proc_switchdev_base, &l2_ops);
     if (entry == NULL) {
         printk("proc_create failed!\n");
         goto create_fail;
