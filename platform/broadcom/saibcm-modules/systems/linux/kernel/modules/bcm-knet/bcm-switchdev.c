@@ -250,6 +250,8 @@ static int
 _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
 {
     int i, rv, val, ch;
+    schan_msg_readcmd_t *cmd = (schan_msg_readcmd_t *)msg;
+    uint32_t addr = cmd->address;
 
     //SCHAN_LOCK(unit);
 
@@ -291,7 +293,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
     //SCHAN_UNLOCK(unit);
 
     if (rv) {
-        gprintk("_cmicx_schan_op operation failed\n");
+        gprintk("_cmicx_schan_op operation failed addr 0x%x\n", addr);
         _cmicx_schan_dump(dev, msg, dwc_write);
     }
 
@@ -2094,6 +2096,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         si->port_l2i_mapping[port] = hx5_anc_ports[index].idb_port;
         si->port_p2l_mapping[phy_port] = port;
         si->port_p2m_mapping[phy_port] = hx5_anc_ports[index].mmu_port;
+        si->port_m2p_mapping[hx5_anc_ports[index].mmu_port] = phy_port;
         si->port_pipe[port] = pipe;
         si->port_type[port] = hx5_anc_ports[index].port_type;
         //SOC_PBMP_PORT_ADD(si->pipe_pbm[pipe], port);
@@ -6132,12 +6135,14 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
                        BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
     }
 
+    //printk("_soc_helix5_port_mapping_init ancillary ports begin\n");
     /* Ancillary ports */
     for (i = 0; i < COUNTOF(hx5_anc_ports); i++) {
         idb_port = hx5_anc_ports[i].idb_port;
         phy_port = si->port_m2p_mapping[idb_port];
         port = si->port_p2l_mapping[phy_port];
 
+        //printk("_soc_helix5_port_mapping_init i %d phy_port %d port %d\n", i, phy_port, port);
         //DEVICE_PORT_NUMBERf start 0, len 7
         val = port;
         _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
@@ -6154,9 +6159,12 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
 
         /* MMU port to device port mapping */
         val = phy_port;
-        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val);
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val, 20);
 
     }
+
+    //printk("_soc_helix5_port_mapping_init gpp ports begin\n");
+
     /* Ingress GPP port to device port mapping */
     memset(&sysport_entry, 0, sizeof(sys_portmap_t));
     for (port = 0; port < HX5_NUM_PORT; port++) {
@@ -6186,15 +6194,21 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
 
     for(i = 1; i < HX5_NUM_PORT; i++) {
         physical_port = si->port_l2p_mapping[i];
-        if(physical_port != -1) {
-            memfld = i ; 
+        if (physical_port == -1) {
+            memfld = 0x7f ; 
+            idb_port = si->port_l2i_mapping[i];
+            valid = 0;
+            //during init process, we do not expect coming here
+            continue;
+        } else {
+            memfld = i;
             idb_port = si->port_l2i_mapping[i];
             valid = 1;
-        } else {
-            memfld = 0x7f ; 
-        valid = 0;
-        }   
-        
+        }
+
+        //printk("_soc_helix5_flex_idb_reconfigure i %d valid %d idb_port %d memfld %d phy_port %d\n",
+        //        i, valid, idb_port, memfld, physical_port);
+
         memset(&idb_entry, 0, sizeof(idb_entry));
         //DEVICE_PORT_NUMBERf start 0, len 7
         val = memfld;
