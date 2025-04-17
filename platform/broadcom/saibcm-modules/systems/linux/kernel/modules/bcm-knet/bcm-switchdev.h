@@ -226,6 +226,8 @@ typedef struct _shr_pbmp {
         uint32	pbits[_SHR_PBMP_WORD_MAX];
 } bcm_pbmp_t;
     
+typedef int bcm_port_t;
+typedef int bcm_module_t;
 typedef int bcm_trunk_t;
 typedef int bcm_cos_t;
 typedef int bcm_if_t;
@@ -239,6 +241,8 @@ typedef struct bcm_flow_logical_field_s {
     uint32_t id;      /* logical field id. */
     uint32_t value;   /* logical field value. */
 } bcm_flow_logical_field_t;
+
+#define BCM_FLOW_MAX_NOF_LOGICAL_FIELDS 20
 
 /* TSN flow set */
 typedef int bcm_tsn_flowset_t;
@@ -2317,9 +2321,6 @@ const bcm_mac_t _mac_all_ones =
 	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
-//typedef int bcm_module_t;
-//typedef int bcm_trunk_t;
-//typedef uint16 bcm_vlan_t;
 
 /* VPN types */
 #define BCM_VPN_TYPE_MPLS_L3    1          
@@ -2631,7 +2632,7 @@ typedef struct bcm_l2_addr_s {
     bcm_pbmp_t block_bitmap;            /* XGS: blocked egress bitmap. */
     int auth;                           /* Used if auth enabled on port. */
     int group;                          /* Group number for FP. */
-    bcm_fabric_distribution_t distribution_class; /* Fabric Distribution Class. */
+    //bcm_fabric_distribution_t distribution_class; /* Fabric Distribution Class. */
     int encap_id;                       /* out logical interface */
     int age_state;                      /* Age state of the entry */
     uint32_t flow_handle;               /* FLOW handle for flex entries. */
