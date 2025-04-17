@@ -5320,8 +5320,8 @@ bcm_esw_port_stp_get(bcmsw_switch_t *bcmsw, int port, int *stp_state)
         rv = SOC_E_NONE;
     }
 
-    printk("bcm_port_stp_get: p=%d state=%d rv=%d\n",
-           port, *stp_state, rv);
+    //printk("bcm_port_stp_get: p=%d state=%d rv=%d\n",
+    //       port, *stp_state, rv);
 
     return rv;
 }
@@ -8674,8 +8674,6 @@ create_fail:
 
 static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
-
-    
     // /proc/switchdev/reg
     remove_proc_entry("COMMAND_CONFIG", proc_reg_base);
     remove_proc_entry("IDB_OBM_CONTROL", proc_reg_base);
@@ -8699,7 +8697,6 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("LPORT_TAB", proc_mem_base);
     remove_proc_entry("ING_DEVICE_PORT", proc_mem_base);
     remove_proc_entry("MAC_BLOCK", proc_mem_base);
-    remove_proc_entry("EGR_VLAN", proc_mem_base);
     remove_proc_entry("SYS_PORTMAP", proc_mem_base);
     remove_proc_entry("ING_PHY_TO_IDB_PORT_MAP", proc_mem_base);
     remove_proc_entry("ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE", proc_mem_base);
