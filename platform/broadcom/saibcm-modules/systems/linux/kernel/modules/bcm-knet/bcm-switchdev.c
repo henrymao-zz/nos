@@ -6153,13 +6153,14 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
         val = phy_port;
         _reg32_write(bcmsw->dev, SCHAN_BLK_EPIPE,EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPINGr+port, val);
 
+        //mmu port is same as port
         /* MMU port to physical port mapping */
         val = phy_port;
-        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+port, val, 20);
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+idb_port, val, 20);
 
         /* MMU port to device port mapping */
-        val = phy_port;
-        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+port, val, 20);
+        val = port;
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+idb_port, val, 20);
 
     }
 
@@ -6179,9 +6180,71 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
     return SOC_E_NONE;
 }
 
-//soc_helix5_flex_idb_reconfigure
+
+// soc_helix5_flex_mmu_reconfigure_phase2
+int
+_soc_helix5_flex_mmu_reconfigure_phase2(bcmsw_switch_t *bcmsw)
+{
+    int physical_port, mmu_port;
+    int index;
+    uint32_t val;
+    //int lossy;
+
+    //lossy= !(port_schedule_state_t->lossless);
+
+    /* Per-Port configuration */
+    for(index = 0; index < HX5_NUM_PORT; index++) {
+        physical_port = si->port_l2p_mapping[index];
+
+        if (physical_port == -1) {
+            //during init process, we do not expect coming here
+            continue;
+        } 
+        mmu_port = si->port_p2m_mapping[physical_port];
+
+        /* Re-adjust phy port mapping for valid ports */
+
+        /* MMU port to physical port mapping */
+        val = physical_port;
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_PHY_PORT_MAPPINGr+mmu_port, val, 20);
+
+        /* MMU port to device port mapping */
+        val = index;
+        _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+mmu_port, val, 20);
+
+        //TODO
+#if 0                
+        /* Clear MTRO bucket memories */
+        soc_helix5_mmu_clear_mtro_bucket_mems(
+                unit, &port_schedule_state_t->resource[port]);
+        /* Clear VBS credit memories*/
+        soc_helix5_mmu_clear_vbs_credit_memories(
+                unit, &port_schedule_state_t->resource[port]);
+        /* Clear WRED Avg_Qsize instead of waiting for background process*/
+        soc_helix5_mmu_wred_clr(unit,
+                                       &port_schedule_state_t->resource[port]);
+        soc_helix5_mmu_thdi_setup(unit,
+                                         &port_schedule_state_t->resource[port],
+                                         lossy);
+        soc_helix5_mmu_thdu_qgrp_min_limit_config(
+                unit, &port_schedule_state_t->resource[port], lossy);
+        /* Clear Drop Counters in CTR block*/
+        soc_helix5_mmu_ctr_clr(unit,
+                                      &port_schedule_state_t->resource[port]);
+
+
+	    soc_helix5_mmu_set_mmu_to_phy_port_mapping(
+                unit, &port_schedule_state_t->resource[port],port_schedule_state_t);
+#endif                
+
+    }
+
+    return SOC_E_NONE;
+}
+
+//soc_helix5_reconfigure_ports
 static int
-_soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
+_soc_helix5_reconfigure_ports(bcmsw_switch_t *bcmsw)
 {
     int i, valid;
     int physical_port, idb_port;
@@ -6190,8 +6253,11 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
     ing_idb2dev_entry_t idb_entry;
     soc_info_t *si = bcmsw->si;
 
-    //update ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm & ING_PHY_TO_IDB_PORT_MAPm
+    //soc_helix5_flex_mmu_reconfigure_phase1
+    //soc_helix5_flex_mmu_reconfigure_phase2
+    _soc_helix5_flex_mmu_reconfigure_phase2(bcmsw);
 
+    //soc_helix5_flex_idb_reconfigure
     for(i = 1; i < HX5_NUM_PORT; i++) {
         physical_port = si->port_l2p_mapping[i];
         if (physical_port == -1) {
@@ -6228,6 +6294,8 @@ _soc_helix5_flex_idb_reconfigure(bcmsw_switch_t *bcmsw)
         _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + physical_port-1, SCHAN_BLK_IPIPE, 
                        BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
     }
+
+
     return 0;
 }
 
@@ -6276,8 +6344,8 @@ static int _misc_init(bcmsw_switch_t *bcmsw)
 
     _soc_helix5_port_mapping_init(bcmsw);
 
-    //_soc_helix5_tdm_init -> soc_helix5_reconfigure_ports -> soc_helix5_flex_idb_reconfigure
-    _soc_helix5_flex_idb_reconfigure(bcmsw);
+    //_soc_helix5_tdm_init -> soc_helix5_reconfigure_ports 
+    _soc_helix5_reconfigure_ports(bcmsw);
 
     //_soc_helix5_idb_init
     _soc_helix5_idb_init(bcmsw);
@@ -8606,17 +8674,45 @@ create_fail:
 
 static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
-    remove_proc_entry("sinfo", proc_switchdev_base);
+
     
     // /proc/switchdev/reg
     remove_proc_entry("COMMAND_CONFIG", proc_reg_base);
+    remove_proc_entry("IDB_OBM_CONTROL", proc_reg_base);
+    remove_proc_entry("IDB_OBM_CA_CONTROL", proc_reg_base);
+    remove_proc_entry("MMU_GCFG_MISCCONFIG", proc_reg_base);
+    remove_proc_entry("EGR_DEVICE_TO_PHYSICAL_PORT_NUMBER_MAPPING", proc_reg_base);
+    remove_proc_entry("MMU_PORT_TO_PHY_PORT_MAPPING", proc_reg_base);
+    remove_proc_entry("MMU_PORT_TO_DEVICE_PORT_MAPPING", proc_reg_base);
+    remove_proc_entry("IDB_CA_LPBK_CONTROL", proc_reg_base);
+    remove_proc_entry("IDB_CA_CPU_CONTROL", proc_reg_base);
+    remove_proc_entry("IDB_CA_BSK_CONTROL", proc_reg_base);
     remove_proc_entry("reg", proc_switchdev_base);
 
     // /proc/switchdev/mem
+    remove_proc_entry("EGR_VLAN", proc_mem_base);
+    remove_proc_entry("VLAN_ATTRS_1", proc_mem_base);
+    remove_proc_entry("VLAN_TAB", proc_mem_base);
+    remove_proc_entry("EGR_VLAN_VFI_UNTAG", proc_mem_base);
+    remove_proc_entry("L2_USER_ENTRY", proc_mem_base);
+    remove_proc_entry("EGR_PORT", proc_mem_base);
+    remove_proc_entry("LPORT_TAB", proc_mem_base);
+    remove_proc_entry("ING_DEVICE_PORT", proc_mem_base);
+    remove_proc_entry("MAC_BLOCK", proc_mem_base);
+    remove_proc_entry("EGR_VLAN", proc_mem_base);
+    remove_proc_entry("SYS_PORTMAP", proc_mem_base);
+    remove_proc_entry("ING_PHY_TO_IDB_PORT_MAP", proc_mem_base);
+    remove_proc_entry("ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLE", proc_mem_base);
+    remove_proc_entry("EGR_VLAN_STG", proc_mem_base);
+    remove_proc_entry("STG_TAB", proc_mem_base);
+    remove_proc_entry("L2X", proc_mem_base);
     remove_proc_entry("mem", proc_switchdev_base);
 
     // /proc/switchdev/stats
     remove_proc_entry("stats", proc_switchdev_base);
+    remove_proc_entry("portstat", proc_switchdev_base);
+    remove_proc_entry("sinfo", proc_switchdev_base);
+    remove_proc_entry("l2", proc_switchdev_base);
 
     remove_proc_entry("switchdev", NULL);
     return 0;
