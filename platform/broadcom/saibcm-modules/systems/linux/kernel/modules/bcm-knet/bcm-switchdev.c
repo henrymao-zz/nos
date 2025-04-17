@@ -2141,11 +2141,11 @@ static void bcmsw_soc_info_init(soc_info_t *si)
         }
 
         if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_GXPORT) {
-           sprintf(si->ports[index].name, "ge(%d)",index);
+           sprintf(si->ports[port].name, "ge(%d)",index);
         } else if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_XLPORT) {
-           sprintf(si->ports[index].name, "xe(%d)",index);
+           sprintf(si->ports[port].name, "xe(%d)",index);
         } else if (n3248te_ports[index].port_type == BCMSW_PORT_TYPE_CLPORT) {
-           sprintf(si->ports[index].name, "ce(%d)",index);
+           sprintf(si->ports[port].name, "ce(%d)",index);
         }
     }
     si->cpu_hg_index = 72;
@@ -5448,6 +5448,9 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
      if (mask & BCM_PORT_ATTR_AUTONEG_MASK) {
         rc = bcm_esw_port_autoneg_get(bcmsw, port, &info->autoneg);
      }
+
+     port_info->speed = 1000;
+     port_info->phy_master = 1;
 # if 0 
      if (mask & BCM_PORT_ATTR_LOCAL_ADVERT_MASK) {
          r = bcm_esw_port_ability_advert_get(unit, port,
@@ -7326,6 +7329,8 @@ _portstat_show(struct seq_file *m, void *v)
             !port_info.enable ? "!ena" :
             (port_info.linkstatus == PORT_LINK_STATUS_FAILED) ? "fail" :
             (port_info.linkstatus == PORT_LINK_STATUS_UP ? "up  " : "down"));
+
+        seq_printf(m, " %2d ", info->phy_master);
 
         seq_printf(m, "%5s ", if_fmt_speed(sbuf, port_info.speed));
         seq_printf(m, "%3s ", port_info.speed == 0 ? "" : port_info.duplex ? "FD" : "HD");
