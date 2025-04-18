@@ -8361,7 +8361,7 @@ static struct proc_ops l2_user_entry_ops =
 static int
 _proc_port_counters_show(struct seq_file *m, void *v)
 {
-    int port, phy_port, index;
+    int port, phy_port, index, blk_no;
     uint32_t val;
     _proc_stats_data_t *p_data = (_proc_stats_data_t *)pde_data(file_inode(m->file));
 
@@ -8378,16 +8378,16 @@ _proc_port_counters_show(struct seq_file *m, void *v)
 
     seq_printf(m, "RX counters\n"); 
     _reg32_read(_bcmsw->dev, blk_no, GRPKTr + index, &val);
-    seq_printf(m, "    [GRPKT] Frames: %d\n", val); 
+    seq_printf(m, "    [GRPKT]                            Frames: %d\n", val); 
 
     _reg32_read(_bcmsw->dev, blk_no, GRBYTr + index, &val);
-    seq_printf(m, "    [GRBYT]  Bytes: %d\n", val); 
+    seq_printf(m, "    [GRBYT]                             Bytes: %d\n", val); 
 
     _reg32_read(_bcmsw->dev, blk_no, GRPOKr + index, &val);
-    seq_printf(m, "    [GRPOK]                      Good Frames: %d\n", val);     
+    seq_printf(m, "    [GRPOK]                       Good Frames: %d\n", val);     
 
     _reg32_read(_bcmsw->dev, blk_no, GRUCr + index, &val);
-    seq_printf(m, "    [GRUC]                     Unicast Frame: %d\n", val);     
+    seq_printf(m, "    [GRUC]                      Unicast Frame: %d\n", val);     
 
     _reg32_read(_bcmsw->dev, blk_no, GRMCAr + index, &val);
     seq_printf(m, "    [GRMCA]                   Multicast Frame: %d\n", val);     
@@ -8522,44 +8522,44 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     _reg32_read(_bcmsw->dev, blk_no, GT4095r + index, &val);
     seq_printf(m, "    [GT4095]          2048 to 4095 Byte Frame: %d\n", val);    
 
-    _reg32_read(_bcmsw->dev, blk_no, GTR9216r + index, &val);
+    _reg32_read(_bcmsw->dev, blk_no, GT9216r + index, &val);
     seq_printf(m, "    [GT9216]          4096 to 9216 Byte Frame: %d\n", val);   
 
     _reg32_read(_bcmsw->dev, blk_no, GTMGVr + index, &val);
     seq_printf(m, "    [GTMGV] 1519 to 1522 Byte Good VLAN Frame: %d\n", val);  
 
     _reg32_read(_bcmsw->dev, blk_no, GTXPFr + index, &val);
-    seq_printf(m, "    [GTXPF]             Pause Control Frame: %d\n", val);     
+    seq_printf(m, "    [GTXPF]               Pause Control Frame: %d\n", val);     
 
     _reg32_read(_bcmsw->dev, blk_no, GTJBRr + index, &val);
-    seq_printf(m, "    [GTJBR]             Jabber Frame: %d\n", val);     
+    seq_printf(m, "    [GTJBR]                      Jabber Frame: %d\n", val);     
 
     _reg32_read(_bcmsw->dev, blk_no, GTFCSr + index, &val);
-    seq_printf(m, "    [GTFCS]             FCS Error Frame: %d\n", val);     
+    seq_printf(m, "    [GTFCS]                   FCS Error Frame: %d\n", val);     
 
     _reg32_read(_bcmsw->dev, blk_no, GTPFCr + index, &val);
-    seq_printf(m, "    [GTPFC]           PFC Frame: %d\n", val);    
+    seq_printf(m, "    [GTPFC]                         PFC Frame: %d\n", val);    
 
     _reg32_read(_bcmsw->dev, blk_no, GTDFRr + index, &val);
-    seq_printf(m, "    [GTDFR]          Single Deferral Frame: %d\n", val);    
+    seq_printf(m, "    [GTDFR]             Single Deferral Frame: %d\n", val);    
 
     _reg32_read(_bcmsw->dev, blk_no, GTEDFr + index, &val);
-    seq_printf(m, "    [GTEDF]          Multiple Deferral Frame: %d\n", val);    
+    seq_printf(m, "    [GTEDF]           Multiple Deferral Frame: %d\n", val);    
 
     _reg32_read(_bcmsw->dev, blk_no, GTSCLr + index, &val);
-    seq_printf(m, "    [GTSCL]          Single Collision Frame: %d\n", val);    
+    seq_printf(m, "    [GTSCL]            Single Collision Frame: %d\n", val);    
 
     _reg32_read(_bcmsw->dev, blk_no, GTMCLr + index, &val);
     seq_printf(m, "    [GTMCL]          Multiple Collision Frame: %d\n", val);   
 
     _reg32_read(_bcmsw->dev, blk_no, GTLCLr + index, &val);
-    seq_printf(m, "    [GTLCL] Late Collision Frame: %d\n", val);  
+    seq_printf(m, "    [GTLCL]              Late Collision Frame: %d\n", val);  
 
     _reg32_read(_bcmsw->dev, blk_no, GTXCLr + index, &val);
-    seq_printf(m, "    [GTXCL] Excessive Collision Frame: %d\n", val);  
+    seq_printf(m, "    [GTXCL]         Excessive Collision Frame: %d\n", val);  
 
     _reg32_read(_bcmsw->dev, blk_no, GTNCLr + index, &val);
-    seq_printf(m, "    [GTNCL] Total Collision Frame: %d\n", val);  
+    seq_printf(m, "    [GTNCL]             Total Collision Frame: %d\n", val);  
    
 
     seq_printf(m, "\n");
@@ -8617,6 +8617,12 @@ static int _procfs_stats_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }    
+
+
+    return 0;
+
+create_fail:
+    return -1;
 }
 
 
@@ -8933,8 +8939,6 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
     if (rv) {
         goto create_fail;
     }
-
-    proc_stats_base = proc_mkdir("switchdev/stats", NULL);
 
     return 0;
 
