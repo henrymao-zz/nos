@@ -4768,8 +4768,61 @@ _bcm_esw_portctrl_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
     return 0;
 }
 
+
+STATIC
+int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
+{
+    int  phy_port, index, blk_no;
+    uint32_t val;
+
+    phy_port = _bcmsw->si->port_l2p_mapping[port];
+
+    blk_no = gxblk[(phy_port-1)/8];
+    index = (phy_port -1)%8;
+
+    /* Initialize mask for purging packet data received from the MAC */
+    val = 0x78;
+    _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, val);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_STAT_UPDATE_MASKr+index, val);
+
+    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);
+     // CLR_CNTf start 1, len 1
+    val |= (1<<1));
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    /* Reset the clear-count bit after 64 clocks */
+    val &= ~(1<<1);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    //GPORT_ENf start 0, len 1
+    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);    
+    val |= 1;
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    _reg32_read(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, &val); 
+    //EP_TO_GP_CRC_MODES_SELf start 5, len 1
+    val &= ~(1<<5);
+    //EP_TO_GP_CRC_FWDf start 4, len 1
+    val &= ~(1<<4);
+    //EP_TO_GP_CRC_OWRTf start 3, len 1
+    val &= ~(1<<3);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, &val); 
+
+exit:
+    SOC_FUNC_RETURN;
+}
+
 static int 
-bcmi_esw_portctrl_probe(void)
+_pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
+{
+    _pm4x10_qtc_pmq_gport_init(bcmsw, port);
+
+    return 0;
+}
+
+//bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_CORE_PROBE)
+static int 
+bcmi_esw_portctrl_probe(bcmsw_switch_t *bcmsw, int port)
 {
 
     /* Add port to PM */
@@ -4778,18 +4831,28 @@ bcmi_esw_portctrl_probe(void)
 //PORTMOD_PBMP_PORT_ADD(p_pbmp, physical_port+lane);
 //rv = soc_esw_portctrl_setup_ext_phy_add(unit, port, &p_pbmp);
 
-//rv = soc_esw_portctrl_add(unit, port, init_flag, add_info);
+//rv = soc_esw_portctrl_add(unit, port, init_flag, add_info); -> portmod_port_add -> _pm4x10_qtc_port_attach
+   //_pm4x10_qtc_port_attach -> _pm4x10_qtc_port_attach_core_probe
+
+   _pm4x10_qtc_port_attach_core_probe(bcmsw, port);
+
    return 0;
 }
 
+//bcm_esw_port_probe->bcmi_esw_portctrl_probe_pbmp
 static int
 bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
 {
+    int index;
 
-    /*step1: probe Serdes and external PHY core*/
-    //bcmi_esw_portctrl_probe
+
+    //start with Front Panel ports
+    for (index = 1; index <=48; index++) {
+        /*step1: probe Serdes and external PHY core*/
+        bcmi_esw_portctrl_probe_init(bcmsw, port);
 
     /*step2 : initialize PASS1 for SerDes and external PHY*/
+    //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS1
 
     /* step3:broadcast firmware download for all external phys inculde legacy and Phymod PHYs*/
 
@@ -4797,6 +4860,8 @@ bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
 
 
     //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
+
+    }
     return 0;
 }
 
@@ -7676,7 +7741,7 @@ static struct proc_ops l2_ops =
 static int
 _proc_reg32_show(struct seq_file *m, void *v)
 {
-    int index;
+    int index, i;
     uint32_t val;
     _proc_reg_data_t *p_data = (_proc_reg_data_t *)pde_data(file_inode(m->file));
 
@@ -7688,12 +7753,6 @@ _proc_reg32_show(struct seq_file *m, void *v)
     seq_printf(m, "base 0x%x\n", p_data->reg_addr);
 
     switch (p_data->reg_addr) {
-        case COMMAND_CONFIGr:
-            for (index =0; index < 6; index ++) {
-               _reg32_read(_bcmsw->dev, gxblk[index], COMMAND_CONFIGr+index, &val);
-               seq_printf(m, "%2d [%2d]  0x%08x\n", index, gxblk[index], val);
-            }   
-            break;
         case IDB_OBM0_Q_CONTROLr:
             for (index =0; index < 10; index ++) { 
                 _reg32_read(_bcmsw->dev,SCHAN_BLK_IPIPE, obm_ctrl_regs[index], &val);
@@ -7748,9 +7807,22 @@ _proc_reg32_show(struct seq_file *m, void *v)
                        &val);
             seq_printf(m, "0x%08x\n", val);
             break;
-                    
-       default:
-       seq_printf(m," Not implemented\n");
+        
+        case GPORT_MODE_REGr:
+        case GPORT_CONFIGr:
+        case GPORT_RSV_MASKr:
+        case GPORT_STAT_UPDATE_MASKr:
+        case COMMAND_CONFIGr:
+            for (index =0; index < 6; index ++) {
+                for (i=0; i<8; i++) {
+                    _reg32_read(_bcmsw->dev, gxblk[index], p_data->reg_addr+i, &val);
+                    seq_printf(m, "[%2d] 0x%08x  0x%08x\n", gxblk[index], p_data->reg_addr+i, val);
+                }
+            }   
+
+        default:
+            seq_printf(m," Not implemented\n");
+            break;
     } 
     return 0;
 }
@@ -8707,6 +8779,46 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
+    // /proc/switchdev/reg/GPORT_MODE_REG
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = GPORT_MODE_REGr;
+    entry = proc_create_data("GPORT_MODE_REG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/reg/GPORT_RSV_MASK
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = GPORT_RSV_MASKr;
+    entry = proc_create_data("GPORT_RSV_MASK", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/reg/GPORT_CONFIG
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = GPORT_CONFIGr;
+    entry = proc_create_data("GPORT_CONFIG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/reg/GPORT_STAT_UPDATE_MASK
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = GPORT_STAT_UPDATE_MASKr;
+    entry = proc_create_data("GPORT_STAT_UPDATE_MASK", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+
     // /proc/switchdev/reg/IDB_OBM_CONTROL
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
@@ -9014,6 +9126,10 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
     // /proc/switchdev/reg
     remove_proc_entry("COMMAND_CONFIG", proc_reg_base);
+    remove_proc_entry("GPORT_MODE_REG", proc_reg_base);
+    remove_proc_entry("GPORT_CONFIG", proc_reg_base);
+    remove_proc_entry("GPORT_RSV_MASK", proc_reg_base);
+    remove_proc_entry("GPORT_STAT_UPDATE_MASK", proc_reg_base);
     remove_proc_entry("IDB_OBM_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_OBM_CA_CONTROL", proc_reg_base);
     remove_proc_entry("MMU_GCFG_MISCCONFIG", proc_reg_base);
@@ -9180,7 +9296,7 @@ static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
     //bcm_esw_tx_init
 
     bcm_esw_stat_init(bcmsw);
-    
+
 err_ports_create:
     return err;
 }

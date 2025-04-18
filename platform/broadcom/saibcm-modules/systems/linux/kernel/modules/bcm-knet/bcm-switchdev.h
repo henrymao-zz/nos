@@ -1140,6 +1140,57 @@ soc_field_info_t soc_EGR_ENABLE_BCM53400_A0m_fields[] = {
 #define EGR_PER_PORT_BUFFER_SFT_RESETm  0x28300000
 
 /*****************************************************************************************/
+/*                           GPORT   BCM56370                                            */
+/*****************************************************************************************/
+
+
+//Register: GPORT_MODE_REG.gxport0 general register address 0x02020100
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GPORT Mode register
+//Displaying: reset defaults, reset value 1 mask 0x3b
+/*
+soc_field_info_t soc_GPORT_MODE_REG_BCM53400_A0r_fields[] = {
+    { EGR_1588_TIMESTAMPING_MODEf, 1, 0, 0 },
+    { EP_TO_GP_CRC_FWDf, 1, 4, 0 },
+    { EP_TO_GP_CRC_MODES_SELf, 1, 5, 0 },
+    { EP_TO_GP_CRC_OWRTf, 1, 3, 0 },
+    { OSTS_TIMER_DISABLEf, 1, 1, 0 },
+    { TS_TIMER_OVERRIDEf, 1, 2, SOCF_SC|SOCF_RES }
+};
+ */
+#define GPORT_MODE_REGr                  0x02020100
+
+
+//Register: GPORT_CONFIG.gxport0 general register address 0x02020000
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GPORT configuration Register
+//Displaying: reset defaults, reset value 0 mask 1
+/*
+soc_field_info_t soc_GPORT_CONFIG_BCM53400_A0r_fields[] = {
+    { CLR_CNTf, 1, 1, SOCF_RES },
+    { GPORT_ENf, 1, 0, 0 }
+};
+ */
+#define GPORT_CONFIGr                     0x02020000
+
+//Register: GPORT_RSV_MASK.gxport0 general register address 0x02020600
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GPORT RSV MASK register, used to purge packet data received from the MACs
+//Displaying: reset defaults, reset value 0x70 mask 0x3ffff
+#define GPORT_RSV_MASKr                   0x02020600
+
+
+//Register: GPORT_STAT_UPDATE_MASK.gxport0 general register address 0x02020700
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GPORT STAT_UPDATE MASK register, used to control the statistic counter update in the Ingress
+//Displaying: reset defaults, reset value 0x70 mask 0x3ffff
+#define GPORT_STAT_UPDATE_MASKr           0x02020700
+
+/*****************************************************************************************/
 /*                           Registers (IPROC)  BCM56370                                 */
 /*****************************************************************************************/
 // MIIM_CH0_ADDRESS          0x10019008
@@ -1737,7 +1788,11 @@ typedef enum _mac_mode_e {
     SOC_MAC_MODE_100000                 /* 100G MAC selected */
 } mac_mode_t;
 
-
+//Register: COMMAND_CONFIG.ge0 port register address 0x00010200
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Command register. Used by the host processor to control and configure the core
+//Displaying: reset defaults, reset value 0x10000d8 mask 0x7fa7dfff
 #define  COMMAND_CONFIGr                0x10200  // 0x10200 - 0x10207
 
 /*
@@ -1844,7 +1899,7 @@ typedef union command_config_s {
 
 
 
-#define  GPORT_RSV_MASKr                0x2020600
+
 
 #define  CLMAC_RX_CTRLr                 0x60600
 #define  XLPORT_ENABLE_REG              0x2020b00
