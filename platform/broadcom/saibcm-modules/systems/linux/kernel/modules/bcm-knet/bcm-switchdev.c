@@ -8357,7 +8357,268 @@ static struct proc_ops l2_user_entry_ops =
     proc_release:    single_release,
 };
 
+// /proc/switchdev/stats/ge*
+static int
+_proc_port_counters_show(struct seq_file *m, void *v)
+{
+    int port, phy_port, index;
+    uint32_t val;
+    _proc_stats_data_t *p_data = (_proc_stats_data_t *)pde_data(file_inode(m->file));
+
+    if (!_bcmsw) {
+        seq_printf(m," Not initialized\n");
+        return 0;
+    }
+  
+    port = p_data->port; //logical port number
+    phy_port = _bcmsw->si->port_l2p_mapping[port];
+
+    blk_no = gxblk[(phy_port-1)/8];
+    index = (phy_port -1)%8;
+
+    seq_printf(m, "RX counters\n"); 
+    _reg32_read(_bcmsw->dev, blk_no, GRPKTr + index, &val);
+    seq_printf(m, "    [GRPKT] Frames: %d\n", val); 
+
+    _reg32_read(_bcmsw->dev, blk_no, GRBYTr + index, &val);
+    seq_printf(m, "    [GRBYT]  Bytes: %d\n", val); 
+
+    _reg32_read(_bcmsw->dev, blk_no, GRPOKr + index, &val);
+    seq_printf(m, "    [GRPOK]                      Good Frames: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GRUCr + index, &val);
+    seq_printf(m, "    [GRUC]                     Unicast Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GRMCAr + index, &val);
+    seq_printf(m, "    [GRMCA]                   Multicast Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GRBCAr + index, &val);
+    seq_printf(m, "    [GRBCA]                   Broadcast Frame: %d\n", val);    
+    
+    _reg32_read(_bcmsw->dev, blk_no, GRFRGr + index, &val);
+    seq_printf(m, "    [GRFRG]                    Fragment Frame: %d\n", val);      
+
+    _reg32_read(_bcmsw->dev, blk_no, GRUNDr + index, &val);
+    seq_printf(m, "    [GRUND]                   Undersize Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GRRPKTr + index, &val);
+    seq_printf(m, "    [GRRPKT]                       RUNT Frame: %d\n", val);        
+
+    _reg32_read(_bcmsw->dev, blk_no, GRRBYTr + index, &val);
+    seq_printf(m, "    [GRRBYT]                        RUNT Byte: %d\n", val);        
+
+    _reg32_read(_bcmsw->dev, blk_no, GR64r + index, &val);
+    seq_printf(m, "    [GR64]                      64 Byte Frame: %d\n", val);       
+
+    _reg32_read(_bcmsw->dev, blk_no, GR127r + index, &val);
+    seq_printf(m, "    [GR127]              65 to 127 Byte Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GR255r + index, &val);
+    seq_printf(m, "    [GR255]             128 to 255 Byte Frame: %d\n", val);     
+    
+    _reg32_read(_bcmsw->dev, blk_no, GR511r + index, &val);
+    seq_printf(m, "    [GR511]             256 to 511 Byte Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GR1023r + index, &val);
+    seq_printf(m, "    [GR1023]           512 to 1023 Byte Frame: %d\n", val);    
+    
+    _reg32_read(_bcmsw->dev, blk_no, GR1518r + index, &val);
+    seq_printf(m, "    [GR1518]          1024 to 1518 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GR2047r + index, &val);
+    seq_printf(m, "    [GR2047]          1519 to 2047 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GR4095r + index, &val);
+    seq_printf(m, "    [GR4095]          2048 to 4095 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GR9216r + index, &val);
+    seq_printf(m, "    [GR9216]          4096 to 9216 Byte Frame: %d\n", val);   
+
+    _reg32_read(_bcmsw->dev, blk_no, GRMGVr + index, &val);
+    seq_printf(m, "    [GRMGV] 1519 to 1522 Byte Good VLAN Frame: %d\n", val);  
+
+    _reg32_read(_bcmsw->dev, blk_no, GRFCSr + index, &val);
+    seq_printf(m, "    [GRFCS]                   FCS Error Frame: %d\n", val); 
+
+    _reg32_read(_bcmsw->dev, blk_no, GRXCFr + index, &val);
+    seq_printf(m, "    [GRXCF]                     Control Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRXPFr + index, &val);
+    seq_printf(m, "    [GRXPF]                       Pause Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRPFCr + index, &val);
+    seq_printf(m, "    [GRPFC]                         PFC Frame: %d\n", val);  
+
+    _reg32_read(_bcmsw->dev, blk_no, GRXUOr + index, &val);
+    seq_printf(m, "    [GRXUO]          Unsupported Opcode Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRALNr + index, &val);
+    seq_printf(m, "    [GRALN]             Alignment Error Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRCDEr + index, &val);
+    seq_printf(m, "    [GRCDE]                  Code Error Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRFCRr + index, &val);
+    seq_printf(m, "    [GRFCR]               False Carrier Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GROVRr + index, &val);
+    seq_printf(m, "    [GROVR]                   Oversized Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRJBRr + index, &val);
+    seq_printf(m, "    [GRJBR]                      Jabber Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GRMTUEr + index, &val);
+    seq_printf(m, "    [GRMTUE]            MTU Check Error Frame: %d\n", val);    
+
+    seq_printf(m, "\nTX counters\n"); 
+    _reg32_read(_bcmsw->dev, blk_no, GTPKTr + index, &val);
+    seq_printf(m, "    [GTPKT] Frames: %d\n", val); 
+
+    _reg32_read(_bcmsw->dev, blk_no, GTBYTr + index, &val);
+    seq_printf(m, "    [GTBYT]  Bytes: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTPOKr + index, &val);
+    seq_printf(m, "    [GTPOK]                      Good Frames: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTUCr + index, &val);
+    seq_printf(m, "    [GTUC]                      Unicast Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTMCAr + index, &val);
+    seq_printf(m, "    [GTMCA]                   Multicast Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTBCAr + index, &val);
+    seq_printf(m, "    [GTBCA]                   Broadcast Frame: %d\n", val);    
+    
+    _reg32_read(_bcmsw->dev, blk_no, GTFRGr + index, &val);
+    seq_printf(m, "    [GTFRG]                    Fragment Frame: %d\n", val);      
+
+    _reg32_read(_bcmsw->dev, blk_no, GTOVRr + index, &val);
+    seq_printf(m, "    [GTOVR]                    Oversize Frame: %d\n", val);        
+
+    _reg32_read(_bcmsw->dev, blk_no, GRRBYTr + index, &val);
+    seq_printf(m, "    [GRRBYT]                        RUNT Byte: %d\n", val);        
+
+    _reg32_read(_bcmsw->dev, blk_no, GT64r + index, &val);
+    seq_printf(m, "    [GT64]                      64 Byte Frame: %d\n", val);       
+
+    _reg32_read(_bcmsw->dev, blk_no, GT127r + index, &val);
+    seq_printf(m, "    [GT127]              65 to 127 Byte Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GT255r + index, &val);
+    seq_printf(m, "    [GT255]             128 to 255 Byte Frame: %d\n", val);     
+    
+    _reg32_read(_bcmsw->dev, blk_no, GT511r + index, &val);
+    seq_printf(m, "    [GT511]             256 to 511 Byte Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GT1023r + index, &val);
+    seq_printf(m, "    [GT1023]           512 to 1023 Byte Frame: %d\n", val);    
+    
+    _reg32_read(_bcmsw->dev, blk_no, GT1518r + index, &val);
+    seq_printf(m, "    [GT1518]          1024 to 1518 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GT2047r + index, &val);
+    seq_printf(m, "    [GT2047]          1519 to 2047 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GT4095r + index, &val);
+    seq_printf(m, "    [GT4095]          2048 to 4095 Byte Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GTR9216r + index, &val);
+    seq_printf(m, "    [GT9216]          4096 to 9216 Byte Frame: %d\n", val);   
+
+    _reg32_read(_bcmsw->dev, blk_no, GTMGVr + index, &val);
+    seq_printf(m, "    [GTMGV] 1519 to 1522 Byte Good VLAN Frame: %d\n", val);  
+
+    _reg32_read(_bcmsw->dev, blk_no, GTXPFr + index, &val);
+    seq_printf(m, "    [GTXPF]             Pause Control Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTJBRr + index, &val);
+    seq_printf(m, "    [GTJBR]             Jabber Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTFCSr + index, &val);
+    seq_printf(m, "    [GTFCS]             FCS Error Frame: %d\n", val);     
+
+    _reg32_read(_bcmsw->dev, blk_no, GTPFCr + index, &val);
+    seq_printf(m, "    [GTPFC]           PFC Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GTDFRr + index, &val);
+    seq_printf(m, "    [GTDFR]          Single Deferral Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GTEDFr + index, &val);
+    seq_printf(m, "    [GTEDF]          Multiple Deferral Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GTSCLr + index, &val);
+    seq_printf(m, "    [GTSCL]          Single Collision Frame: %d\n", val);    
+
+    _reg32_read(_bcmsw->dev, blk_no, GTMCLr + index, &val);
+    seq_printf(m, "    [GTMCL]          Multiple Collision Frame: %d\n", val);   
+
+    _reg32_read(_bcmsw->dev, blk_no, GTLCLr + index, &val);
+    seq_printf(m, "    [GTLCL] Late Collision Frame: %d\n", val);  
+
+    _reg32_read(_bcmsw->dev, blk_no, GTXCLr + index, &val);
+    seq_printf(m, "    [GTXCL] Excessive Collision Frame: %d\n", val);  
+
+    _reg32_read(_bcmsw->dev, blk_no, GTNCLr + index, &val);
+    seq_printf(m, "    [GTNCL] Total Collision Frame: %d\n", val);  
+   
+
+    seq_printf(m, "\n");
+    return 0;
+}
+
+static int _proc_port_counters_open(struct inode * inode, struct file * file)
+{
+    return single_open(file, _proc_port_counters_show, NULL);
+}
+
+
+static struct proc_ops _proc_port_counters_ops = 
+{
+    proc_open:       _proc_port_counters_open,
+    proc_read:       seq_read,
+    proc_lseek:      seq_lseek,
+    proc_release:    single_release,
+};
+
 /*****************************************************************************************/
+static int _procfs_stats_init(bcmsw_switch_t *bcmsw)
+{
+    struct proc_dir_entry *entry;
+    _proc_stats_data_t *p_data;
+
+    // /proc/switchdev/stats
+    proc_stats_base = proc_mkdir("switchdev/stats", NULL);
+
+    // /proc/switchdev/stats/ge0
+    p_data = kmalloc(sizeof(_proc_stats_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_stats_data_t));
+    p_data->port = 1;
+    entry = proc_create_data("ge0", 0666, proc_stats_base, &_proc_port_counters_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/stats/ge1
+    p_data = kmalloc(sizeof(_proc_stats_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_stats_data_t));
+    p_data->port = 2;
+    entry = proc_create_data("ge1", 0666, proc_stats_base, &_proc_port_counters_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    // /proc/switchdev/stats/ge2
+    p_data = kmalloc(sizeof(_proc_stats_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_stats_data_t));
+    p_data->port = 2;
+    entry = proc_create_data("ge2", 0666, proc_stats_base, &_proc_port_counters_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }    
+}
+
 
 static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
 {
@@ -8668,6 +8929,11 @@ static int _procfs_init(bcmsw_switch_t *bcmsw)
     }
 
     // /proc/switchdev/stats
+    rv = _procfs_stats_init(bcmsw);
+    if (rv) {
+        goto create_fail;
+    }
+
     proc_stats_base = proc_mkdir("switchdev/stats", NULL);
 
     return 0;
@@ -8711,7 +8977,12 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("mem", proc_switchdev_base);
 
     // /proc/switchdev/stats
+    remove_proc_entry("ge0", proc_stats_base);
+    remove_proc_entry("ge1", proc_stats_base);
+    remove_proc_entry("ge2", proc_stats_base);
     remove_proc_entry("stats", proc_switchdev_base);
+
+
     remove_proc_entry("portstat", proc_switchdev_base);
     remove_proc_entry("sinfo", proc_switchdev_base);
     remove_proc_entry("l2", proc_switchdev_base);
