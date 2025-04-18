@@ -4532,6 +4532,8 @@ phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
     int          dev_port;
 
     p_port = &si->ports[port];
+    phy_id = p_port->dev_desc.phy_id_base;
+    dev_port = p_port->dev_desc.phy_slice;
 
     if ( reset ) {
         phy_bcm542xx_reset_setup(bcmsw, port, automedium,
@@ -4566,13 +4568,14 @@ phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
     /* Disable LPI feature */
     //SOC_IF_ERROR_RETURN(
     //        PHY_MODIFY_BCM542XX_EEE_803Dr(unit, pc, 0x0000, 0xC000) );
+    //phy_bcm542xx_reg_modify(phy_id, 0x0faf,0x15, 0x0000, 0xC000);
     /* Reset counters and other settings */
     //SOC_IF_ERROR_RETURN(
     //        PHY_MODIFY_BCM542XX_EEE_STAT_CTRLr(unit, pc, 0x0000, 0x3fff) );
+    phy_bcm542xx_reg_modify(phy_id, 0x0faf,0x15, 0x0000, 0x3fff);
 
     /* AutogrEEEn */
-    phy_id = p_port->dev_desc.phy_id_base;
-    dev_port = p_port->dev_desc.phy_slice;
+
     /* Disable AutogrEEEn and reset other settings */
     phy_bcm542xx_rdb_reg_write(phy_id,
                             PHY_BCM542XX_TOP_MISC_MII_BUFF_CNTL_PHYN(dev_port),
@@ -9056,8 +9059,103 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 }
 
 /*****************************************************************************************/
+/*                            stats/counter                                              */
+/*****************************************************************************************/
+static int
+soc_counter_set32_by_port(bcmsw_switch_t *bcmsw, int port)
+{
+    uint32_t val = 0;
+    int index, blk_no, phy_port;
+  
+    phy_port = _bcmsw->si->port_l2p_mapping[port];
+
+    blk_no = gxblk[(phy_port-1)/8];
+    index = (phy_port -1)%8;
+
+    _reg32_write(bcmsw->dev, blk_no, GRPKTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRBYTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRPOKr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRUCr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRMCAr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRBCAr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRFRGr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRUNDr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRRPKTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRRBYTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR64r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR127r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR255r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR511r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR1023r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR1518r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR2047r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR4095r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GR9216r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRMGVr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRFCSr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRXCFr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRXPFr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRPFCr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRXUOr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRALNr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRCDEr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRFCRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GROVRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRJBRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRMTUEr + index, val);
+
+    _reg32_write(bcmsw->dev, blk_no, GTPKTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTBYTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTPOKr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTUCr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTMCAr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTBCAr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTFRGr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTOVRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GRRBYTr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT64r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT127r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT255r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT511r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT1023r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT1518r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT2047r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT4095r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GT9216r + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTMGVr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTXPFr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTJBRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTFCSr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTPFCr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTDFRr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTEDFr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTSCLr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTMCLr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTLCLr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTXCLr + index, val);
+    _reg32_write(bcmsw->dev, blk_no, GTNCLr + index, val);
+
+    return 0;
+}
+
+int
+bcm_esw_stat_init(bcmsw_switch_t *bcmsw)
+{
+    int index;
+    //soc_counter_set32_by_port
+
+    for (index = 1; index <=48; index++){
+        soc_counter_set32_by_port(bcmsw, index);
+    }
+    return 0;
+}
+
+
+/*****************************************************************************************/
 /*                            switch                                                     */
 /*****************************************************************************************/
+
+
 
 static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
 {
@@ -9081,7 +9179,8 @@ static int bcmsw_modules_init(bcmsw_switch_t *bcmsw)
     //bcm_esw_rx_init
     //bcm_esw_tx_init
 
-
+    bcm_esw_stat_init(bcmsw);
+    
 err_ports_create:
     return err;
 }
