@@ -4923,7 +4923,7 @@ pm4x10_qtc_default_bus_read(bcmsw_switch_t *bcmsw, int port, uint32_t reg_addr, 
         core_addr = 0x89;
     }
 
-    return portmod_common_phy_sbus_reg_read(bcmsw, blk_id, core_addr, reg_addr, val);
+    return portmod_common_phy_sbus_reg_read(bcmsw, blk_no, core_addr, reg_addr, val);
 }
 
 
@@ -4938,7 +4938,7 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
     //uint32_t wr_mask, rdata;
     //phymod_bus_t* bus;
     //uint32_t is_write_disabled;
-    //uint8_t pll_index = 0;
+    uint8_t pll_index = 0;
 
     add = addr ;
 
@@ -4953,8 +4953,8 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
 
     //ioerr += PHYMOD_BUS_WRITE(pa, addr | (aer << 16), data);
     ioerr += pm4x10_qtc_default_bus_write(bcmsw, port, addr, data);
-    printk("iblk_wr sbus add=0x%x aer=0x%x adr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
-            pa->addr, aer, addr, pa->lane_mask, ioerr, data));
+    printk("iblk_wr sbus port = %d aer=0x%x addr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
+            port, aer, addr, lane, ioerr, data);
     return ioerr;
 
 }
@@ -4964,13 +4964,13 @@ int
 phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t data)
 {
     int ioerr = 0;
-    uint32_t lane_map, hwlane, is_hwsupport = 1;
+    uint32_t hwlane, is_hwsupport = 1;
 
     //hwlane = 0;
     if (addr & PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE) {
         /* Forcing lane overrides default behavior */
         hwlane = (addr >> PHYMOD_REG_ACCESS_FLAGS_SHIFT) & 0x7;
-        return _tsc_iblk_write_lane(pa, port, hwlane, addr, data);
+        return _tsc_iblk_write_lane(bcmsw, port, hwlane, addr, data);
     }
     switch (lane_map) {
         case 0x0:
@@ -5173,7 +5173,7 @@ static
 int _pm4x10_qtc_pm_serdes_core_init(bcmsw_switch_t *bcmsw, int port)
 {
     //phymod_core_init -> qtce16_core_init
-    if (port == 1 | port == 17 || port == 33) {
+    if ((port %16) == 1) {
          qtce16_core_init(bcmsw, port);
     }
     

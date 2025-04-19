@@ -1155,12 +1155,13 @@ typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
 //Entry mask: -1 -1 -1 -1
 //Description: PSC to PMD External Memory Interface to program micro-controller memory
 //  UC_DATA<127:0>
-#define   PMQPORT_WC_UCMEM_DATA         0x0000f000
+#define   PMQPORT_WC_UCMEM_DATAm        0x0000f000
 
 
 
-
-#define PHYMOD_REG_ACC_TSC_IBLK                 (7<<28)
+#define PHYMOD_REG_ACCESS_FLAGS_SHIFT      24
+#define PHYMOD_REG_ACC_TSC_IBLK            (7<<28)
+#define PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE (8<<24)
 
 /*******************************************************************************
  * CHIP:  BCMI_QTC_XGXS
