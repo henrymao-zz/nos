@@ -8559,6 +8559,25 @@ _proc_mem_show(struct seq_file *m, void *v)
                     entry[3]);
             }   
             break;           
+
+        case PMQPORT_WC_UCMEM_DATAm:
+            memset(entry, 0, 16);
+            _soc_mem_read(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, 
+                          SCHAN_BLK_PMQPORT0, 4, 
+                          entry);   
+            seq_printf(m, "[PMQPORT0]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);
+            memset(entry, 0, 16);
+            _soc_mem_read(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, 
+                          SCHAN_BLK_PMQPORT1, 4, 
+                          entry);   
+            seq_printf(m, "[PMQPORT1]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);
+            memset(entry, 0, 16);
+            _soc_mem_read(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, 
+                          SCHAN_BLK_PMQPORT2, 4, 
+                          entry);   
+            seq_printf(m, "[PMQPORT2]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);        
+            break;
+
         default:
             seq_printf(m," Not implemented\n");
             break;
@@ -9581,6 +9600,16 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }        
     
+    // /proc/switchdev/mem/PMQPORT_WC_UCMEM_DATA
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = PMQPORT_WC_UCMEM_DATAm;
+    entry = proc_create_data("PMQPORT_WC_UCMEM_DATA", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }        
+
     return 0;
 
 create_fail:
@@ -9663,6 +9692,7 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("IDB_CA_LPBK_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_CA_CPU_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_CA_BSK_CONTROL", proc_reg_base);
+    
     remove_proc_entry("reg", proc_switchdev_base);
 
     // /proc/switchdev/mem
@@ -9681,6 +9711,8 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("EGR_VLAN_STG", proc_mem_base);
     remove_proc_entry("STG_TAB", proc_mem_base);
     remove_proc_entry("L2X", proc_mem_base);
+    remove_proc_entry("PMQPORT_WC_UCMEM_DATA", proc_mem_base);
+    
     remove_proc_entry("mem", proc_switchdev_base);
 
     // /proc/switchdev/stats
