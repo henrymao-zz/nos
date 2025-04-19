@@ -4811,6 +4811,375 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
     return 0;
 }
 
+
+/** 
+ *  @brief generic function for register write for PM4X25,
+ *         PM4X10, PM 12X10
+ * */
+int
+portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id, 
+                                  uint32_t core_addr, uint32_t reg_addr, uint32_t val)
+{
+    int rv= SOC_E_NONE;
+    soc_reg_above_64_val_t mem_data;
+    uint32 data, data_mask;
+
+    memset(&mem_data, 0, sizeof(soc_reg_above_64_val_t));
+
+    /* If write mask (upper 16 bits) is empty, add full mask */
+    if ((val & 0xffff0000) == 0) {
+        val |= 0xffff0000;
+    }
+
+    /* assigning TSC register address to ucmem_data[31:0]  and write the 
+     * data/datamask to to ucmem_data[63:32] */
+    mem_data[0] = (reg_addr & 0xffffffff) | ((core_addr & 0x1f) << 19);
+    /* data: ucmem_data[48:63]
+       datamask: ucmem_data[32:47]
+    */
+    data = (val & 0xffff) << 16;
+    data_mask = (~val & 0xffff0000) >> 16;
+    mem_data[1] = data | data_mask;
+    mem_data[2] = 1; /* for TSC register write */
+
+    _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+
+    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+          core_addr, reg_addr, val , data_mask, blk_id, rv);
+
+    return rv;
+}
+int
+portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t core_addr, uint32_t reg_addr, uint32_t *val)
+{
+    int rv = SOC_E_NONE, reg_val_offset;
+    soc_reg_above_64_val_t mem_data;
+
+    memset(&mem_data, 0, sizeof(soc_reg_above_64_val_t));
+    
+    /* assigning TSC register address to ucmem_data[31:0] */
+    mem_data[0] = (reg_addr & 0xffffffff) | ((core_addr & 0x1f) << 19);
+    mem_data[2] = 0; /* for TSC register READ */
+
+    rv = _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+   
+    /* read data back from ucmem_data[47:32] */
+    if (!rv) {
+        rv = _soc_mem_read(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+    }
+
+    //if (PORTMOD_USER_ACCESS_REG_VAL_OFFSET_ZERO_GET(user_data)) {
+    //    reg_val_offset = 0;
+    //} else {
+    reg_val_offset = 1; /* default behaviour */
+    //}
+
+    *val = mem_data[reg_val_offset];
+
+    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+            core_addr, reg_addr, *val, blk_id, rv);
+
+    return rv;
+}
+
+static int
+pm4x10_qtc_default_bus_write(bcmsw_switch_t *bcmsw, int port, uint32_t reg_addr, uint32_t val)
+{
+    int blk_no, phy_port;
+    uint32_t core_addr;
+
+    phy_port = bcmsw->si->port_l2p_mapping[port];
+
+    if (phy_port <= 16) {
+        blk_no = SCHAN_BLK_PMQPORT0;
+        core_addr = 0x81;
+    } else if (phy_port <= 32) {
+        blk_no = SCHAN_BLK_PMQPORT1; 
+        core_addr = 0x85;
+    } else {
+        blk_no = SCHAN_BLK_PMQPORT2;
+        core_addr = 0x89;
+    }
+
+    return portmod_common_phy_sbus_reg_write(bcmsw, blk_no, core_addr, reg_addr, val);
+}
+
+static int
+pm4x10_qtc_default_bus_read(bcmsw_switch_t *bcmsw, int port, uint32_t reg_addr, uint32_t *val)
+{
+    int blk_no, phy_port;
+    uint32_t core_addr;
+
+    phy_port = bcmsw->si->port_l2p_mapping[port];
+
+    if (phy_port <= 16) {
+        blk_no = SCHAN_BLK_PMQPORT0;
+        core_addr = 0x81;
+    } else if (phy_port <= 32) {
+        blk_no = SCHAN_BLK_PMQPORT1; 
+        core_addr = 0x85;
+    } else {
+        blk_no = SCHAN_BLK_PMQPORT2;
+        core_addr = 0x89;
+    }
+
+    return portmod_common_phy_sbus_reg_read(bcmsw, blk_id, core_addr, reg_addr, val);
+}
+
+
+
+static int
+_tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t addr, uint32_t data)
+{
+    int ioerr = 0;
+    uint32_t devad = (addr >> 16) & 0xf;
+    uint32_t blkaddr, regaddr;
+    uint32_t aer, add;
+    //uint32_t wr_mask, rdata;
+    //phymod_bus_t* bus;
+    //uint32_t is_write_disabled;
+    //uint8_t pll_index = 0;
+
+    add = addr ;
+
+    //bus = PHYMOD_ACC_BUS(pa);
+    //pll_index = PHYMOD_ACC_PLLIDX(pa) & 0x3;
+
+    /* Encode address extension */
+    aer = lane | (devad << 11) | (pll_index << 8);
+
+    /* Mask raw register value */
+    addr &= 0xffff;
+
+    //ioerr += PHYMOD_BUS_WRITE(pa, addr | (aer << 16), data);
+    ioerr += pm4x10_qtc_default_bus_write(bcmsw, port, addr, data);
+    printk("iblk_wr sbus add=0x%x aer=0x%x adr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
+            pa->addr, aer, addr, pa->lane_mask, ioerr, data));
+    return ioerr;
+
+}
+
+
+int
+phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t data)
+{
+    int ioerr = 0;
+    uint32_t lane_map, hwlane, is_hwsupport = 1;
+
+    //hwlane = 0;
+    if (addr & PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE) {
+        /* Forcing lane overrides default behavior */
+        hwlane = (addr >> PHYMOD_REG_ACCESS_FLAGS_SHIFT) & 0x7;
+        return _tsc_iblk_write_lane(pa, port, hwlane, addr, data);
+    }
+    switch (lane_map) {
+        case 0x0:
+            hwlane = 0x0;
+            break;
+        case 0x1:
+            hwlane = 0x0;
+            break;
+        case 0x2:
+            hwlane = 0x1;
+            break;
+        case 0x4:
+            hwlane = 0x2;
+            break;
+        case 0x8:
+            hwlane = 0x3;
+            break;
+        case 0xf:
+            hwlane = PHYMOD_TSC_IBLK_BCAST;
+            break;
+        case 0x3:
+            hwlane = PHYMOD_TSC_IBLK_MCAST01;
+            break;
+        case 0xc:
+            hwlane = PHYMOD_TSC_IBLK_MCAST23;
+            break;
+        default:
+            //should not come  here
+            is_hwsupport = 0;
+            hwlane = 0x0;
+            break;
+    }
+    //is_hwsupport = 1
+
+     /*
+     * If the lane mask is supported by HW, i.e. a single lane or a
+     * supported multicast combination (0x3, 0xC or 0xF), then program
+     * directly by HW.
+     */
+    return _tsc_iblk_write_lane(bcmsw, port, hwlane, addr, data);
+}
+
+
+int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, uint32_t lane_map, int port) 
+{
+    //PMD_X1_CTLr_t reg_pmd_x1_ctrl;
+
+    //PMD_X1_CTLr_CLR(reg_pmd_x1_ctrl);
+  
+    //PMD_X1_CTLr_POR_H_RSTBf_SET(reg_pmd_x1_ctrl,1);
+    //PMD_X1_CTLr_CORE_DP_H_RSTBf_SET(reg_pmd_x1_ctrl,1);
+    //PHYMOD_IF_ERR_RETURN(BCMI_QTC_XGXS_WRITE_PMD_X1_CTLr(pc,reg_pmd_x1_ctrl));
+
+    // BCMI_QTC_XGXS_WRITE_PMD_X1_CTLr ->  qmod_tsc_iblk_write(_pc,BCMI_QTC_XGXS_PMD_X1_CTLr,(_r._pmd_x1_ctl)&0xffff)
+    // qmod_tsc_iblk_write -> phymod_tsc_iblk_write
+    // phymod_tsc_iblk_write
+
+    uint32_t data;
+
+    data = 0x3;
+    phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_PMD_X1_CTLr,  data);
+
+
+    return SOC_E_NONE;
+}
+
+
+
+// three qtce16 cores
+static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
+{        
+
+#if 0    
+    phymod_phy_access_t phy_access, phy_access_copy;
+    phymod_core_access_t  core_copy;
+    phymod_firmware_core_config_t  firmware_core_config_tmp;
+    uint32_t  uc_active = 0;
+    int i, num_lane, start_lane;
+
+
+    PHYMOD_MEMCPY(&core_copy, core, sizeof(core_copy));
+    core_copy.access.lane_mask = 0x1;
+
+    PHYMOD_IF_ERR_RETURN(phymod_phy_access_t_init(&phy_access));
+    QTCE16_CORE_TO_PHY_ACCESS(&phy_access, core);
+    PHYMOD_MEMCPY(&phy_access_copy, &phy_access, sizeof(phy_access_copy));
+    phy_access_copy.access.lane_mask = 0x1;
+#endif
+    qmod16_pmd_reset_seq(bcmsw, 0x1, port);
+
+#if 0
+    PHYMOD_IF_ERR_RETURN
+        (phymod_util_lane_config_get(&phy_access.access, &start_lane, &num_lane));
+
+    /*
+     * Before programming the PMD lane address map register, the PMD lanes
+     * have to be reset. Without do this, writing the PMD lane address map
+     * regsiter will not take effect, meaning the reading value != writing
+     * value.
+     */
+    for (i = 0; i < QTCE16_NOF_LANES_IN_CORE; i++) {
+        phy_access.access.lane_mask = 1 << (start_lane + i);
+        PHYMOD_IF_ERR_RETURN
+            (qmod16_pmd_x4_reset(&phy_access.access));
+    }
+
+    PHYMOD_IF_ERR_RETURN(merlin16_uc_active_get(&core_copy.access, &uc_active));
+    if (uc_active) {
+        return(PHYMOD_E_NONE);
+    }
+
+    /* Propgram shim fifo threshold for USXGMII mode */
+    if (PHYMOD_ACC_F_USXMODE_GET(&core->access)) {
+        PHYMOD_IF_ERR_RETURN(qmod16_usgmii_shim_fifo_threshold_set(&core_copy.access));
+    }
+
+    /* need to set the heart beat default is for 156.25M */
+    if (init_config->interface.ref_clock == phymodRefClk125Mhz) {
+        PHYMOD_IF_ERR_RETURN
+            (qmod16_refclk_set(&core_copy.access, QMOD16REFCLK125MHZ)) ;
+    } else {
+        PHYMOD_IF_ERR_RETURN
+            (qmod16_refclk_set(&core_copy.access, QMOD16REFCLK156MHZ)) ;
+    }
+  
+     PHYMOD_IF_ERR_RETURN
+        (qtce16_core_lane_map_set(&core_copy, &init_config->lane_map));
+
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_uc_reset(&phy_access_copy.access, 1));
+
+    if (_qtce16_core_firmware_load(&core_copy, init_config->firmware_load_method, init_config->firmware_loader)) {
+        PHYMOD_DEBUG_ERROR(("devad 0x%x lane 0x%x: UC firmware-load failed\n", core->access.addr, core->access.lane_mask));  
+        PHYMOD_IF_ERR_RETURN (PHYMOD_E_INIT);
+    }
+
+    /* merlin16 programmer quide */
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_pmd_ln_h_rstb_pkill_override( &phy_access_copy.access, 0x1));
+
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_uc_reset(&phy_access_copy.access, 0));
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_wait_uc_active(&phy_access_copy.access));
+
+    /* Initialize software information table for the micro */
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_init_merlin16_info(&core_copy.access));
+
+    if (init_config->firmware_load_method != phymodFirmwareLoadMethodNone) {
+        if (PHYMOD_CORE_INIT_F_FIRMWARE_LOAD_VERIFY_GET(init_config)) {
+            PHYMOD_IF_ERR_RETURN
+                (merlin16_start_ucode_crc_calc(&core_copy.access, merlin16_ucode_len));
+        }
+    }
+
+    if (init_config->firmware_load_method != phymodFirmwareLoadMethodNone) {
+        if (PHYMOD_CORE_INIT_F_FIRMWARE_LOAD_VERIFY_GET(init_config)) {
+            PHYMOD_IF_ERR_RETURN
+                (merlin16_check_ucode_crc(&core_copy.access, merlin16_ucode_crc, 250));
+        }
+    }
+
+    PHYMOD_IF_ERR_RETURN(
+        merlin16_pmd_ln_h_rstb_pkill_override( &phy_access_copy.access, 0x0));
+
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_core_soft_reset_release(&core_copy.access, 0));
+
+    /* plldiv CONFIG */
+    if (PHYMOD_ACC_F_USXMODE_GET(&core->access)) {
+        PHYMOD_IF_ERR_RETURN
+            (merlin16_configure_pll_refclk_div(&core_copy.access, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_66));
+    } else {
+        PHYMOD_IF_ERR_RETURN
+            (merlin16_configure_pll_refclk_div(&core_copy.access, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_64));
+    }
+   
+    PHYMOD_IF_ERR_RETURN
+        (qmod16_autoneg_timer_init(&core_copy.access));
+    PHYMOD_IF_ERR_RETURN
+        (qmod16_master_port_num_set(&core_copy.access, 0));
+
+    /* don't overide the fw that set in config set if not specified */
+    PHYMOD_IF_ERR_RETURN
+        (qtce16_phy_firmware_core_config_get(&phy_access_copy, &firmware_core_config_tmp));
+    firmware_core_config_tmp.CoreConfigFromPCS = 0;
+    PHYMOD_IF_ERR_RETURN
+        (qtce16_phy_firmware_core_config_set(&phy_access_copy, firmware_core_config_tmp)); 
+
+    /* release core soft reset */
+    PHYMOD_IF_ERR_RETURN
+        (merlin16_core_soft_reset_release(&core_copy.access, 1));
+        
+    return PHYMOD_E_NONE;
+#endif      
+}
+
+static
+int _pm4x10_qtc_pm_serdes_core_init(bcmsw_switch_t *bcmsw, int port)
+{
+    //phymod_core_init -> qtce16_core_init
+    if (port == 1 | port == 17 || port == 33) {
+         qtce16_core_init(bcmsw, port);
+    }
+    
+    return 0;
+}
+
 static int 
 _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
 {
@@ -4818,6 +5187,136 @@ _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
 
     return 0;
 }
+#if 0
+static
+int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
+{
+    int port_i, my_i;
+    int i, nof_phys = 0, usr_cfg_idx;
+    uint32 bitmap, port_dynamic_state;
+    phymod_phy_access_t phy_access[1+MAX_PHYN];
+    int port_index = -1;
+    phymod_phy_init_config_t init_config;
+    phymod_interface_t          phymod_serdes_interface = phymodInterfaceCount;
+    phymod_autoneg_control_t an;
+    portmod_port_ability_t port_ability;
+
+    SOC_INIT_FUNC_DEFS;
+
+    phymod_autoneg_control_t_init(&an);
+    _SOC_IF_ERR_EXIT(phymod_phy_init_config_t_init(&init_config));
+    _SOC_IF_ERR_EXIT(portmod_port_chain_phy_access_get(unit, port, pm_info,
+                                                           phy_access ,(1+MAX_PHYN),
+                                                           &nof_phys));
+
+    /* Initialze phys */
+    _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_index_get(unit, port, pm_info, &port_index, &bitmap));
+    if (PM_4x10_QTC_INFO(pm_info)->nof_phys[port_index] > 0) {
+        my_i = 0, usr_cfg_idx = 0;
+        for (i = 0; i < MAX_PORTS_PER_PM4X10_QTC; i++) {
+            _SOC_IF_ERR_EXIT(PM4x10_QTC_PORTS_GET(unit, pm_info, &port_i, i));
+
+            if(port_i != port) {
+                continue;
+            }
+
+            if(SHR_BITGET(&(PM_4x10_QTC_INFO(pm_info)->polarity.tx_polarity), i)) {
+                SHR_BITSET(&init_config.polarity.tx_polarity, my_i);
+            }
+
+            if(SHR_BITGET(&(PM_4x10_QTC_INFO(pm_info)->polarity.rx_polarity), i)) {
+                SHR_BITSET(&init_config.polarity.rx_polarity, my_i);
+            }
+
+            _SOC_IF_ERR_EXIT(phymod_phy_media_type_tx_get(&phy_access[0], phymodMediaTypeChipToChip, &init_config.tx[my_i]));
+
+            if (PORTMOD_USER_SET_TX_PREEMPHASIS_BY_CONFIG_GET(add_info->init_config.tx_params_user_flag[usr_cfg_idx])) {
+                init_config.tx[my_i].pre = add_info->init_config.tx_params[usr_cfg_idx].pre;
+                init_config.tx[my_i].main = add_info->init_config.tx_params[usr_cfg_idx].main;
+                init_config.tx[my_i].post = add_info->init_config.tx_params[usr_cfg_idx].post;
+                init_config.tx[my_i].post2 = add_info->init_config.tx_params[usr_cfg_idx].post2;
+                init_config.tx[my_i].post3 = add_info->init_config.tx_params[usr_cfg_idx].post3;
+            }
+
+            if (PORTMOD_USER_SET_TX_AMP_BY_CONFIG_GET(add_info->init_config.tx_params_user_flag[usr_cfg_idx])) {
+                init_config.tx[my_i].amp = add_info->init_config.tx_params[usr_cfg_idx].amp;
+            }
+
+            if (PORTMOD_USER_SET_TX_PREEMPHASIS_BY_CONFIG_GET(add_info->init_config.tx_params_user_flag[usr_cfg_idx])
+                || PORTMOD_USER_SET_TX_AMP_BY_CONFIG_GET(add_info->init_config.tx_params_user_flag[usr_cfg_idx])) {
+                port_dynamic_state = 0;
+                PORTMOD_PORT_DEFAULT_TX_PARAMS_UPDATED_SET(port_dynamic_state);
+
+                _SOC_IF_ERR_EXIT(PM4x10_QTC_PORT_DYNAMIC_STATE_SET(unit, pm_info, port_dynamic_state, port_index));
+            }
+
+            usr_cfg_idx++;
+            my_i++;
+        }
+
+        _SOC_IF_ERR_EXIT(portmod_intf_to_phymod_intf(unit,
+                                           add_info->interface_config.speed,
+                                           add_info->interface_config.interface,
+                                           &init_config.interface.interface_type));
+        init_config.interface.data_rate = add_info->interface_config.speed;
+        init_config.interface.pll_divider_req =
+                        add_info->interface_config.pll_divider_req;
+        init_config.interface.ref_clock = PM_4x10_QTC_INFO(pm_info)->ref_clk;
+
+        _SOC_IF_ERR_EXIT(portmod_port_phychain_phy_init(unit, phy_access, nof_phys,
+                                                        &init_config));
+    }
+
+    /* PHY interface set  */
+    if (add_info->interface_config.serdes_interface != SOC_PORT_IF_NULL) {
+        _SOC_IF_ERR_EXIT(portmod_intf_to_phymod_intf(unit,
+                                add_info->interface_config.speed,
+                                add_info->interface_config.serdes_interface,
+                                &phymod_serdes_interface));
+    }
+
+    /* Apply to SerDes with same interface config */
+    _SOC_IF_ERR_EXIT(
+            portmod_port_phychain_interface_config_set(unit, port, phy_access, nof_phys,
+                                          add_info->interface_config.flags ,
+                                          &init_config.interface,
+                                          phymod_serdes_interface,
+                                          PM_4x10_QTC_INFO(pm_info)->ref_clk,
+                                          PORTMOD_INIT_F_INTERNAL_SERDES_ONLY));
+    /* set the default advert ability */
+    _SOC_IF_ERR_EXIT
+        (_pm4x10_qtc_port_ability_local_get(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &port_ability));
+    _SOC_IF_ERR_EXIT
+        (_pm4x10_qtc_port_ability_advert_set(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &port_ability));
+
+     /* Enable SerDes AN */
+     an.an_mode = phymod_AN_MODE_SGMII;
+     an.enable = 1;
+     _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_autoneg_set(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &an));
+
+    /* Initialize unimac and port*/
+    _SOC_IF_ERR_EXIT(_pm4x10_qtc_pm_port_init(unit, port, pm_info, add_info));
+
+    /* Disable Internal SerDes LPI bypass */
+    _SOC_IF_ERR_EXIT(phymod_phy_eee_set(&phy_access[0], FALSE));
+
+exit:
+    SOC_FUNC_RETURN;
+}
+
+#endif
+
+static int 
+_pm4x10_qtc_pm_core_init (bcmsw_switch_t *bcmsw, int port)
+{
+    _pm4x10_qtc_pm_serdes_core_init(bcmsw, port);
+
+    // Legacy PHY, not needed
+    //_SOC_IF_ERR_EXIT(_pm4x10_qtc_pm_ext_phy_core_init(unit, pm_info, add_info));
+
+    return 0;
+}
+
 
 //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_CORE_PROBE)
 static int 
@@ -4838,6 +5337,29 @@ bcmi_esw_portctrl_probe_init(bcmsw_switch_t *bcmsw, int port)
    return 0;
 }
 
+
+//bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS1)
+static int 
+bcmi_esw_portctrl_probe_pass1(bcmsw_switch_t *bcmsw, int port)
+{
+
+
+    _pm4x10_qtc_pm_core_init(bcmsw, port);
+
+   return 0;
+}
+
+//bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS2)
+static int 
+bcmi_esw_portctrl_probe_pass2(bcmsw_switch_t *bcmsw, int port)
+{
+
+
+    //_pm4x10_qtc_port_attach_resume_fw_load(bcmsw, port);
+
+   return 0;
+}
+
 //bcm_esw_port_probe->bcmi_esw_portctrl_probe_pbmp
 static int
 bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
@@ -4850,15 +5372,18 @@ bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
         /*step1: probe Serdes and external PHY core*/
         bcmi_esw_portctrl_probe_init(bcmsw, index);
 
-    /*step2 : initialize PASS1 for SerDes and external PHY*/
-    //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS1
+        /*step2 : initialize PASS1 for SerDes and external PHY*/
+        //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS1
+        bcmi_esw_portctrl_probe_pass1(bcmsw, index);
 
-    /* step3:broadcast firmware download for all external phys inculde legacy and Phymod PHYs*/
+        /* step3:broadcast firmware download for all external phys inculde legacy and Phymod PHYs*/
 
-    /*step4:initialize PASS2 for Serdes and external PHY*/
+        /*step4:initialize PASS2 for Serdes and external PHY*/
+        bcmi_esw_portctrl_probe_pass2(bcmsw, index);
 
 
-    //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
+
+        //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
 
     }
     return 0;

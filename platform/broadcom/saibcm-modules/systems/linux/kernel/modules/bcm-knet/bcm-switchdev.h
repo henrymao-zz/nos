@@ -1140,6 +1140,65 @@ soc_field_info_t soc_EGR_ENABLE_BCM53400_A0m_fields[] = {
 #define EGR_PER_PORT_BUFFER_SFT_RESETm  0x28300000
 
 /*****************************************************************************************/
+/*                           PM4X10 QTC   BCM56370                                       */
+/*****************************************************************************************/
+
+#define SOC_REG_ABOVE_64_MAX_SIZE_U32 30 
+
+typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
+
+
+//Memory: PMQPORT_WC_UCMEM_DATA.pmqport0 address 0x0000f000
+//Flags: valid cachable(off)
+//Blocks:  pmqport0/dma/slam pmqport1/dma/slam pmqport2/dma/slam (3 copies, 3 dmaable, 3 slamable)
+//Entries: 2048 with indices 0-2047 (0x0-0x7ff), each 16 bytes 4 words
+//Entry mask: -1 -1 -1 -1
+//Description: PSC to PMD External Memory Interface to program micro-controller memory
+//  UC_DATA<127:0>
+#define   PMQPORT_WC_UCMEM_DATA         0x0000f000
+
+
+
+
+#define PHYMOD_REG_ACC_TSC_IBLK                 (7<<28)
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  PMD_X1_CTL
+ * BLOCKS:   PMD_X1
+ * REGADDR:  0x9010
+ * DESC:     Global PMD reset controls
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CORE_DP_H_RSTB   PMD Core data path reset override valueOnly used for Speed Control bypass operationby default is zero too keep PMD in reset till enabled
+ *     POR_H_RSTB       PMD Core power on resetby default is zero too keep PMD in reset till enabled
+ *     PRAM_ABILITY     enable direct pram interface writes
+ */
+// acc_type = 7
+#define BCMI_QTC_XGXS_PMD_X1_CTLr (0x00109010 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_PMD_X1_CTLr_SIZE 4
+
+/*
+ * This structure should be used to declare and program PMD_X1_CTL.
+ */
+typedef union BCMI_QTC_XGXS_PMD_X1_CTLr_s {
+	uint32_t v[1];
+	uint32_t pmd_x1_ctl[1];
+	uint32_t _pmd_x1_ctl;
+} BCMI_QTC_XGXS_PMD_X1_CTLr_t;
+
+#define BCMI_QTC_XGXS_PMD_X1_CTLr_CLR(r) (r).pmd_x1_ctl[0] = 0
+#define BCMI_QTC_XGXS_PMD_X1_CTLr_SET(r,d) (r).pmd_x1_ctl[0] = d
+#define BCMI_QTC_XGXS_PMD_X1_CTLr_GET(r) (r).pmd_x1_ctl[0]
+
+/* Special lane values for broadcast and dual-lane multicast */
+#define PHYMOD_TSC_IBLK_MCAST01    4
+#define PHYMOD_TSC_IBLK_MCAST23    5
+#define PHYMOD_TSC_IBLK_BCAST      6
+
+/*****************************************************************************************/
 /*                           GPORT   BCM56370                                            */
 /*****************************************************************************************/
 
