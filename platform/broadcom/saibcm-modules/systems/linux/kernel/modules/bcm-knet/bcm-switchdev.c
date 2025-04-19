@@ -4769,7 +4769,7 @@ _bcm_esw_portctrl_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
 }
 
 
-STATIC
+static
 int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
 {
     int  phy_port, index, blk_no;
@@ -4787,7 +4787,7 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
 
     _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);
      // CLR_CNTf start 1, len 1
-    val |= (1<<1));
+    val |= (1<<1);
     _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
 
     /* Reset the clear-count bit after 64 clocks */
@@ -4806,10 +4806,9 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
     val &= ~(1<<4);
     //EP_TO_GP_CRC_OWRTf start 3, len 1
     val &= ~(1<<3);
-    _reg32_write(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, &val); 
+    _reg32_write(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, val); 
 
-exit:
-    SOC_FUNC_RETURN;
+    return 0;
 }
 
 static int 
@@ -4822,7 +4821,7 @@ _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
 
 //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_CORE_PROBE)
 static int 
-bcmi_esw_portctrl_probe(bcmsw_switch_t *bcmsw, int port)
+bcmi_esw_portctrl_probe_init(bcmsw_switch_t *bcmsw, int port)
 {
 
     /* Add port to PM */
@@ -4849,7 +4848,7 @@ bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
     //start with Front Panel ports
     for (index = 1; index <=48; index++) {
         /*step1: probe Serdes and external PHY core*/
-        bcmi_esw_portctrl_probe_init(bcmsw, port);
+        bcmi_esw_portctrl_probe_init(bcmsw, index);
 
     /*step2 : initialize PASS1 for SerDes and external PHY*/
     //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_PASS1
@@ -7303,14 +7302,14 @@ if_fmt_speed(char *b, int speed)
 {
     if (speed >= 1000) {        /* Use Gb */
         if (speed % 1000) {     /* Use Decimal */
-            sprintf(b, "%d.%dG", speed / 1000, (speed % 1000) / 100);
+            snprintf(b, 6, "%d.%dG", speed / 1000, (speed % 1000) / 100);
         } else {
-            sprintf(b, "%dG", speed / 1000);
+            snprintf(b, 6, "%dG", speed / 1000);
         }
     } else if (speed == 0) {
-        sprintf(b, "-");
+        snprintf(b, 6, "-");
     } else {                    /* Use Mb */
-        sprintf(b, "%dM", speed);
+        snprintf(b, 6, "%dM", speed);
     }
     return (b);
 }
@@ -7324,7 +7323,7 @@ _portstat_show(struct seq_file *m, void *v)
     soc_info_t *si;
     bcm_port_info_t port_info;
     char *spt_str, *discrd_str;
-    char sbuf[6];
+    char sbuf[8];
     char lrn_str[4];
     int lrn_ptr;
     char *disp_str =
@@ -7819,7 +7818,7 @@ _proc_reg32_show(struct seq_file *m, void *v)
                     seq_printf(m, "[%2d] 0x%08x  0x%08x\n", gxblk[index], p_data->reg_addr+i, val);
                 }
             }   
-
+            break;
         default:
             seq_printf(m," Not implemented\n");
             break;
