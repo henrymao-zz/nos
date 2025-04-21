@@ -4901,13 +4901,13 @@ pm4x10_qtc_default_bus_write(bcmsw_switch_t *bcmsw, int port, uint32_t reg_addr,
     phy_port = bcmsw->si->port_l2p_mapping[port];
 
     if (phy_port <= 16) {
-        blk_no = 21;
+        blk_no = SCHAN_BLK_PMQPORT0;
         core_addr = 0x81;
     } else if (phy_port <= 32) {
-        blk_no = 22; 
+        blk_no = SCHAN_BLK_PMQPORT1; 
         core_addr = 0x85;
     } else {
-        blk_no = 23;
+        blk_no = SCHAN_BLK_PMQPORT2;
         core_addr = 0x89;
     }
 
@@ -8590,9 +8590,6 @@ _proc_mem_show(struct seq_file *m, void *v)
                           SCHAN_BLK_PMQPORT1, 4, 
                           entry);   
             seq_printf(m, "[PMQPORT1]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);
-            entry[0] = 0x080bd202;
-            _soc_mem_write(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm,
-                           SCHAN_BLK_PMQPORT2, 4, entry);
             memset(entry, 0, 16);
             _soc_mem_read(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, 
                           SCHAN_BLK_PMQPORT2, 4, 
