@@ -2209,11 +2209,11 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     /* EGR_LPORT_TABLE config init */
     //read EGR_PORTm
-    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), &egr_port_entry); 
+    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t *)&egr_port_entry); 
 
     egr_port_entry.port_type = port_type;
 
-    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), &egr_port_entry); 
+    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t*)&egr_port_entry); 
 
     /* initialize the Cancun tag profile entry setup
      * for VT_MISS_UNTAG action. Should be done in Cancun
@@ -2225,7 +2225,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
     /* PORT_TABLE config init */
     //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
-    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), &lport_entry); 
+    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
 
     //PORT_VIDf start 3, len 12
     val = vid;
@@ -2320,7 +2320,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 113, 7, &val, SOCF_LE); 
 
-    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), &lport_entry); 
+    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
 
 
     //Update ING_DEVICE_PORTm
@@ -2340,14 +2340,14 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     val = port_type;
     _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
 
-    _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
+    _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
 
 
     if (cpu_hg_index != -1) {
         //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
         /* TD3TBD should be covered by CMH, will remove it after CMH
          * is ready. */
-         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
+         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
 
         //PORT_TYPEf start 0, len 3
         val = 1;
@@ -2369,7 +2369,7 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
         val = 0;
         _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 114, 1, &val, 0);
 
-        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), &ing_device_port_entry); 
+        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
     }    
 
     return 0;
@@ -4852,7 +4852,7 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
     mem_data[1] = data | data_mask;
     mem_data[2] = 1; /* for TSC register write */
 
-    _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+    _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
     printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
           core_addr, reg_addr, val , data_mask, blk_id, rv);
@@ -4871,11 +4871,11 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
     mem_data[0] = (reg_addr & 0xffffffff) | ((core_addr & 0x1f) << 19);
     mem_data[2] = 0; /* for TSC register READ */
 
-    rv = _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+    rv = _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
    
     /* read data back from ucmem_data[47:32] */
     if (!rv) {
-        rv = _soc_mem_read(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, &mem_data); 
+        rv = _soc_mem_read(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
     }
 
     //if (PORTMOD_USER_ACCESS_REG_VAL_OFFSET_ZERO_GET(user_data)) {
@@ -4943,7 +4943,7 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
 {
     int ioerr = 0;
     uint32_t devad = (addr >> 16) & 0xf;
-    uint32_t blkaddr, regaddr;
+    //uint32_t blkaddr, regaddr;
     uint32_t aer;
     //uint32_t wr_mask, rdata;
     //phymod_bus_t* bus;
@@ -4971,7 +4971,6 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
 int
 phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t data)
 {
-    int ioerr = 0;
     uint32_t hwlane, is_hwsupport = 1;
 
     //hwlane = 0;
@@ -5072,7 +5071,7 @@ phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_
     //ioerr += PHYMOD_BUS_READ(pa, addr | (aer << 16), data);
     ioerr += pm4x10_qtc_default_bus_read(bcmsw, port, addr| (aer << 16), data);
     printk("iblk_rd sbus aer=%x adr=%x lm=%0x rtn=%0d d=%x\n",
-            aer, addr, lane_mask, ioerr, *data));
+            aer, addr, lane_map, ioerr, *data);
 
     return ioerr;
 }
@@ -5141,28 +5140,13 @@ int merlin16_pmd_rdt_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uin
     return ( 0 );
 }
 
-
-uint16_t _merlin16_pmd_rde_field(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t *val)
-{
-  uint16_t data;
-
-  //EPSTM(data = _merlin16_pmd_rde_reg(sa__, addr, err_code_p));
-  merlin16_pmd_rdt_reg(bcmsw, port, lane_map, address, &data);
-
-  data <<= shift_left;                 /* Move the sign bit to the left most [shift_left  = (15-msb)] */
-  data >>= shift_right;                /* Right shift entire field to bit 0  [shift_right = (15-msb+lsb)] */
-
-  return data;
-}
-
 int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t *uc_active)
 {
     uint16_t data;
 
     //#define rdc_uc_active() _merlin16_pcieg3_pmd_rde_field_byte(sa__, 0xd0f4,0,15,__ERR)
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_map, 0xd0f4, &data);
 
-    _merlin16_pmd_rde_field(bcmsw, port, lane_map, 0xd0f4, &data);
-    
     *uc_active = data & 0x80; 
 
     return 0;
@@ -5174,6 +5158,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
    uint32_t  lane_mask;
    int start_lane, num_lane;
    uint32_t  uc_active = 0;
+   int i;
 #if 0    
     phymod_phy_access_t phy_access, phy_access_copy;
     phymod_core_access_t  core_copy;
@@ -5207,7 +5192,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
     }
 
 
-    merlin16_uc_active_get(bcmsw, port, lane_mask,  &uc_active));
+    merlin16_uc_active_get(bcmsw, port, lane_mask,  &uc_active);
     printk("merlin16_uc_active_get %d\n",uc_active);
     if (uc_active) {
         return(SOC_E_NONE);
@@ -5698,7 +5683,7 @@ _port_init(bcmsw_switch_t *bcmsw)
     // clear egress port blocking table MAC_BLOCKm
     for (index = 0; index <= 31; index++) {
         _soc_mem_write(bcmsw->dev, MAC_BLOCKm+index, 
-                       SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), empty_entry); 
+                       SCHAN_BLK_IPIPE, BYTES2WORDS(MAC_BLOCKm_BYTES), (uint32_t *)empty_entry); 
     }    
 
     // STEP 3 - Probe for Ports -> bcm_esw_port_probe
@@ -6846,7 +6831,7 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
     max_idx = ING_PHY_TO_IDB_PORT_MAPm_MAX_INDEX;
     for (phy_port = 0; phy_port <= max_idx; phy_port++) {
         _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + phy_port, SCHAN_BLK_IPIPE, 
-                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
+                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), (uint32_t *)&entry);
     }
 
     /* Ingress IDB to device port mapping */
@@ -6859,7 +6844,7 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
 
     for (idb_port = 0; idb_port < HX5_NUM_PORT; idb_port++) {
         _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
-                       BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+                       BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), (uint32_t *)&idb_entry);
     }
 
     //printk("_soc_helix5_port_mapping_init ancillary ports begin\n");
@@ -6874,7 +6859,7 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
         val = port;
         _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
         _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
-            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), (uint32_t *)&idb_entry);
 
         /* Egress device port to physical port mapping */
         val = phy_port;
@@ -6901,7 +6886,7 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
         _mem_field_set((uint32_t *)&sysport_entry, SYS_PORTMAPm, 0, 7, &val, SOCF_LE);
 
         _soc_mem_write(bcmsw->dev, SYS_PORTMAPm + port, SCHAN_BLK_IPIPE, 
-                       BYTES2WORDS(SYS_PORTMAPm_BYTES), &sysport_entry);
+                       BYTES2WORDS(SYS_PORTMAPm_BYTES), (uint32_t *)&sysport_entry);
     }
 
     return SOC_E_NONE;
@@ -7007,7 +6992,7 @@ _soc_helix5_reconfigure_ports(bcmsw_switch_t *bcmsw)
         val = memfld;
         _mem_field_set((uint32_t *)&idb_entry, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm, 0, 7, &val, SOCF_LE);
         _soc_mem_write(bcmsw->dev, ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm + idb_port, SCHAN_BLK_IPIPE, 
-            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), &idb_entry);
+            BYTES2WORDS(ING_IDB_TO_DEVICE_PORT_NUMBER_MAPPING_TABLEm_BYTES), (uint32_t *)&idb_entry);
 
         memset(&entry, 0, sizeof(entry));
         //VALIDf bit start 0, len 1
@@ -7019,7 +7004,7 @@ _soc_helix5_reconfigure_ports(bcmsw_switch_t *bcmsw)
         _mem_field_set((uint32_t *)&entry, ING_PHY_TO_IDB_PORT_MAPm_BYTES, 1, 7, &val, SOCF_LE);
 
         _soc_mem_write(bcmsw->dev, ING_PHY_TO_IDB_PORT_MAPm + physical_port-1, SCHAN_BLK_IPIPE, 
-                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), &entry);
+                       BYTES2WORDS(ING_PHY_TO_IDB_PORT_MAPm_BYTES), (uint32_t *)&entry);
     }
 
 
@@ -7446,7 +7431,7 @@ _soc_l2u_find_free_entry(bcmsw_switch_t *bcmsw, l2u_entry_t *key, int *free_inde
     }
     for (index = start; index != end; index += step) {
         rv = _soc_mem_read(bcmsw->dev, L2_USER_ENTRYm + index, 
-               SCHAN_BLK_IPIPE, BYTES2WORDS(L2_USER_ENTRYm_BYTES), &entry);
+               SCHAN_BLK_IPIPE, BYTES2WORDS(L2_USER_ENTRYm_BYTES), (uint32_t *)&entry);
         if (rv == 0) {
             for (i = 0; i < entry_words; i++) {
                 if (entry.entry_data[i] & free_mask.entry_data[i]) {
@@ -7509,7 +7494,7 @@ _soc_l2u_insert(bcmsw_switch_t *bcmsw, l2u_entry_t *entry, int index, int *index
     //sal_memcpy(&l2u_entry, entry, sizeof(l2u_entry));
     //rv = WRITE_L2_USER_ENTRYm(unit, MEM_BLOCK_ALL, index, &l2u_entry);
     // size = (27 byte +3)/4
-    _soc_mem_write(bcmsw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, entry);
+    _soc_mem_write(bcmsw->dev, L2_USER_ENTRYm + index, SCHAN_BLK_IPIPE, 7, (uint32_t *)entry);
 
     //soc_mem_unlock(unit, L2_USER_ENTRYm);
 
@@ -7623,7 +7608,7 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, bcm_pbmp_t pbmp)
     uint32 profile_ptr = 0;
 
     _soc_mem_read(bcmsw->dev, EGR_VLANm+vid, 
-          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &egr_vtab); 
+          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), (uint32_t *)&egr_vtab); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_get((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
@@ -7635,17 +7620,17 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, bcm_pbmp_t pbmp)
 
     //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
     _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
-                  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), &egr_vlan_vfi); 
+                  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), (uint32_t *)&egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
     _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
 
-    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, &egr_vlan_vfi); 
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, (uint32_t *)&egr_vlan_vfi); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_set((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
 
-    _soc_mem_write(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, &egr_vtab); 
+    _soc_mem_write(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, (uint32_t *)&egr_vtab); 
 
     return SOC_E_NONE;
 }
@@ -7664,7 +7649,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     // Clear EGR_VLANm
     for (index = 0; index <= 4095; index++) {
-        _soc_mem_write(bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, empty_entry); 
+        _soc_mem_write(bcmsw->dev, EGR_VLANm+index, SCHAN_BLK_EPIPE, 3, (uint32_t *)empty_entry); 
     }    
 
     //EGR_VLANm entry is 10 bytes, 3 word
@@ -7700,7 +7685,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
     _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, 
-          SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), &vlan_attrs); 
+          SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), (uint32_t *)&vlan_attrs); 
 
     //STGf start 2, len 9
     val = 1; //default STG
@@ -7726,11 +7711,9 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     val = 1;
     _mem_field_set((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 23, 1, &val, 0);
 
-    _soc_mem_write(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, &vlan_attrs); 
+    _soc_mem_write(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, SCHAN_BLK_IPIPE, 3, (uint32_t *)&vlan_attrs); 
 
-
-
-    _soc_mem_write(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, &ve); 
+    _soc_mem_write(bcmsw->dev, EGR_VLANm+vd->vlan_tag, SCHAN_BLK_EPIPE, 3, (uint32_t *)&ve); 
 
     //readback 
     //printk("_vlan_table_init_egr_vlan write %d 0x%08x 0x%08x 0x%08x\n", 
@@ -7797,7 +7780,7 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     val = vd->vlan_tag;
     _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 318, 13, &val, 0);
 
-    _soc_mem_write(bcmsw->dev, VLAN_TABm+vd->vlan_tag, SCHAN_BLK_IPIPE, 12, &ve); 
+    _soc_mem_write(bcmsw->dev, VLAN_TABm+vd->vlan_tag, SCHAN_BLK_IPIPE, 12, (uint32_t *)&ve); 
 
     return SOC_E_NONE;
 }
@@ -8771,7 +8754,7 @@ _egr_vlan_show(struct seq_file *m, void *v)
               EGR_VLANm+index, 
               SCHAN_BLK_EPIPE, 
               BYTES2WORDS(EGR_VLANm_BYTES), 
-              &ve); 
+              (uint32_t *)&ve); 
 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, 0);
@@ -8874,7 +8857,7 @@ _vlan_attrs_1_show(struct seq_file *m, void *v)
               VLAN_ATTRS_1m+index, 
               SCHAN_BLK_IPIPE, 
               BYTES2WORDS(VLAN_ATTRS_1m_BYTES), 
-              &vlan_attrs); 
+              (uint32_t *)&vlan_attrs); 
 
         //VALIDf start 58, len 1
         _mem_field_get((uint32_t *)&vlan_attrs, VLAN_ATTRS_1m_BYTES, 58, 1, &val, 0);
@@ -8965,7 +8948,7 @@ _vlan_tab_show(struct seq_file *m, void *v)
               VLAN_TABm+index, 
               SCHAN_BLK_IPIPE, 
               BYTES2WORDS(VLAN_TABm_BYTES), 
-              &vt); 
+              (uint32_t *)&vt); 
 
         //VALIDf start 150, len 1
         _mem_field_get((uint32_t *)&vt, VLAN_TABm_BYTES, 150, 1, &val, 0);
@@ -9034,7 +9017,7 @@ _egr_vlan_vfi_untag_show(struct seq_file *m, void *v)
               EGR_VLAN_VFI_UNTAGm+index, 
               SCHAN_BLK_EPIPE, 
               BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
-              &vt); 
+              (uint32_t *)&vt); 
 
         seq_printf(m, "[%4d] RAW 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
                    vt.entry_data[0], vt.entry_data[1], vt.entry_data[2], vt.entry_data[3], vt.entry_data[4]);
@@ -9084,7 +9067,7 @@ _l2_user_entry_show(struct seq_file *m, void *v)
               L2_USER_ENTRYm+index, 
               SCHAN_BLK_IPIPE, 
               BYTES2WORDS(L2_USER_ENTRYm_BYTES), 
-              &vt); 
+              (uint32_t *)&vt); 
         //VALIDf start 0, len 1
         _mem_field_get((uint32_t *)&vt, L2_USER_ENTRYm_BYTES, 0, 1, &val, 0);        
 
