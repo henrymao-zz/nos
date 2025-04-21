@@ -10221,12 +10221,20 @@ static int _switch_do_init(bcmsw_switch_t *bcmsw)
 
 
     /* If frequency is specificed use it , else use the si->frequency */
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_CORE_CLK_FREQ_SELr, 0x1221942);
 
     /* Bring PLLs out of reset */
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REG_2r, 0x000004ea);
+
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REG_2r, 0x000004ff);
+
+    /* Give time to lock */
+    msleep(250);
 
     /* De-assert TS PLL, BS PLL0/1 post reset and bring AVS out of reset */
+    _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REG_2r, 0x000004ff);
+    msleep(250);
     
-
     /* Bring IP, EP, MMU and port macros out of reset */
     _reg32_write(dev, SCHAN_BLK_TOP, TOP_SOFT_RESET_REGr, 0x3fff);
     msleep(10);

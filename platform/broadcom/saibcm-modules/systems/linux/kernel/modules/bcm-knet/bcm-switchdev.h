@@ -788,10 +788,15 @@ typedef union schan_msg_u {
 #define SCHAN_BLK_GXPORT5   25
 
 #define TOP_SOFT_RESET_REGr            0x02000100
+#define TOP_SOFT_RESET_REG_2r            0x02000200
+#define TOP_CORE_CLK_FREQ_SELr         0x02007700
 #define CHIP_CONFIGr                   0x2020000
 #define TOP_MISC_GENERIC_CONTROLr      0x2008600
 #define EGR_PORT_BUFFER_SFT_RESET_0r   0x2b130000
 #define IDB_SER_CONTROL_64r            0x2280000
+
+
+
 
 #define IS_TDM_CONFIG_PIPE0r           0x6040100
 #define IS_OPP_SCHED_CFG_PIPE0r        0x6040500
