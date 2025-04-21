@@ -313,7 +313,7 @@ _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc
  */
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 static int
-_soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, void *entry_data)
+_soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, uint32_t *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -338,6 +338,10 @@ _soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, vo
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
+
+    if (address == PMQPORT_WC_UCMEM_DATAm ) {
+    printk("_soc_mem_read addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
+    }
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
@@ -412,7 +416,7 @@ _soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, vo
 // size = (SOC_MEM_INFO(unit, mem).bytes + 3 )/4
 // 
 static int
-_soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, void *entry_data)
+_soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, uint32_t *entry_data)
 {
     schan_msg_t schan_msg;
     int opcode, err;
@@ -435,6 +439,12 @@ _soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, vo
     schan_msg.header.v4.data_byte_len = data_byte_len;
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
+
+    if (address == PMQPORT_WC_UCMEM_DATAm ) {
+    printk("_soc_mem_write addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
+    }
+
+
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2 + size, 0, allow_intr);
     if (rv) {
@@ -4891,13 +4901,13 @@ pm4x10_qtc_default_bus_write(bcmsw_switch_t *bcmsw, int port, uint32_t reg_addr,
     phy_port = bcmsw->si->port_l2p_mapping[port];
 
     if (phy_port <= 16) {
-        blk_no = SCHAN_BLK_PMQPORT0;
+        blk_no = 21;
         core_addr = 0x81;
     } else if (phy_port <= 32) {
-        blk_no = SCHAN_BLK_PMQPORT1; 
+        blk_no = 22; 
         core_addr = 0x85;
     } else {
-        blk_no = SCHAN_BLK_PMQPORT2;
+        blk_no = 23;
         core_addr = 0x89;
     }
 
@@ -8333,6 +8343,14 @@ _proc_reg32_show(struct seq_file *m, void *v)
             break;
         
         case GPORT_MODE_REGr:
+	//case PMQ_XGXS0_CTRL_REGr:
+	    for (index =0; index < p_data->num_blk; index ++) {
+                val = 0;
+		_reg32_read(_bcmsw->dev, p_data->block[index], p_data->reg_addr, &val);
+		seq_printf(m, "blk %d 0x%08x\n",p_data->block[index], val);
+            }
+	    break;
+
         case GPORT_CONFIGr:
         case GPORT_RSV_MASKr:
         case GPORT_STAT_UPDATE_MASKr:
@@ -8344,6 +8362,7 @@ _proc_reg32_show(struct seq_file *m, void *v)
                 }
             }   
             break;
+
         default:
             seq_printf(m," Not implemented\n");
             break;
@@ -8571,6 +8590,9 @@ _proc_mem_show(struct seq_file *m, void *v)
                           SCHAN_BLK_PMQPORT1, 4, 
                           entry);   
             seq_printf(m, "[PMQPORT1]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);
+            entry[0] = 0x080bd202;
+            _soc_mem_write(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm,
+                           SCHAN_BLK_PMQPORT2, 4, entry);
             memset(entry, 0, 16);
             _soc_mem_read(_bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, 
                           SCHAN_BLK_PMQPORT2, 4, 
@@ -9326,6 +9348,13 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
     p_data->reg_addr = GPORT_MODE_REGr;
+    p_data->num_blk = 6;
+    p_data->block[0] = SCHAN_BLK_GXPORT0;
+    p_data->block[1] = SCHAN_BLK_GXPORT1;
+    p_data->block[2] = SCHAN_BLK_GXPORT2;
+    p_data->block[3] = SCHAN_BLK_GXPORT3;
+    p_data->block[4] = SCHAN_BLK_GXPORT4;
+    p_data->block[5] = SCHAN_BLK_GXPORT5; 
     entry = proc_create_data("GPORT_MODE_REG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
     if (entry == NULL) {
         printk("proc_create failed!\n");
@@ -9450,6 +9479,21 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }                
+    // /proc/switchdev/reg/PMQ_XGXS0_CTRL_REG
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = PMQ_XGXS0_CTRL_REGr;
+    p_data->num_blk = 3;
+    p_data->block[0] = SCHAN_BLK_PMQPORT0;
+    p_data->block[1] = SCHAN_BLK_PMQPORT1;
+    p_data->block[2] = SCHAN_BLK_PMQPORT2;
+    entry = proc_create_data("PMQ_XGXS0_CTRL_REG", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }                
+
+
 
     return 0;
 create_fail:
@@ -9692,6 +9736,7 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("IDB_CA_LPBK_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_CA_CPU_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_CA_BSK_CONTROL", proc_reg_base);
+    remove_proc_entry("PMQ_XGXS0_CTRL_REG", proc_reg_base);
     
     remove_proc_entry("reg", proc_switchdev_base);
 
@@ -10044,7 +10089,7 @@ static int _helix5_port_reset(struct net_device *dev)
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
-        msleep(10);
+        msleep(100);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT1, PMQ_XGXS0_CTRL_REGr);
 
@@ -10057,7 +10102,7 @@ static int _helix5_port_reset(struct net_device *dev)
     if (val & 0x1) { //Q_MODE
         /* Power off PMQ blocks */
         _powerdown_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
-        msleep(10);
+        msleep(100);
         /* Power on PMQ blocks */
         _powerup_single_tsc(dev, SCHAN_BLK_PMQPORT2, PMQ_XGXS0_CTRL_REGr);
 
@@ -10197,11 +10242,11 @@ static int _switch_do_init(bcmsw_switch_t *bcmsw)
 
     /* Reset egress hardware resource */
     /* Write the value to enable 4 lanes on the PM */
-    _reg64_write(dev, SCHAN_BLK_EPIPE, EGR_PORT_BUFFER_SFT_RESET_0r, 0x0000000924924900);
+    _reg64_write(dev, SCHAN_BLK_EPIPE, EGR_PORT_BUFFER_SFT_RESET_0r, 0x924924900);
     /* Set it back to zero now */
     _reg64_write(dev, SCHAN_BLK_EPIPE, EGR_PORT_BUFFER_SFT_RESET_0r, 0x0);
     //spn_PARITY_ENABLE
-    _reg64_write(dev, SCHAN_BLK_IPIPE, IDB_SER_CONTROL_64r, 0x0000200a);
+    //_reg64_write(dev, SCHAN_BLK_IPIPE, IDB_SER_CONTROL_64r, 0x0000200a);
 
 
     //SOC_IF_ERROR_RETURN(soc_trident3_init_idb_memory(unit));
