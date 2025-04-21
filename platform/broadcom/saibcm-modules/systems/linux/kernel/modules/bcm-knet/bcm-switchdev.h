@@ -1167,6 +1167,9 @@ typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
 #define PHYMOD_REG_ACCESS_FLAGS_SHIFT      24
 #define PHYMOD_REG_ACC_TSC_IBLK            (7<<28)
 #define PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE (8<<24)
+#define PHYMOD_REG_ACC_TSC_IBLK_WR_ONLY    (1<<23)
+
+#define QTCE16_NOF_LANES_IN_CORE           4
 
 /*******************************************************************************
  * CHIP:  BCMI_QTC_XGXS
@@ -1183,8 +1186,30 @@ typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
  */
 // acc_type = 7
 #define BCMI_QTC_XGXS_PMD_X1_CTLr (0x00109010 | PHYMOD_REG_ACC_TSC_IBLK)
-
 #define BCMI_QTC_XGXS_PMD_X1_CTLr_SIZE 4
+
+/*******************************************************************************
+ * CHIP:  BCMI_TSCE16_XGXS
+ * REGISTER:  PMD_X4_CTL
+ * BLOCKS:   PMD_X4
+ * REGADDR:  0xc010
+ * DESC:     PMD lane reset controls
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     LN_RX_DP_H_RSTB  RX PMD lane datapath reset override valueOnly used for Speed Control bypass operation
+ *     LN_RX_H_RSTB     RX Reset all lane logic: data path and registers
+ *     LN_TX_H_PWRDN    Lane power down, TX direction
+ *     LN_RX_H_PWRDN    Lane power down, RX direction
+ *     TX_OSR_MODE      TX OSR mode. In current implementation only OSR mode 1 is usedOnly used for Speed Control bypass operation
+ *     TX_DISABLE       Set to squelch the transmit signal for laneOnly used for Speed Control bypass operation
+ *     RX_OSR_MODE      RX OSR mode. In current implementation only OSR mode 1 is usedOnly used for Speed Control bypass operation
+ *     RX_DME_EN        DME is enabled, for CL73 faster sample modeOnly used for Speed Control bypass operation
+ *     LN_TX_DP_H_RSTB  TX PMD lane datapath reset override valueOnly used for Speed Control bypass operation
+ *     LN_TX_H_RSTB     TX Reset all lane logic: data path and registers
+ */
+#define BCMI_TSCE16_XGXS_PMD_X4_CTLr (0x0000c010 | PHYMOD_REG_ACC_TSC_IBLK) 
+#define BCMI_TSCE16_XGXS_PMD_X4_CTLr_SIZE 4
 
 /*
  * This structure should be used to declare and program PMD_X1_CTL.

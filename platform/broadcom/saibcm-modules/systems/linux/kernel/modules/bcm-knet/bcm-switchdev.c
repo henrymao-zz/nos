@@ -4944,13 +4944,11 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
     int ioerr = 0;
     uint32_t devad = (addr >> 16) & 0xf;
     uint32_t blkaddr, regaddr;
-    uint32_t aer, add;
+    uint32_t aer;
     //uint32_t wr_mask, rdata;
     //phymod_bus_t* bus;
     //uint32_t is_write_disabled;
     uint8_t pll_index = 0;
-
-    add = addr ;
 
     //bus = PHYMOD_ACC_BUS(pa);
     //pll_index = PHYMOD_ACC_PLLIDX(pa) & 0x3;
@@ -4962,7 +4960,7 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
     addr &= 0xffff;
 
     //ioerr += PHYMOD_BUS_WRITE(pa, addr | (aer << 16), data);
-    ioerr += pm4x10_qtc_default_bus_write(bcmsw, port, addr, data);
+    ioerr += pm4x10_qtc_default_bus_write(bcmsw, port, addr| (aer << 16), data);
     printk("iblk_wr sbus port = %d aer=0x%x addr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
             port, aer, addr, lane, ioerr, data);
     return ioerr;
@@ -5024,7 +5022,64 @@ phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32
 }
 
 
-int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, uint32_t lane_map, int port) 
+int
+phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t* data)
+{
+    int ioerr = 0;
+    uint32_t lane, is_hwsupport = 1;
+    uint32_t devad = (addr >> 16) & 0xf;
+    uint8_t pll_index = 0;
+    uint32_t aer;
+
+    /* Do not attempt to read write-only registers */
+    if (addr & PHYMOD_REG_ACC_TSC_IBLK_WR_ONLY) {
+        *data = 0;
+        //PHYMOD_VDBG(DBG_ACC_RD,pa,("iblk_rd add=%x WO=1\n", add));
+        return 0;
+    }
+
+    /* Determine which lane to read from */
+    lane = 0;
+    if (addr & PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE) {
+        /* Forcing lane overrides default behavior */
+        lane = (addr >> PHYMOD_REG_ACCESS_FLAGS_SHIFT) & 0x7;
+    } else {
+        /* Use first lane in lane map by default */
+        if (lane_map & 0x1) {
+            lane = 0;
+        } else if (lane_map & 0x2) {
+            lane = 1;
+        } else if (lane_map & 0x4) {
+            lane = 2;
+        } else if (lane_map & 0x8) {
+            lane = 3;
+        } else if (lane_map & 0xfff0) {
+            lane = -1;
+            while (lane_map) {
+                lane++;
+                lane_map >>= 1;
+            }
+        }
+    }
+
+    /* Encode address extension */
+    aer = lane | (devad << 11) | (pll_index << 8);
+
+    /* Mask raw register value */
+    addr &= 0xffff;
+
+    /* If bus driver supports lane control, then we are done */
+    //ioerr += PHYMOD_BUS_READ(pa, addr | (aer << 16), data);
+    ioerr += pm4x10_qtc_default_bus_read(bcmsw, port, addr| (aer << 16), data);
+    printk("iblk_rd sbus aer=%x adr=%x lm=%0x rtn=%0d d=%x\n",
+            aer, addr, lane_mask, ioerr, *data));
+
+    return ioerr;
+}
+
+
+
+int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map) 
 {
     //PMD_X1_CTLr_t reg_pmd_x1_ctrl;
 
@@ -5047,51 +5102,118 @@ int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, uint32_t lane_map, int port)
     return SOC_E_NONE;
 }
 
+int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map )              /* PMD_X4_RESET */
+{
+    //PMD_X4_CTLr_t reg_pmd_x4_ctrl;
 
+    //QMOD16_DBG_IN_FUNC_INFO(pc);
+    //PMD_X4_CTLr_CLR(reg_pmd_x4_ctrl);
+    //PMD_X4_CTLr_LN_RX_H_RSTBf_SET(reg_pmd_x4_ctrl,0);
+    //PMD_X4_CTLr_LN_TX_H_RSTBf_SET(reg_pmd_x4_ctrl,0);
+    //PMD_X4_CTLr_LN_RX_DP_H_RSTBf_SET(reg_pmd_x4_ctrl,0);
+    //PMD_X4_CTLr_LN_TX_DP_H_RSTBf_SET(reg_pmd_x4_ctrl,0);
+    //PHYMOD_IF_ERR_RETURN (MODIFY_PMD_X4_CTLr(pc, reg_pmd_x4_ctrl));
+
+    uint32_t data;
+    data = 0x0; 
+    phymod_tsc_iblk_write(bcmsw, port, lane_map,BCMI_TSCE16_XGXS_PMD_X4_CTLr, data);
+
+    //PMD_X4_CTLr_CLR(reg_pmd_x4_ctrl);
+    //PMD_X4_CTLr_LN_RX_H_RSTBf_SET(reg_pmd_x4_ctrl,1);
+    //PMD_X4_CTLr_LN_TX_H_RSTBf_SET(reg_pmd_x4_ctrl,1);
+    //PMD_X4_CTLr_LN_RX_DP_H_RSTBf_SET(reg_pmd_x4_ctrl,1);
+    //PMD_X4_CTLr_LN_TX_DP_H_RSTBf_SET(reg_pmd_x4_ctrl,1);
+    //PHYMOD_IF_ERR_RETURN (MODIFY_PMD_X4_CTLr(pc, reg_pmd_x4_ctrl));
+  
+    data = 0xc003c003;
+    phymod_tsc_iblk_write(bcmsw, port, lane_map, BCMI_TSCE16_XGXS_PMD_X4_CTLr,data);
+
+    return SOC_E_NONE;
+}
+
+int merlin16_pmd_rdt_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t *val)
+{
+    uint32_t data;
+    phymod_tsc_iblk_read(bcmsw, port, lane_map, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), &data);
+    //phymod_tsc_iblk_read(sa__, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), &data);
+    data = data & 0xffff; 
+    *val = (uint16_t)data;
+    return ( 0 );
+}
+
+
+uint16_t _merlin16_pmd_rde_field(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t *val)
+{
+  uint16_t data;
+
+  //EPSTM(data = _merlin16_pmd_rde_reg(sa__, addr, err_code_p));
+  merlin16_pmd_rdt_reg(bcmsw, port, lane_map, address, &data);
+
+  data <<= shift_left;                 /* Move the sign bit to the left most [shift_left  = (15-msb)] */
+  data >>= shift_right;                /* Right shift entire field to bit 0  [shift_right = (15-msb+lsb)] */
+
+  return data;
+}
+
+int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t *uc_active)
+{
+    uint16_t data;
+
+    //#define rdc_uc_active() _merlin16_pcieg3_pmd_rde_field_byte(sa__, 0xd0f4,0,15,__ERR)
+
+    _merlin16_pmd_rde_field(bcmsw, port, lane_map, 0xd0f4, &data);
+    
+    *uc_active = data & 0x80; 
+
+    return 0;
+}
 
 // three qtce16 cores
 static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
 {        
-
+   uint32_t  lane_mask;
+   int start_lane, num_lane;
+   uint32_t  uc_active = 0;
 #if 0    
     phymod_phy_access_t phy_access, phy_access_copy;
     phymod_core_access_t  core_copy;
     phymod_firmware_core_config_t  firmware_core_config_tmp;
-    uint32_t  uc_active = 0;
+
     int i, num_lane, start_lane;
 
 
     PHYMOD_MEMCPY(&core_copy, core, sizeof(core_copy));
     core_copy.access.lane_mask = 0x1;
-
-    PHYMOD_IF_ERR_RETURN(phymod_phy_access_t_init(&phy_access));
-    QTCE16_CORE_TO_PHY_ACCESS(&phy_access, core);
-    PHYMOD_MEMCPY(&phy_access_copy, &phy_access, sizeof(phy_access_copy));
-    phy_access_copy.access.lane_mask = 0x1;
 #endif
-    qmod16_pmd_reset_seq(bcmsw, 0x1, port);
+    lane_mask = 0x1;
 
-#if 0
-    PHYMOD_IF_ERR_RETURN
-        (phymod_util_lane_config_get(&phy_access.access, &start_lane, &num_lane));
+    qmod16_pmd_reset_seq(bcmsw, port, lane_mask);
 
+
+    //PHYMOD_IF_ERR_RETURN
+    //    (phymod_util_lane_config_get(&phy_access.access, &start_lane, &num_lane));
+    start_lane = 0;
+    num_lane = 4; 
     /*
      * Before programming the PMD lane address map register, the PMD lanes
      * have to be reset. Without do this, writing the PMD lane address map
      * regsiter will not take effect, meaning the reading value != writing
      * value.
      */
+
     for (i = 0; i < QTCE16_NOF_LANES_IN_CORE; i++) {
-        phy_access.access.lane_mask = 1 << (start_lane + i);
-        PHYMOD_IF_ERR_RETURN
-            (qmod16_pmd_x4_reset(&phy_access.access));
+        lane_mask = 1 << (start_lane + i);
+        qmod16_pmd_x4_reset(bcmsw, port, lane_mask);
     }
 
-    PHYMOD_IF_ERR_RETURN(merlin16_uc_active_get(&core_copy.access, &uc_active));
+
+    merlin16_uc_active_get(bcmsw, port, lane_mask,  &uc_active));
+    printk("merlin16_uc_active_get %d\n",uc_active);
     if (uc_active) {
-        return(PHYMOD_E_NONE);
+        return(SOC_E_NONE);
     }
 
+#if 0
     /* Propgram shim fifo threshold for USXGMII mode */
     if (PHYMOD_ACC_F_USXMODE_GET(&core->access)) {
         PHYMOD_IF_ERR_RETURN(qmod16_usgmii_shim_fifo_threshold_set(&core_copy.access));
