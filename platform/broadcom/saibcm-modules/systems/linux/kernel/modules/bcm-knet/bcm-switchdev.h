@@ -1211,6 +1211,45 @@ typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
 #define BCMI_TSCE16_XGXS_PMD_X4_CTLr (0x0000c010 | PHYMOD_REG_ACC_TSC_IBLK) 
 #define BCMI_TSCE16_XGXS_PMD_X4_CTLr_SIZE 4
 
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  MAIN_SETUP
+ * BLOCKS:   MAIN
+ * REGADDR:  0x9000
+ * DESC:     main control register
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     MASTER_PORT_NUM  Port that will control PMD core logic and PLL reset:0 : port 0 is master1 : port 1 is master2 : port 2 is master3 : port 3 is master
+ *     PLL_RESET_EN     Enable reseting PMD core logic and PLL by Speed control. The port that will reset the pll is selected by master_port_number
+ *     SINGLE_PORT_MODE Indicates QTC is in single port mode.  Used by AN logic to determine whether to reset the PLL after AN completes.If set, when AN completes, the PLL will be reset to operate consistent with the resolved AN speed.If not set, the PLL will not change once AN completes.
+ *     CL37_HIGH_VCO    Use 10G/12.5G VCO based speed for CL37 AN. By default 6.25G VCO based speed is used.This bit will also make the resolved speeds to use 10G/12.5G VCO when possible.00 - 6.25G VCO01 - 10G VCO10 - 12.5G VCO11 - reserved
+ *     REFCLK_SEL       Specifies refclk frequency
+ */
+#define BCMI_QTC_XGXS_MAIN_SETUPr (0x00109000 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_MAIN_SETUPr_SIZE 4
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  DIG_TOP_USER_CTL0
+ * BLOCKS:   DIG_COM
+ * REGADDR:  0xd0f4
+ * DEVAD:    1
+ * DESC:     TOP_USER_CONTROL_0
+ * RESETVAL: 0x271 (625)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     HEARTBEAT_COUNT_1US Heartbeat timer count in comclk cycles to create 1us heartbeat_1us period. It should be programmed to the nearest increment of 0.25Mhz value of the comclk frequency in Mhz.For example, for comclk of 125 Mhz, it should be programmed to 10'd500. For 156.25 Mhz comclk, it should be programmed to 10'd625 and similarly for any other comclk frequency.
+ *     CORE_DP_S_RSTB   Active Low Core Level Datapath Soft Reset. If asserted by writingto 1'b0 will reset datapath logic of all the lanes. This soft resetis equivalent to the hard reset input pin core_dp_h_rstb. Assertion of this
+ *     AFE_S_PLL_PWRDN  Active High PLL Power Down control.
+ *     UC_ACTIVE        When set to 1'b1 then Hardware should wait for uC handshakes to wake up from datapath resetWhen set to 1'b0 then Hardware can internally assume that uc_ack_* = 1.
+ */
+#define BCMI_QTC_XGXS_DIG_TOP_USER_CTL0r (0x0001d0f4 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_DIG_TOP_USER_CTL0r_SIZE 4
+
 /*
  * This structure should be used to declare and program PMD_X1_CTL.
  */
@@ -1228,6 +1267,46 @@ typedef union BCMI_QTC_XGXS_PMD_X1_CTLr_s {
 #define PHYMOD_TSC_IBLK_MCAST01    4
 #define PHYMOD_TSC_IBLK_MCAST23    5
 #define PHYMOD_TSC_IBLK_BCAST      6
+
+
+typedef enum {
+    QMOD16REFCLK156MHZ          = 0x00000000 ,  /*!< 156p25MHz */
+    QMOD16REFCLK125MHZ          = 0x00000001 ,  /*!< 125MHz */
+    QMOD16REFCLKCOUNT           = 0x00000002   /*!<  */
+} qmod16_ref_clk_t;
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  TOP_USER_CTL0
+ * BLOCKS:   DIGCOM
+ * REGADDR:  0xd0f4
+ * DEVAD:    1
+ * DESC:     TOP_USER_CONTROL_0
+ * RESETVAL: 0x271 (625)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     HEARTBEAT_COUNT_1US Heartbeat timer count in comclk cycles to create 1us heartbeat_1us period. It should be programmed to the nearest increment of 0.25Mhz value of the comclk frequency in Mhz.For example, for comclk of 125 Mhz, it should be programmed to 10'd500. For 156.25 Mhz comclk, it should be programmed to 10'd625 and similarly for any other comclk frequency.
+ *     MASKDATA_BUS_ASSIGN This 2-bit register is used to assign the maskdata bus to any port .00: maskdata register is assigned to MDIO port01: maskdata register is assigned to PMI_HP port10: maskdata register is assigned to PMI_LP port11: maskdata register is not assigned to any port
+ *     CORE_DP_S_RSTB   Active Low Core Level Datapath Soft Reset. If asserted by writingto 1'b0 will reset datapath logic of all the lanes. This soft resetis equivalent to the hard reset input pin core_dp_h_rstb.Minimum assertion time is 50 comclk cycles.
+ *     AFE_S_PLL_PWRDN  Active High PLL Power Down control.Minimum assertion time is 50 comclk cycles.
+ *     UC_ACTIVE        When set to 1'b1 then Hardware should wait for uC handshakes to wake up from datapath resetWhen set to 1'b0 then Hardware can internally assume that uc_ack_* = 1.
+ */
+#define BCMI_QTC_XGXS_TOP_USER_CTL0r (0x0001d0f4 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_TOP_USER_CTL0r_SIZE 4
+
+
+/*****************************************************************************************/
+/*                           merlin16                                                    */
+/*****************************************************************************************/
+  
+typedef struct {
+    uint32_t ucode_size;
+    uint16_t stack_size;
+    uint16_t crc_value;
+} ucode_info_t;
+
+#define UCODE_MAX_SIZE  (64*1024 + 7168)    /* additional code that could be stored in data ram */
 
 /*****************************************************************************************/
 /*                           GPORT   BCM56370                                            */
