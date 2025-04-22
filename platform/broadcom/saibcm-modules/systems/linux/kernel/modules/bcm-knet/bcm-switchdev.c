@@ -339,9 +339,9 @@ _soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, ui
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
 
-    if (address == PMQPORT_WC_UCMEM_DATAm ) {
-    printk("_soc_mem_read addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
-    }
+   // if (address == PMQPORT_WC_UCMEM_DATAm ) {
+   // printk("_soc_mem_read addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
+   // }
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
@@ -440,11 +440,9 @@ _soc_mem_write(struct net_device *dev, uint32 address, int dst_blk, int size, ui
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
 
-    if (address == PMQPORT_WC_UCMEM_DATAm ) {
-    printk("_soc_mem_write addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
-    }
-
-
+    //if (address == PMQPORT_WC_UCMEM_DATAm ) {
+    //printk("_soc_mem_write addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
+    //}
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2 + size, 0, allow_intr);
     if (rv) {
@@ -4854,8 +4852,8 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
 
     _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
-    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
-          core_addr, reg_addr, val , data_mask, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+    //      core_addr, reg_addr, val , data_mask, blk_id, rv);
 
     return rv;
 }
@@ -4886,8 +4884,8 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
 
     *val = mem_data[reg_val_offset];
 
-    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
-            core_addr, reg_addr, *val, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+    //        core_addr, reg_addr, *val, blk_id, rv);
 
     return rv;
 }
@@ -4961,8 +4959,8 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
 
     //ioerr += PHYMOD_BUS_WRITE(pa, addr | (aer << 16), data);
     ioerr += pm4x10_qtc_default_bus_write(bcmsw, port, addr| (aer << 16), data);
-    printk("iblk_wr sbus port = %d aer=0x%x addr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
-            port, aer, addr, lane, ioerr, data);
+    //printk("iblk_wr sbus port = %d aer=0x%x addr=0x%x lm=0x%x rtn=%0d d=0x%x\n",
+    //        port, aer, addr, lane, ioerr, data);
     return ioerr;
 
 }
@@ -5070,8 +5068,8 @@ phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_
     /* If bus driver supports lane control, then we are done */
     //ioerr += PHYMOD_BUS_READ(pa, addr | (aer << 16), data);
     ioerr += pm4x10_qtc_default_bus_read(bcmsw, port, addr| (aer << 16), data);
-    printk("iblk_rd sbus aer=%x adr=%x lm=%0x rtn=%0d d=%x\n",
-            aer, addr, lane_map, ioerr, *data);
+    //printk("iblk_rd sbus aer=%x adr=%x lm=%0x rtn=%0d d=%x\n",
+    //        aer, addr, lane_map, ioerr, *data);
 
     return ioerr;
 }
@@ -5106,7 +5104,7 @@ int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16
     uint32_t  reg_setup;
     uint32_t  dig_top_user_reg;
 
-    MAIN_SETUPr_CLR(reg_setup);
+    //MAIN_SETUPr_CLR(reg_setup);
 
     //BCMI_QTC_XGXS_MAIN_SETUPr
     phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
@@ -5119,8 +5117,8 @@ int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16
         reg_setup = 0xe00040d0;
         dig_top_user_reg = 0x03ff01f4;
     } else if (refclk == QMOD16REFCLK156MHZ) {
-        MAIN_SETUPr_REFCLK_SELf_SET(reg_setup, main0_refClkSelect_clk_156p25MHz);
-        TOP_USER_CTL0r_HEARTBEAT_COUNT_1USf_SET(dig_top_user_reg, 0x271);
+        //MAIN_SETUPr_REFCLK_SELf_SET(reg_setup, main0_refClkSelect_clk_156p25MHz);
+        //TOP_USER_CTL0r_HEARTBEAT_COUNT_1USf_SET(dig_top_user_reg, 0x271);
         reg_setup = 0xe00060d0;
         dig_top_user_reg = 0x03ff0271;
     }else {
@@ -5130,6 +5128,11 @@ int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16
 
     phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, reg_setup);
     phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_TOP_USER_CTL0r, dig_top_user_reg);
+
+    //read back
+    //phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
+    //phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_TOP_USER_CTL0r, &dig_top_user_reg);
+    //printk("qmod16_refclk_set read back 0x%08x 0x%08x", reg_setup, dig_top_user_reg);
 
     return SOC_E_NONE;
 }
@@ -5190,7 +5193,7 @@ int merlin16_pmd_rdt_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uin
  * @param val  16bit value to be written
  * @return Error code generated by write function (returns ERR_CODE_NONE if no errors)
  */
-int merlin16_pmd_mwr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t addr, uint16_t mask, uint8_t lsb, uint16_t val)
+int merlin16_pmd_mwr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint16_t addr, uint16_t mask, uint8_t lsb, uint16_t val)
 {
     uint32_t mymask = (uint32_t)mask;
     //phymod_access_t sa_copy;    
@@ -5219,7 +5222,7 @@ int merlin16_pmd_mwr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uin
  * @param val Value to be written to the register
  * @return Error code generated by write function (returns ERR_CODE_NONE if no errors)
  */
-err_code_t merlin16_pmd_wr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t val)
+int merlin16_pmd_wr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t val)
 {
     uint32_t data = 0xffff & val;
     uint32_t error_code;
@@ -5236,6 +5239,7 @@ int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, u
     //#define rdc_uc_active() _merlin16_pmd_rde_field_byte(sa__, 0xd0f4,0,15,__ERR)
     merlin16_pmd_rdt_reg(bcmsw, port, lane_map, 0xd0f4, &data);
 
+    printk("merlin16_uc_active_get 0x%04x\n", data);
     *uc_active = data & 0x80; 
 
     return 0;
@@ -5247,22 +5251,24 @@ int merlin16_wait_uc_active(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map)
     uint16_t loop;
     uint32_t uc_active;
 
-    for (loop = 0; loop < 1000; loop++) {
+    for (loop = 0; loop < 100; loop++) {
         //ESTM(rddata = rdc_uc_active());
         merlin16_uc_active_get(bcmsw, port, lane_map, &uc_active);
         if (uc_active) {
+            printk("merlin16_wait_uc_active active after %d ms\n",loop);
             return (SOC_E_NONE);
         }
         if (loop>10) {
             //EFUN(USR_DELAY_US(1));
-            msleep(1);
+            msleep(100);
         }
     }
+    printk("merlin16_wait_uc_active failed after %d ms\n",loop);
     return (SOC_E_TIMEOUT);
 }
 
 
-err_code_t merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint8_t enable, ucode_info_t ucode_info) {
+int merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint8_t enable, ucode_info_t ucode_info) {
     if (enable) {
       /* Assert micro reset and reset all micro registers (all non-status registers written to default value) */
       //EFUN(wrc_micro_core_clk_en(0x0));                     /* Disable clock to M0 core */
@@ -5417,6 +5423,7 @@ int merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw_switch_t *bcmsw, int port, ui
       result = (val & 0x1) ? 1:0;
 
       if (result) {
+        printk("merlin16_INTERNAL_poll_micro_ra_initdone after %d ms\n", loop);
         return (SOC_E_NONE);
       }
       msleep(1);
@@ -7624,8 +7631,7 @@ static
 int _qtce16_core_firmware_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map)
 {
     //only support internal load
-    merlin16_ucode_mdio_load(bcmsw, port, lane_map, merlin16_ucode, merlin16_ucode_len);
-
+    return merlin16_ucode_mdio_load(bcmsw, port, lane_map, merlin16_ucode, merlin16_ucode_len);
 }
 
 // three qtce16 cores
