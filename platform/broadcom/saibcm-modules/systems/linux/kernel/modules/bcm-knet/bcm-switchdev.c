@@ -4852,8 +4852,8 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
 
     _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
-    //printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
-    //      core_addr, reg_addr, val , data_mask, blk_id, rv);
+    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+          core_addr, reg_addr, val , data_mask, blk_id, rv);
 
     return rv;
 }
@@ -4884,8 +4884,8 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
 
     *val = mem_data[reg_val_offset];
 
-    //printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
-    //        core_addr, reg_addr, *val, blk_id, rv);
+    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+            core_addr, reg_addr, *val, blk_id, rv);
 
     return rv;
 }
@@ -5154,7 +5154,7 @@ int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask )   
     //PHYMOD_IF_ERR_RETURN (MODIFY_PMD_X4_CTLr(pc, reg_pmd_x4_ctrl));
 
     uint32_t data;
-    data = 0x0; 
+    data = 0xc0030000; 
     phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_PMD_X4_CTLr, data);
 
     //PMD_X4_CTLr_CLR(reg_pmd_x4_ctrl);
@@ -5261,7 +5261,7 @@ int qmod16_pcs_lane_swap(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, in
     //    (MODIFY_MAIN_LN_SWPr(pc, reg)) ;
     //qmod_tsc_iblk_write(_pc,BCMI_QTC_XGXS_MAIN_LN_SWPr,(_r._main_ln_swp))
 
-    reg = 0xffffb1b1;
+    reg = 0xffffe4e4;
     phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_LN_SWPr, reg);
 
     return SOC_E_NONE ;
@@ -5343,20 +5343,21 @@ int merlin16_map_lanes(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint
     if (num_lanes > 4) { EFUN(wrc_tx_lane_addr_4(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_4(*(rx_lane_map++))); }
 #endif
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd150,0x001f,0,wr_val)
+    //
 
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x1f000100);
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x001f0001);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x1f000000);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x001f0000);
 
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x1f000000);
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x001f0000);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x1f000100);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x001f0001);
 
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x1f000300);
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x001f0003);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x1f000200);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x001f0002);
 
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x1f000200);
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x001f0002);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x1f000300);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x001f0003);
 
-    return (ERR_CODE_NONE);
+    return (SOC_E_NONE);
 }
 
 
@@ -5403,7 +5404,7 @@ int qtce16_core_lane_map_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask
 
     qmod16_pcs_lane_swap(bcmsw, port, lane_mask, pcs_tx_swap, pcs_rx_swap);
 
-    merlin16_map_lanes(bcmsw, port, lane_mask, pmd_tx_lane_map, pmd_rx_lane_map);
+    merlin16_map_lanes(bcmsw, port, lane_mask, num_lanes, pmd_tx_lane_map, pmd_rx_lane_map);
 
     return SOC_E_NONE;
 }
@@ -5578,7 +5579,7 @@ int merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_m
 
     }
    return (SOC_E_NONE);
-  }
+}
   
 /* Enable or Disable the uC reset */
 int merlin16_uc_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t enable) {
@@ -7755,7 +7756,7 @@ int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask
     /* To auto increment RAM write address */
     //EFUN(wrc_micro_autoinc_wraddr_en(0x1));               
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x1000,12,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x1000, 23, 0x1);   
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x1000, 12, 0x1);   
 
     /* Select 16bit transfers */
     //EFUN(wrc_micro_ra_wrdatasize(0x1));                   
@@ -7815,7 +7816,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
 {        
    uint32_t  lane_mask;
    int start_lane, num_lane;
-   uint32_t txlane_map, rxlane_map, index;
+   uint32_t txlane_map, rxlane_map, lane;
    phymod_lane_map_t lane_map;
    uint32_t  uc_active = 0;
    int i;
@@ -7851,6 +7852,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
         qmod16_pmd_x4_reset(bcmsw, port, lane_mask);
     }
 
+    lane_mask = 0x1;
 
     merlin16_uc_active_get(bcmsw, port, lane_mask,  &uc_active);
     printk("merlin16_uc_active_get %d\n",uc_active);
@@ -7882,7 +7884,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
                                      SOC_PM4X10_LANE_MASK;
     }
 
-    qtce16_core_lane_map_set(bcmsw, port, lane_mask, lane_map);
+    qtce16_core_lane_map_set(bcmsw, port, lane_mask, &lane_map);
 
     //PHYMOD_IF_ERR_RETURN
     //    (merlin16_uc_reset(&phy_access_copy.access, 1));
@@ -7959,6 +7961,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
         
     return PHYMOD_E_NONE;
 #endif      
+    return SOC_E_NONE;
 }
 
 static
