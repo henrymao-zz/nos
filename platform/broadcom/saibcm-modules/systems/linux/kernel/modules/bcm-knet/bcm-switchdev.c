@@ -4967,9 +4967,9 @@ _tsc_iblk_write_lane( bcmsw_switch_t *bcmsw, int port, uint32_t lane, uint32_t a
 
 
 int
-phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t data)
+phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t addr, uint32_t data)
 {
-    uint32_t hwlane, is_hwsupport = 1;
+    uint32_t lane_map, hwlane, is_hwsupport = 1;
 
     //hwlane = 0;
     if (addr & PHYMOD_REG_ACC_AER_IBLK_FORCE_LANE) {
@@ -4977,6 +4977,8 @@ phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32
         hwlane = (addr >> PHYMOD_REG_ACCESS_FLAGS_SHIFT) & 0x7;
         return _tsc_iblk_write_lane(bcmsw, port, hwlane, addr, data);
     }
+    //lane_map = PHYMOD_ACC_LANE_MASK(pa) & 0xffff;
+    lane_map = lane_mask;
     switch (lane_map) {
         case 0x0:
             hwlane = 0x0;
@@ -5020,13 +5022,13 @@ phymod_tsc_iblk_write(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32
 
 
 int
-phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t addr, uint32_t* data)
+phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t addr, uint32_t* data)
 {
     int ioerr = 0;
     uint32_t lane, is_hwsupport = 1;
     uint32_t devad = (addr >> 16) & 0xf;
     uint8_t pll_index = 0;
-    uint32_t aer;
+    uint32_t aer, lane_map;
 
     /* Do not attempt to read write-only registers */
     if (addr & PHYMOD_REG_ACC_TSC_IBLK_WR_ONLY) {
@@ -5041,6 +5043,7 @@ phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_
         /* Forcing lane overrides default behavior */
         lane = (addr >> PHYMOD_REG_ACCESS_FLAGS_SHIFT) & 0x7;
     } else {
+        lane_map = lane_mask; //lane_map = PHYMOD_ACC_LANE_MASK(pa);
         /* Use first lane in lane map by default */
         if (lane_map & 0x1) {
             lane = 0;
@@ -5069,14 +5072,14 @@ phymod_tsc_iblk_read(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_
     //ioerr += PHYMOD_BUS_READ(pa, addr | (aer << 16), data);
     ioerr += pm4x10_qtc_default_bus_read(bcmsw, port, addr| (aer << 16), data);
     //printk("iblk_rd sbus aer=%x adr=%x lm=%0x rtn=%0d d=%x\n",
-    //        aer, addr, lane_map, ioerr, *data);
+    //        aer, addr, lane_mask, ioerr, *data);
 
     return ioerr;
 }
 
 
 
-int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map) 
+int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask) 
 {
     //PMD_X1_CTLr_t reg_pmd_x1_ctrl;
 
@@ -5093,13 +5096,13 @@ int qmod16_pmd_reset_seq(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map)
     uint32_t data;
 
     data = 0x3;
-    phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_PMD_X1_CTLr,  data);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_PMD_X1_CTLr,  data);
 
 
     return SOC_E_NONE;
 }
 
-int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16_ref_clk_t refclk)
+int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmod16_ref_clk_t refclk)
 {
     uint32_t  reg_setup;
     uint32_t  dig_top_user_reg;
@@ -5107,8 +5110,8 @@ int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16
     //MAIN_SETUPr_CLR(reg_setup);
 
     //BCMI_QTC_XGXS_MAIN_SETUPr
-    phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
-    phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_TOP_USER_CTL0r, &dig_top_user_reg);
+    phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
+    phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_TOP_USER_CTL0r, &dig_top_user_reg);
     printk("qmod16_refclk_set read 0x%08x 0x%08x", reg_setup, dig_top_user_reg);
 
     if (refclk == QMOD16REFCLK125MHZ) {
@@ -5126,19 +5129,19 @@ int qmod16_refclk_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, qmod16
         return SOC_E_FAIL;
     }
 
-    phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, reg_setup);
-    phymod_tsc_iblk_write(bcmsw, port, lane_map,  BCMI_QTC_XGXS_TOP_USER_CTL0r, dig_top_user_reg);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, reg_setup);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_TOP_USER_CTL0r, dig_top_user_reg);
 
     //read back
-    //phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
-    //phymod_tsc_iblk_read(bcmsw, port, lane_map,  BCMI_QTC_XGXS_TOP_USER_CTL0r, &dig_top_user_reg);
+    //phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, &reg_setup);
+    //phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_TOP_USER_CTL0r, &dig_top_user_reg);
     //printk("qmod16_refclk_set read back 0x%08x 0x%08x", reg_setup, dig_top_user_reg);
 
     return SOC_E_NONE;
 }
 
 
-int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map )              /* PMD_X4_RESET */
+int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask )              /* PMD_X4_RESET */
 {
     //PMD_X4_CTLr_t reg_pmd_x4_ctrl;
 
@@ -5152,7 +5155,7 @@ int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map )    
 
     uint32_t data;
     data = 0x0; 
-    phymod_tsc_iblk_write(bcmsw, port, lane_map,BCMI_TSCE16_XGXS_PMD_X4_CTLr, data);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_PMD_X4_CTLr, data);
 
     //PMD_X4_CTLr_CLR(reg_pmd_x4_ctrl);
     //PMD_X4_CTLr_LN_RX_H_RSTBf_SET(reg_pmd_x4_ctrl,1);
@@ -5162,15 +5165,15 @@ int qmod16_pmd_x4_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map )    
     //PHYMOD_IF_ERR_RETURN (MODIFY_PMD_X4_CTLr(pc, reg_pmd_x4_ctrl));
   
     data = 0xc003c003;
-    phymod_tsc_iblk_write(bcmsw, port, lane_map, BCMI_TSCE16_XGXS_PMD_X4_CTLr,data);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, BCMI_TSCE16_XGXS_PMD_X4_CTLr,data);
 
     return SOC_E_NONE;
 }
 
-int merlin16_pmd_rdt_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t *val)
+int merlin16_pmd_rdt_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint16_t address, uint16_t *val)
 {
     uint32_t data;
-    phymod_tsc_iblk_read(bcmsw, port, lane_map, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), &data);
+    phymod_tsc_iblk_read(bcmsw, port, lane_mask, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), &data);
     //phymod_tsc_iblk_read(sa__, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), &data);
     data = data & 0xffff; 
     *val = (uint16_t)data;
@@ -5222,22 +5225,195 @@ int merlin16_pmd_mwr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, ui
  * @param val Value to be written to the register
  * @return Error code generated by write function (returns ERR_CODE_NONE if no errors)
  */
-int merlin16_pmd_wr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint16_t address, uint16_t val)
+int merlin16_pmd_wr_reg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint16_t address, uint16_t val)
 {
     uint32_t data = 0xffff & val;
     uint32_t error_code;
-    error_code = phymod_tsc_iblk_write(bcmsw, port, lane_map, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), data);
+    error_code = phymod_tsc_iblk_write(bcmsw, port, lane_mask, (PHYMOD_REG_ACC_TSC_IBLK | 0x10000 | (uint32_t) address), data);
     if(error_code)
       return  SOC_E_UNAVAIL; 
     return  SOC_E_NONE; 
 }
 
-int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t *uc_active)
+
+
+int qmod16_pcs_lane_swap(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, int lane_tx_map, int lane_rx_map)
+{
+#if 0
+/*  unsigned int pcs_map;*/
+  MAIN_LN_SWPr_t reg;
+  QMOD16_DBG_IN_FUNC_INFO(pc) ;
+
+  MAIN_LN_SWPr_CLR(reg);
+
+  MAIN_LN_SWPr_LOG0_TO_PHY_TX_LNSWAP_SELf_SET(reg, (lane_tx_map >> 0)  & 0x3);
+  MAIN_LN_SWPr_LOG1_TO_PHY_TX_LNSWAP_SELf_SET(reg, (lane_tx_map >> 4)  & 0x3);
+  MAIN_LN_SWPr_LOG2_TO_PHY_TX_LNSWAP_SELf_SET(reg, (lane_tx_map >> 8)  & 0x3);
+  MAIN_LN_SWPr_LOG3_TO_PHY_TX_LNSWAP_SELf_SET(reg, (lane_tx_map >> 12)  & 0x3 );
+
+  MAIN_LN_SWPr_LOG0_TO_PHY_RX_LNSWAP_SELf_SET(reg, (lane_rx_map >> 0)  & 0x3);
+  MAIN_LN_SWPr_LOG1_TO_PHY_RX_LNSWAP_SELf_SET(reg, (lane_rx_map >> 4)  & 0x3);
+  MAIN_LN_SWPr_LOG2_TO_PHY_RX_LNSWAP_SELf_SET(reg, (lane_rx_map >> 8)  & 0x3);
+  MAIN_LN_SWPr_LOG3_TO_PHY_RX_LNSWAP_SELf_SET(reg, (lane_rx_map >> 12)  & 0x3 );
+#endif
+    uint32_t reg;
+    //PHYMOD_IF_ERR_RETURN
+    //    (MODIFY_MAIN_LN_SWPr(pc, reg)) ;
+    //qmod_tsc_iblk_write(_pc,BCMI_QTC_XGXS_MAIN_LN_SWPr,(_r._main_ln_swp))
+
+    reg = 0xffffb1b1;
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_LN_SWPr, reg);
+
+    return SOC_E_NONE ;
+}
+
+
+/******************/
+/*  Lane Mapping  */
+/******************/
+
+int merlin16_map_lanes(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t num_lanes, uint8_t const *tx_lane_map, uint8_t const *rx_lane_map) 
+{
+#if 0
+    uint8_t rd_val = 0;
+
+    /* Verify that the core data path is held in reset. */
+    ESTM(rd_val = rdc_core_dp_s_rstb());
+    if (rd_val != 0) {
+        EFUN_PRINTF(("ERROR: core data path reset is not de-asserted\n"));
+        return (ERR_CODE_UC_NOT_RESET);
+    }
+
+    /* Verify that all micros are held in reset. */
+
+    ESTM(rd_val = rdc_micro_core_rstb());
+    if (rd_val != 0) {
+        return (ERR_CODE_UC_NOT_RESET);
+    }
+
+    /* Verify that the num_lanes parameter is correct. */
+    ESTM(rd_val = rdc_revid_multiplicity());
+    if (rd_val != num_lanes) {
+        return (ERR_CODE_BAD_LANE_COUNT);
+    }
+
+    /* Verify that tx_lane_map and rx_lane_map are valid. */
+    {
+        uint8_t index1, index2;
+        /*uint8_t lp_message_printed = 0;*/
+        for (index1=0; index1<num_lanes; ++index1) {
+
+            /* Verify that a lane map is not to an invalid lane. */
+            if ((tx_lane_map[index1] >= num_lanes)
+                || (rx_lane_map[index1] >= num_lanes)){
+                return (ERR_CODE_BAD_LANE);
+            }
+#if 0
+            /* Warn if an RX lane mapping is not the same as TX. */
+            if ((tx_lane_map[index1] != rx_lane_map[index1])
+                && !lp_message_printed) {
+                ESTM_PRINTF(("Warning:  In core %d, TX lane %d is mapped to %d, while RX lane %d is mapped to %d.\n          Digital and remote loopback will not operate as expected.\n          Further warnings are suppressed.\n", merlin16_get_core(sa__), index1, tx_lane_map[index1], index1, rx_lane_map[index1]));
+                lp_message_printed = 1;
+            }
+#endif
+
+            /* Verify that a lane map is not used twice. */
+            for (index2=index1+1; index2<num_lanes; ++index2) {
+                if ((tx_lane_map[index1] == tx_lane_map[index2])
+                    || (rx_lane_map[index1] == rx_lane_map[index2])) {
+                    return (ERR_CODE_BAD_LANE);
+                }
+            }
+        }
+    }
+
+    /* Write the map bitfields.
+     * Support up to 8 lanes.
+     */
+
+    EFUN(wrc_tx_lane_addr_0(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_0(*(rx_lane_map++)));
+    // /_merlin16_pmd_mwr_reg_byte(sa__, 0xd150,0x001f,0,wr_val)
+
+    if (num_lanes > 1) { EFUN(wrc_tx_lane_addr_1(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_1(*(rx_lane_map++))); }
+
+    if (num_lanes > 2) { EFUN(wrc_tx_lane_addr_2(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_2(*(rx_lane_map++))); }
+
+    if (num_lanes > 3) { EFUN(wrc_tx_lane_addr_3(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_3(*(rx_lane_map++))); }
+
+    if (num_lanes > 4) { EFUN(wrc_tx_lane_addr_4(*(tx_lane_map++))); EFUN(wrc_rx_lane_addr_4(*(rx_lane_map++))); }
+#endif
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd150,0x001f,0,wr_val)
+
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x1f000100);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d150,0x001f0001);
+
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x1f000000);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d151,0x001f0000);
+
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x1f000300);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d152,0x001f0003);
+
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x1f000200);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, 0x0800d153,0x001f0002);
+
+    return (ERR_CODE_NONE);
+}
+
+
+
+/* 
+ * set lane swapping for core 
+ * The tx swap is composed of tx PCS swap. 
+ * The rx swap is composed of rx PCS swap
+ *
+ * lane_map_tx and lane_map_rx[lane=logic_lane] are logic-lane base.
+ * pcs_swap and register is logic_lane base. 
+ */
+int qtce16_core_lane_map_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, const phymod_lane_map_t* lane_map)
+{        
+    uint32_t pcs_rx_swap = 0 , pcs_tx_swap = 0, lane;
+    uint8_t pmd_tx_lane_map[PHYMOD_MAX_LANES_PER_CORE];
+    uint8_t pmd_rx_lane_map[PHYMOD_MAX_LANES_PER_CORE];
+    uint8_t num_lanes = (uint8_t) lane_map->num_of_lanes;
+
+    if(lane_map->num_of_lanes != QTCE16_NOF_LANES_IN_CORE){
+        return SOC_E_CONFIG;
+    }
+    for( lane = 0 ; lane < QTCE16_NOF_LANES_IN_CORE ; lane++){
+        if(lane_map->lane_map_rx[lane] >= QTCE16_NOF_LANES_IN_CORE){
+            return SOC_E_CONFIG;
+        }
+        /* encode each lane as four bits */
+        /* pcs_rx_map[lane] = rx_map[lane] */
+        pcs_rx_swap += lane_map->lane_map_rx[lane]<<(lane*4);
+    }
+
+    for( lane = 0 ; lane < QTCE16_NOF_LANES_IN_CORE ; lane++){
+        if(lane_map->lane_map_tx[lane] >= QTCE16_NOF_LANES_IN_CORE){
+            return SOC_E_CONFIG;
+        }
+        pcs_tx_swap += lane_map->lane_map_tx[lane]<<(lane*4);
+    }
+
+    for (lane = 0; lane < QTCE16_NOF_LANES_IN_CORE; lane++) {
+        pmd_tx_lane_map[(int)lane_map->lane_map_tx[lane]] = lane;
+        pmd_rx_lane_map[(int)lane_map->lane_map_rx[lane]] = lane;
+    }
+
+
+    qmod16_pcs_lane_swap(bcmsw, port, lane_mask, pcs_tx_swap, pcs_rx_swap);
+
+    merlin16_map_lanes(bcmsw, port, lane_mask, pmd_tx_lane_map, pmd_rx_lane_map);
+
+    return SOC_E_NONE;
+}
+
+int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t *uc_active)
 {
     uint16_t data;
 
     //#define rdc_uc_active() _merlin16_pmd_rde_field_byte(sa__, 0xd0f4,0,15,__ERR)
-    merlin16_pmd_rdt_reg(bcmsw, port, lane_map, 0xd0f4, &data);
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask, 0xd0f4, &data);
 
     printk("merlin16_uc_active_get 0x%04x\n", data);
     *uc_active = data & 0x80; 
@@ -5246,14 +5422,14 @@ int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, u
 }
 
 /* Wait for uC to become active */
-int merlin16_wait_uc_active(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map) 
+int merlin16_wait_uc_active(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask) 
 {
     uint16_t loop;
     uint32_t uc_active;
 
     for (loop = 0; loop < 100; loop++) {
         //ESTM(rddata = rdc_uc_active());
-        merlin16_uc_active_get(bcmsw, port, lane_map, &uc_active);
+        merlin16_uc_active_get(bcmsw, port, lane_mask, &uc_active);
         if (uc_active) {
             printk("merlin16_wait_uc_active active after %d ms\n",loop);
             return (SOC_E_NONE);
@@ -5268,150 +5444,150 @@ int merlin16_wait_uc_active(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map)
 }
 
 
-int merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint8_t enable, ucode_info_t ucode_info) {
+int merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t enable, ucode_info_t ucode_info) {
     if (enable) {
       /* Assert micro reset and reset all micro registers (all non-status registers written to default value) */
       //EFUN(wrc_micro_core_clk_en(0x0));                     /* Disable clock to M0 core */
       //define wrc_micro_core_clk_en  _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0002,1,wr_val)
       //  -> merlin16_pmd_mwr_reg(sa__, addr, mask, lsb, (uint16_t) val));
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200, 0x0002, 1, 0x0);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200, 0x0002, 1, 0x0);
 
   
       //EFUN(wrc_micro_master_clk_en(0x0));                   /* Disable clock to microcontroller subsystem */
       //    -> _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0001,0,wr_val)
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200,0x0001, 0, 0x0);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200,0x0001, 0, 0x0);
 
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD200, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD200, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD200, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD201, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD201, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD201, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD202, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD202, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD202, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD204, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD204, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD204, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD205, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD205, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD205, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD206, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD206, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD206, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD207, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD207, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD207, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD208, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD208, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD208, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD209, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD209, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD209, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD20A, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD20A, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD20A, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD20B, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD20B, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD20B, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD20C, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD20C, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD20C, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD20D, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD20D, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD20D, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD20E, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD20E, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD20E, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD211, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD211, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD211, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD212, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD212, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD212, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD213, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD213, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD213, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD214, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD214, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD214, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD215, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD215, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD215, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD216, 0x0007));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD216, 0x0007);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD216, 0x0007);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD217, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD217, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD217, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD218, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD218, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD218, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD219, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD219, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD219, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD21A, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD21A, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD21A, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD21B, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD21B, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD21B, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD220, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD220, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD220, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD221, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD221, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD221, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD224, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD224, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD224, 0x0000);
   
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD225, 0x8301));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD225, 0x8301);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD225, 0x8301);
   
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD226, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD226, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD226, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD228, 0x0101));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD228, 0x0101);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD228, 0x0101);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD229, 0x0000));
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD229, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD229, 0x0000);
 
       //EFUN(merlin16_pmd_wr_reg(sa__, 0xD22A, 0x0000));  
-      merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xD22A, 0x0000);
+      merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xD22A, 0x0000);
     }
     else {
       /* De-assert micro reset - Start executing code */
       //EFUN(wrc_micro_master_clk_en (0x1));             /* Enable clock to microcontroller subsystem */
       //    -> _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0001,0,wr_val)
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200,0x0001, 0, 0x1);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200,0x0001, 0, 0x1);
 
       //EFUN(wrc_micro_master_rstb   (0x1));             /* De-assert reset to microcontroller sybsystem */
       // _merlin16_pmd_mwr_reg_byte(sa__, 0xd201,0x0001,0,wr_val)
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd201,0x0001, 0, 0x1);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0001, 0, 0x1);
   
       //EFUN(wrc_micro_core_clk_en   (0x1));            /* Enable clock to M0 core */
       //define wrc_micro_core_clk_en  _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0002,1,wr_val)
       //  -> merlin16_pmd_mwr_reg(sa__, addr, mask, lsb, (uint16_t) val));
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200, 0x0002, 1, 0x1);      
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200, 0x0002, 1, 0x1);      
 
       //EFUN(wrc_micro_core_rstb     (0x1));
       // _merlin16_pmd_mwr_reg_byte(sa__, 0xd201,0x0002,1,wr_val)
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd201,0x0002, 0, 0x1);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0002, 0, 0x1);
 
     }
    return (SOC_E_NONE);
   }
   
 /* Enable or Disable the uC reset */
-int merlin16_uc_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint8_t enable) {
+int merlin16_uc_reset(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t enable) {
     ucode_info_t ucode_info = {0};
-    return merlin16_uc_reset_with_info(bcmsw, port, lane_map, enable, ucode_info);
+    return merlin16_uc_reset_with_info(bcmsw, port, lane_mask, enable, ucode_info);
 }
 
 /* Poll for field "micro_ra_initdone" = 1 [Return Val => Error_code (0 = Polling Pass)] */
-int merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint32_t timeout_ms) {
+int merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t timeout_ms) {
     uint16_t loop;
     uint8_t  result;
     uint16_t val;
@@ -5419,7 +5595,7 @@ int merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw_switch_t *bcmsw, int port, ui
     for (loop = 0; loop <= timeout_ms; loop++) {
       //ESTM(result = rdc_micro_ra_initdone());
       // _merlin16_pmd_rde_field_byte(sa__, 0xd203,15,15,__ERR)
-      merlin16_pmd_rdt_reg(bcmsw, port, lane_map,0xd203, &val);
+      merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd203, &val);
       result = (val & 0x1) ? 1:0;
 
       if (result) {
@@ -7522,7 +7698,7 @@ unsigned char merlin16_ucode[MERLIN16_UCODE_IMAGE_SIZE] = {
 };
 
 /* uCode Load through Register (MDIO) Interface [Return Val = Error_Code (0 = PASS)] */
-int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map, uint8_t *ucode_image, uint32_t ucode_len) 
+int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t *ucode_image, uint32_t ucode_len) 
 {
     uint32_t   ucode_len_padded, count = 0;
     uint16_t   wrdata_lsw;
@@ -7539,39 +7715,39 @@ int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map,
     /* Enable clock to microcontroller subsystem */
     //EFUN(wrc_micro_master_clk_en(0x1));                   
     //    -> _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0001,0,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200,0x0001, 0, 0x1);
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200,0x0001, 0, 0x1);
 
     /* De-assert reset to microcontroller sybsystem */
     //EFUN(wrc_micro_master_rstb(0x1));        
     // _merlin16_pmd_mwr_reg_byte(sa__, 0xd201,0x0001,0,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd201,0x0001, 0, 0x1);            
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0001, 0, 0x1);            
 
     /* Assert reset to microcontroller sybsystem - Toggling reset*/
     //EFUN(wrc_micro_master_rstb(0x0));       
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd201,0x0001, 0, 0x0);                 
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0001, 0, 0x0);                 
 
     /* De-assert reset to microcontroller sybsystem */
     //EFUN(wrc_micro_master_rstb(0x1));            
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd201,0x0001, 0, 0x1);            
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0001, 0, 0x1);            
 
     /* Set initialization command to initialize code RAM */
     //EFUN(wrc_micro_ra_init(0x1));                         
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x0300,8,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x0300, 8, 0x1);      
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x0300, 8, 0x1);      
 
     /* Poll for micro_ra_initdone = 1 to indicate initialization done */
-    merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw, port, lane_map, 250); 
+    merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw, port, lane_mask, 250); 
 
      /* Write command for data RAM initialization */
     //EFUN(wrc_micro_ra_init(0x2));                        
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x0300, 8, 0x2);    
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x0300, 8, 0x2);    
 
     /* Poll status of data RAM initialization */
-    merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw, port, lane_map, 250); 
+    merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw, port, lane_mask, 250); 
 
     /* Clear initialization command */
     //EFUN(wrc_micro_ra_init(0x0));     
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x0300, 8, 0x0);                    
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x0300, 8, 0x0);                    
 
     ucode_len_padded = ((ucode_len + 3) & 0xFFFFFFFC);    /* Aligning ucode size to 4-byte boundary */
 
@@ -7579,22 +7755,22 @@ int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map,
     /* To auto increment RAM write address */
     //EFUN(wrc_micro_autoinc_wraddr_en(0x1));               
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x1000,12,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x1000, 23, 0x1);   
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x1000, 23, 0x1);   
 
     /* Select 16bit transfers */
     //EFUN(wrc_micro_ra_wrdatasize(0x1));                   
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x0003,0,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x0003, 0, 0x1);   
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x0003, 0, 0x1);   
 
     /* Upper 16bits of start address of Program RAM where the ucode is to be loaded */
     //EFUN(wrc_micro_ra_wraddr_msw(0x0));                   
     //wrc_micro_ra_wraddr_msw(wr_val)                         merlin16_pmd_wr_reg(sa__, 0xd205,wr_val)
-    merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xd205, 0x0);
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd205, 0x0);
 
     /* Lower 16bits of start address of Program RAM where the ucode is to be loaded */
     //EFUN(wrc_micro_ra_wraddr_lsw(0x0));              
     // merlin16_pmd_wr_reg(sa__, 0xd204,wr_val)     
-    merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xd204, 0x0);
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd204, 0x0);
 
     do {                                                  /* ucode_image loaded 16bits at a time */
         wrdata_lsb = (count < ucode_len) ? ucode_image[count] : 0x0; /* wrdata_lsb read from ucode_image; zero padded to 4byte boundary */
@@ -7606,19 +7782,19 @@ int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map,
          /* Program RAM lower 16bits write data */
         //EFUN(wrc_micro_ra_wrdata_lsw(wrdata_lsw));                  
         // merlin16_pmd_wr_reg(sa__, 0xd206,wr_val)
-        merlin16_pmd_wr_reg(bcmsw, port, lane_map, 0xd206, wrdata_lsw);
+        merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd206, wrdata_lsw);
     }   while (count < ucode_len_padded);                 /* Loop repeated till entire image loaded (upto the 4byte boundary) */
 
     /* Select 32bit transfers as default */
     //EFUN(wrc_micro_ra_wrdatasize(0x2));    
     //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x0003,0,wr_val)
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd202,0x0003, 0, 0x2); 
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202,0x0003, 0, 0x2); 
 
     /* Enable clock to M0 core */
     //EFUN(wrc_micro_core_clk_en(0x1));                     
     //define wrc_micro_core_clk_en  _merlin16_pmd_mwr_reg_byte(sa__, 0xd200,0x0002,1,wr_val)
     //  -> merlin16_pmd_mwr_reg(sa__, addr, mask, lsb, (uint16_t) val));
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_map, 0xd200, 0x0002, 1, 0x1);  
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd200, 0x0002, 1, 0x1);  
 
     /* EFUN(wrc_micro_core_rstb(0x1)); */                 /* De-assert reset to micro to start executing microcode */
     return (SOC_E_NONE);                               /* NO Errors while loading microcode (uCode Load PASS) */
@@ -7628,10 +7804,10 @@ int merlin16_ucode_mdio_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map,
 
 /* load qtce16 fw. the fw_loader parameter is valid just for external fw load */
 static
-int _qtce16_core_firmware_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_map)
+int _qtce16_core_firmware_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask)
 {
     //only support internal load
-    return merlin16_ucode_mdio_load(bcmsw, port, lane_map, merlin16_ucode, merlin16_ucode_len);
+    return merlin16_ucode_mdio_load(bcmsw, port, lane_mask, merlin16_ucode, merlin16_ucode_len);
 }
 
 // three qtce16 cores
@@ -7639,6 +7815,8 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
 {        
    uint32_t  lane_mask;
    int start_lane, num_lane;
+   uint32_t txlane_map, rxlane_map, index;
+   phymod_lane_map_t lane_map;
    uint32_t  uc_active = 0;
    int i;
 #if 0    
@@ -7692,6 +7870,19 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
   
     //PHYMOD_IF_ERR_RETURN
     //    (qtce16_core_lane_map_set(&core_copy, &init_config->lane_map));
+    //helix5_pm_port_lanemap_get(unit, phy_port, &txlane_map, &rxlane_map);
+    txlane_map = 0x3210;
+    rxlane_map = 0x3210;
+    lane_map.num_of_lanes = SOC_PM4X10_NUM_LANES;
+
+    for(lane = 0 ; lane < SOC_PM4X10_NUM_LANES; lane++) {
+        lane_map.lane_map_tx[lane] = (txlane_map >> (lane * SOC_PM4X10_NUM_LANES)) &
+                                     SOC_PM4X10_LANE_MASK;
+        lane_map.lane_map_rx[lane] = (rxlane_map >> (lane * SOC_PM4X10_NUM_LANES)) &
+                                     SOC_PM4X10_LANE_MASK;
+    }
+
+    qtce16_core_lane_map_set(bcmsw, port, lane_mask, lane_map);
 
     //PHYMOD_IF_ERR_RETURN
     //    (merlin16_uc_reset(&phy_access_copy.access, 1));

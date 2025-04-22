@@ -1170,6 +1170,7 @@ typedef uint32_t soc_reg_above_64_val_t[SOC_REG_ABOVE_64_MAX_SIZE_U32];
 #define PHYMOD_REG_ACC_TSC_IBLK_WR_ONLY    (1<<23)
 
 #define QTCE16_NOF_LANES_IN_CORE           4
+#define PHYMOD_MAX_LANES_PER_CORE          12
 
 /*******************************************************************************
  * CHIP:  BCMI_QTC_XGXS
@@ -1295,6 +1296,29 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_TOP_USER_CTL0r_SIZE 4
 
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  MAIN_LN_SWP
+ * BLOCKS:   MAIN
+ * REGADDR:  0x9001
+ * DESC:     Lane Swap Control Register
+ * RESETVAL: 0xe4e4 (58596)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     LOG0_TO_PHY_TX_LNSWAP_SEL TX Lane0 logical to physical swap selectTX LOGICAL to PHYSICAL lane mapping controlIndicates for TX LOGICAL lane 3 which PHYSICAL lane to send data to
+ *     LOG1_TO_PHY_TX_LNSWAP_SEL TX Lane1 logical to physical swap selectTX LOGICAL to PHYSICAL lane mapping controlIndicates for TX LOGICAL lane 3 which PHYSICAL lane to send data to
+ *     LOG2_TO_PHY_TX_LNSWAP_SEL TX Lane2 logical to physical swap selectTX LOGICAL to PHYSICAL lane mapping controlIndicates for TX LOGICAL lane 3 which PHYSICAL lane to send data to
+ *     LOG3_TO_PHY_TX_LNSWAP_SEL TX Lane3 logical to physical swap selectTX LOGICAL to PHYSICAL lane mapping controlIndicates for TX LOGICAL lane 3 which PHYSICAL lane to send data to
+ *     LOG0_TO_PHY_RX_LNSWAP_SEL RX Lane0 logical to physical swap selectRX LOGICAL to PHYSICAL lane mapping controlIndicates for RX LOGICAL lane 3 which PHYSICAL lane to source data from
+ *     LOG1_TO_PHY_RX_LNSWAP_SEL RX Lane1 logical to physical swap selectRX LOGICAL to PHYSICAL lane mapping controlIndicates for RX LOGICAL lane 3 which PHYSICAL lane to source data from
+ *     LOG2_TO_PHY_RX_LNSWAP_SEL RX Lane2 logical to physical swap selectRX LOGICAL to PHYSICAL lane mapping controlIndicates for RX LOGICAL lane 3 which PHYSICAL lane to source data from
+ *     LOG3_TO_PHY_RX_LNSWAP_SEL RX Lane3 logical to physical swap selectRX LOGICAL to PHYSICAL lane mapping controlIndicates for RX LOGICAL lane 3 which PHYSICAL lane to source data from
+ */
+#define BCMI_QTC_XGXS_MAIN_LN_SWPr (0x00109001 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_MAIN_LN_SWPr_SIZE 4
+
+
 
 /*****************************************************************************************/
 /*                           merlin16                                                    */
@@ -1307,6 +1331,15 @@ typedef struct {
 } ucode_info_t;
 
 #define UCODE_MAX_SIZE  (64*1024 + 7168)    /* additional code that could be stored in data ram */
+
+#define SOC_PM4X10_NUM_LANES    (4)
+#define SOC_PM4X10_LANE_MASK    (0xF)
+
+typedef struct phymod_lane_map_s {
+    uint32_t num_of_lanes; /**< Number of elements in lane_map_rx/tx arrays */
+    uint32_t lane_map_rx[PHYMOD_MAX_LANES_PER_CORE]; /**< lane_map_rx[x]=y means that rx lane x is mapped to rx lane y */
+    uint32_t lane_map_tx[PHYMOD_MAX_LANES_PER_CORE]; /**< lane_map_tx[x]=y means that tx lane x is mapped to tx lane y */
+} phymod_lane_map_t;
 
 /*****************************************************************************************/
 /*                           GPORT   BCM56370                                            */
