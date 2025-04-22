@@ -4852,8 +4852,8 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
 
     _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
-    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
-          core_addr, reg_addr, val , data_mask, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+    //      core_addr, reg_addr, val , data_mask, blk_id, rv);
 
     return rv;
 }
@@ -4884,8 +4884,8 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
 
     *val = mem_data[reg_val_offset];
 
-    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
-            core_addr, reg_addr, *val, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+    //        core_addr, reg_addr, *val, blk_id, rv);
 
     return rv;
 }
@@ -5416,8 +5416,8 @@ int merlin16_uc_active_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, 
     //#define rdc_uc_active() _merlin16_pmd_rde_field_byte(sa__, 0xd0f4,0,15,__ERR)
     merlin16_pmd_rdt_reg(bcmsw, port, lane_mask, 0xd0f4, &data);
 
-    printk("merlin16_uc_active_get 0x%04x\n", data);
-    *uc_active = data & 0x80; 
+    //printk("merlin16_uc_active_get 0x%04x\n", data);
+    *uc_active = data & 0x8000; 
 
     return 0;
 }
@@ -5575,7 +5575,7 @@ int merlin16_uc_reset_with_info(bcmsw_switch_t *bcmsw, int port, uint32_t lane_m
 
       //EFUN(wrc_micro_core_rstb     (0x1));
       // _merlin16_pmd_mwr_reg_byte(sa__, 0xd201,0x0002,1,wr_val)
-      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0002, 0, 0x1);
+      merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd201,0x0002, 1, 0x1);
 
     }
    return (SOC_E_NONE);
@@ -5600,7 +5600,7 @@ int merlin16_INTERNAL_poll_micro_ra_initdone(bcmsw_switch_t *bcmsw, int port, ui
       result = (val & 0x1) ? 1:0;
 
       if (result) {
-        printk("merlin16_INTERNAL_poll_micro_ra_initdone after %d ms\n", loop);
+        //printk("merlin16_INTERNAL_poll_micro_ra_initdone after %d ms\n", loop);
         return (SOC_E_NONE);
       }
       msleep(1);
@@ -7855,7 +7855,7 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
     lane_mask = 0x1;
 
     merlin16_uc_active_get(bcmsw, port, lane_mask,  &uc_active);
-    printk("merlin16_uc_active_get %d\n",uc_active);
+    //printk("merlin16_uc_active_get %d\n",uc_active);
     if (uc_active) {
         return(SOC_E_NONE);
     }
@@ -8180,6 +8180,7 @@ bcmi_esw_portctrl_probe_pbmp(bcmsw_switch_t *bcmsw)
 
         //_bcm_esw_portctrl_enable_set(unit, port, pport,PORTMOD_PORT_ENABLE_MAC, FALSE);
 
+        msleep(1);
     }
     return 0;
 }
