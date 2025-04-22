@@ -1318,7 +1318,94 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_MAIN_LN_SWPr_SIZE 4
 
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  CL37_RESTART
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9250
+ * DESC:     CL37 AUTO-NEG RESTART TIMER
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_RESTART_TIMER_PERIOD Period/range is 10 mssingle copyCL37 auto-neg restart timer. Timer for the amout of time to send restart pages.
+ */
+#define BCMI_QTC_XGXS_CL37_RESTARTr (0x00109250 | PHYMOD_REG_ACC_TSC_IBLK)
 
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  CL37_ACK
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9251
+ * DESC:     CL37 AUTO-NEG COMPLETE-ACKNOWLEDGE TIMER
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_ACK_TIMER_PERIOD Period/range is 10 mssingle copyCL37 auto-neg complete-acknowledge timer.  Timer for the amount of time to sent CL37 acknowledges.
+ */
+#define BCMI_QTC_XGXS_CL37_ACKr (0x00109251 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_CL37_ACKr_SIZE 4
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  SGMII_CL37_TMR_TYPE
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9254
+ * DESC:     CL37 SGMII TIMER
+ * RESETVAL: 0x6b (107)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     SGMII_TIMER      This timer is used in CL37 for all SGMII time related functions such as link timer, send timer, ...
+ */
+#define BCMI_QTC_XGXS_SGMII_CL37_TMR_TYPEr (0x00109254 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_SGMII_CL37_TMR_TYPEr_SIZE 4
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  LNK_UP_TYPE
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9255
+ * DESC:     CL37 Link up timer
+ * RESETVAL: 0x6b (107)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     LINK_UP_TIMER_PERIOD Period/range is 100 tosingle copyCL37 link-up timer.  Timer for the amount of time for the link to come up (after page exchange is done).
+ */
+#define BCMI_QTC_XGXS_LNK_UP_TYPEr (0x00109255 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_LNK_UP_TYPEr_SIZE 4
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  IGNORE_LNK_TMR_TYPE
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9256
+ * DESC:     CL37 Ignore Link timer
+ * RESETVAL: 0x1 (1)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     IGNORE_LINK_TIMER_PERIOD Period/range is 100 tosingle copyThis is Not USED IN CL37 but good to have it for debugging purpose (if Link up takes time)
+ */
+#define BCMI_QTC_XGXS_IGNORE_LNK_TMR_TYPEr (0x00109256 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_IGNORE_LNK_TMR_TYPEr_SIZE 4
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  LNK_FAIL_INHBT_TMR_NOT_CL72_TYPE
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9257
+ * DESC:     CL37 nCL72 timer
+ * RESETVAL: 0xffff (65535)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     LINK_FAIL_INHIBIT_TIMER_NCL72_PERIOD Period/range is 100 tosingle copyTimer for qualifying a link_status==FAIL indication or a link_status==OK indication. This is Not USED IN CL37 but good to have it for debugging purpose (if Link up takes time)
+ */
+#define BCMI_QTC_XGXS_LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr (0x00109257 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr_SIZE 4
 
 /*****************************************************************************************/
 /*                           merlin16                                                    */
@@ -1340,6 +1427,110 @@ typedef struct phymod_lane_map_s {
     uint32_t lane_map_rx[PHYMOD_MAX_LANES_PER_CORE]; /**< lane_map_rx[x]=y means that rx lane x is mapped to rx lane y */
     uint32_t lane_map_tx[PHYMOD_MAX_LANES_PER_CORE]; /**< lane_map_tx[x]=y means that tx lane x is mapped to tx lane y */
 } phymod_lane_map_t;
+
+
+/** Base of core variable block, MERLIN16 variant. */
+#define CORE_VAR_RAM_BASE (0x400)
+/** Base of lane variable block, MERLIN16 variant. */
+#define LANE_VAR_RAM_BASE (0x500)
+/** Size of lane variable block, MERLIN16 variant. */
+#define LANE_VAR_RAM_SIZE (0x100)
+
+/* returns 000111 (7 = 8-1), for n = 3  */
+#define BFMASK(n) ((1<<((n)))-1)
+#define MHZ_TO_VCO_RATE(mhz) ((uint8_t)((((uint16_t)(mhz) + 125) / 250) - 22))
+#define VCO_RATE_TO_MHZ(vco_rate) (((uint16_t)(vco_rate) + 22) * 250)
+
+/** Core Config Variable Structure in Microcode */
+struct merlin16_uc_core_config_field_st {
+    uint8_t  core_cfg_from_pcs ;
+    uint8_t  vco_rate          ;
+    uint8_t  an_los_workaround ;
+    uint8_t  reserved1         ;
+    uint8_t  reserved2         ;
+};
+  
+/** Lane Config Struct */
+struct  merlin16_uc_lane_config_st {
+    struct merlin16_uc_lane_config_field_st field;
+    uint16_t word;
+};
+  
+/** Core Config Struct */
+struct  merlin16_uc_core_config_st {
+    struct merlin16_uc_core_config_field_st field;
+    uint16_t word;
+    int vco_rate_in_Mhz; /* if >0 then will get converted and replace field.vco_rate when update is called */
+};
+
+
+
+enum merlin16_pll_refclk_enum {
+    MERLIN16_PLL_REFCLK_UNKNOWN = 0, /* Refclk value to be determined by API. */
+    MERLIN16_PLL_REFCLK_50MHZ          = 0x00100032UL, /* 50 MHz          */
+    MERLIN16_PLL_REFCLK_125MHZ         = 0x0010007DUL, /* 125 MHz         */
+    MERLIN16_PLL_REFCLK_156P25MHZ      = 0x00400271UL, /* 156.25 MHz      */
+    MERLIN16_PLL_REFCLK_161P1328125MHZ = 0x08005091UL  /* 161.1328125 MHz */
+    };
+
+
+enum merlin16_pll_div_enum {
+    MERLIN16_PLL_DIV_UNKNOWN = 0, /* Divide value to be determined by API. */
+    MERLIN16_PLL_DIV_52P751515  = (int)0xC0634034, /* Divide by 52.751515  */
+    MERLIN16_PLL_DIV_54P4       = (int)0x66668036, /* Divide by 54.4       */
+    MERLIN16_PLL_DIV_58P181818  = (int)0x2E8BC03A, /* Divide by 58.181818  */
+    MERLIN16_PLL_DIV_60         = (int)0x0000003C, /* Divide by 60         */
+    MERLIN16_PLL_DIV_62P060606  = (int)0x0F84003E, /* Divide by 62.060606  */
+    MERLIN16_PLL_DIV_64         = (int)0x00000040, /* Divide by 64         */
+    MERLIN16_PLL_DIV_66         = (int)0x00000042, /* Divide by 66         */
+    MERLIN16_PLL_DIV_66P460703  = (int)0x75F0C042, /* Divide by 66.460703  */
+    MERLIN16_PLL_DIV_66P743079  = (int)0xBE3A8042, /* Divide by 66.743079  */
+    MERLIN16_PLL_DIV_67P878788  = (int)0xE0F84043, /* Divide by 67.878788  */
+    MERLIN16_PLL_DIV_68         = (int)0x00000044, /* Divide by 68         */
+    MERLIN16_PLL_DIV_68P537598  = (int)0x89A00044, /* Divide by 68.537598  */
+    MERLIN16_PLL_DIV_68P570764  = (int)0x921D8044, /* Divide by 68.570764  */
+    MERLIN16_PLL_DIV_68P828796  = (int)0xD42C0044, /* Divide by 68.828796  */
+    MERLIN16_PLL_DIV_68P856242  = (int)0xDB32C044, /* Divide by 68.856242  */
+    MERLIN16_PLL_DIV_69P152458  = (int)0x27078045, /* Divide by 69.152458  */
+    MERLIN16_PLL_DIV_69P389964  = (int)0x63D4C045, /* Divide by 69.389964  */
+    MERLIN16_PLL_DIV_69P818182  = (int)0xD1748045, /* Divide by 69.818182  */
+    MERLIN16_PLL_DIV_70         = (int)0x00000046, /* Divide by 70         */
+    MERLIN16_PLL_DIV_70P713596  = (int)0xB6AE4046, /* Divide by 70.713596  */
+    MERLIN16_PLL_DIV_71P008     = (int)0x020C4047, /* Divide by 71.008     */
+    MERLIN16_PLL_DIV_71P112952  = (int)0x1CEA8047, /* Divide by 71.P112952 */
+    MERLIN16_PLL_DIV_71P31347   = (int)0x503F8047, /* Divide by 71.31347   */
+    MERLIN16_PLL_DIV_71P5584    = (int)0x8EF34047, /* Divide by 71.5584    */
+    MERLIN16_PLL_DIV_72         = (int)0x00000048, /* Divide by 72         */
+    MERLIN16_PLL_DIV_73P335232  = (int)0x55D1C049, /* Divide by 73.335232  */
+    MERLIN16_PLL_DIV_73P6       = (int)0x9999C049, /* Divide by 73.6       */
+    MERLIN16_PLL_DIV_75         = (int)0x0000004B, /* Divide by 75         */
+    MERLIN16_PLL_DIV_80         = (int)0x00000050, /* Divide by 80         */
+    MERLIN16_PLL_DIV_82P5       = (int)0x80000052, /* Divide by 82.5       */
+    MERLIN16_PLL_DIV_85P671997  = (int)0xAC080055, /* Divide by 85.671997  */
+    MERLIN16_PLL_DIV_86P036     = (int)0x09374056, /* Divide by 86.036     */
+    MERLIN16_PLL_DIV_87P5       = (int)0x80000057, /* Divide by 87.5       */
+    MERLIN16_PLL_DIV_88P392     = (int)0x645A4058, /* Divide by 88.392     */
+    MERLIN16_PLL_DIV_88P76      = (int)0xC28F8058, /* Divide by 88.76      */
+    MERLIN16_PLL_DIV_89P141838  = (int)0x244F8059, /* Divide by 89.141838  */
+    MERLIN16_PLL_DIV_89P447998  = (int)0x72B00059, /* Divide by 89.447998  */
+    MERLIN16_PLL_DIV_90         = (int)0x0000005A, /* Divide by 90         */
+    MERLIN16_PLL_DIV_91P669037  = (int)0xAB46005B, /* Divide by 91.669037  */
+    MERLIN16_PLL_DIV_92         = (int)0x0000005C, /* Divide by 92         */
+    MERLIN16_PLL_DIV_100        = (int)0x00000064, /* Divide by 100        */
+    MERLIN16_PLL_DIV_170        = (int)0x000000AA, /* Divide by 170        */
+    MERLIN16_PLL_DIV_187P5      = (int)0x800000BB, /* Divide by 187.5      */
+    MERLIN16_PLL_DIV_200        = (int)0x000000C8, /* Divide by 200        */
+    MERLIN16_PLL_DIV_206P25     = (int)0x400000CE  /* Divide by 206.25     */
+};
+
+/** PLL Configuration Options Enum */
+enum merlin16_pll_option_enum {
+    MERLIN16_PLL_OPTION_NONE,
+    MERLIN16_PLL_OPTION_REFCLK_DOUBLER_EN,
+    MERLIN16_PLL_OPTION_REFCLK_DIV2_EN,
+    MERLIN16_PLL_OPTION_REFCLK_DIV4_EN,
+    MERLIN16_PLL_OPTION_DISABLE_VERIFY
+};
 
 /*****************************************************************************************/
 /*                           GPORT   BCM56370                                            */

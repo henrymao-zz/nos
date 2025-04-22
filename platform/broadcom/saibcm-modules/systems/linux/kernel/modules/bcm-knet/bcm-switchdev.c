@@ -7810,6 +7810,449 @@ int _qtce16_core_firmware_load(bcmsw_switch_t *bcmsw, int port, uint32_t lane_ma
     //only support internal load
     return merlin16_ucode_mdio_load(bcmsw, port, lane_mask, merlin16_ucode, merlin16_ucode_len);
 }
+/* word to fields, for display */
+int merlin16_INTERNAL_update_uc_core_config_st(struct merlin16_uc_core_config_st *st) {
+    uint16_t in = st->word;
+    st->field.core_cfg_from_pcs = in & BFMASK(1); in >>= 1;
+    st->field.vco_rate = in & BFMASK(5); in >>= 5;
+    st->field.an_los_workaround = in & BFMASK(1); in >>= 1;
+    st->field.reserved1 = in & BFMASK(1); in >>= 1;
+    st->field.reserved2 = in & BFMASK(8);
+    st->vco_rate_in_Mhz = VCO_RATE_TO_MHZ(st->field.vco_rate);
+    return SOC_E_NONE;
+}
+
+/* fields to word, to write into uC RAM */
+int merlin16_INTERNAL_update_uc_core_config_word(struct merlin16_uc_core_config_st *st) {
+    uint16_t in = 0;
+    in <<= 8; in |= 0/*st->field.reserved2*/ & BFMASK(8);
+    in <<= 1; in |= 0/*st->field.reserved1*/ & BFMASK(1);
+    in <<= 1; in |= st->field.an_los_workaround & BFMASK(1);
+    in <<= 5; in |= st->field.vco_rate & BFMASK(5);
+    in <<= 1; in |= st->field.core_cfg_from_pcs & BFMASK(1);
+    st->word = in;
+    return SOC_E_NONE;
+}
+
+/* Micro RAM Word Read */
+int merlin16_rdw_uc_ram(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint16_t addr, uint16_t *val) 
+{
+
+    //EPFUN(wrc_micro_autoinc_rdaddr_en(0));
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x2000,13,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x2000, 13, 0x0);
+
+    /* Select 16bit read datasize */
+    //EPFUN(wrc_micro_ra_rddatasize(0x1));      
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x0030,4,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x0030, 4, 0x1);
+
+    /* Upper 16bits of RAM address to be read */
+    //EPFUN(wrc_micro_ra_rdaddr_msw(0x2000));     
+    //merlin16_pmd_wr_reg(sa__, 0xd209,wr_val)
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd209, 0x2000);
+
+    /* Lower 16bits of RAM address to be read */
+    //EPFUN(wrc_micro_ra_rdaddr_lsw(addr));    
+    //merlin16_pmd_wr_reg(sa__, 0xd208,wr_val)
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd208, addr);
+    
+     /* 16bit read data */
+    //EPSTM(rddata = rdc_micro_ra_rddata_lsw());      
+    // _merlin16_pmd_rde_reg(sa__, 0xd20a,__ERR)    
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask, 0xd20a, val);
+
+    return (SOC_E_NONE);
+ }
+
+ /* Micro RAM Word Write */
+int merlin16_wrw_uc_ram(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  uint16_t addr, uint16_t wr_val) {
+
+    //EFUN(wrc_micro_autoinc_wraddr_en(0));
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x2000, 13, 0x0);
+
+    /* Select 16bit write datasize */
+    //EFUN(wrc_micro_ra_wrdatasize(0x1));                 
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x0030, 4, 0x1);
+
+    /* Upper 16bits of RAM address to be written to */
+    //EFUN(wrc_micro_ra_wraddr_msw(0x2000));          
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd209, 0x2000);
+
+    /* Lower 16bits of RAM address to be written to */
+    //EFUN(wrc_micro_ra_wraddr_lsw(addr));              
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd208, addr);
+
+     /* uC RAM lower 16bits write data */
+    //EFUN(wrc_micro_ra_wrdata_lsw(wr_val));
+    //merlin16_pmd_wr_reg(sa__, 0xd206,wr_val)
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd206, wr_val);
+
+    return (SOC_E_NONE);
+}
+
+  
+/* Micro RAM Core Word Read */
+int merlin16_rdwc_uc_var(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t addr, uint16_t *val) 
+{
+    uint16_t rddata;
+    uint16_t core_addr_offset;
+
+    if (addr%2 != 0) { /* Validate even address */
+        return (SOC_E_PARAM);
+    }
+
+    core_addr_offset = CORE_VAR_RAM_BASE + addr;
+  
+    merlin16_rdw_uc_ram(bcmsw, port, lane_mask, core_addr_offset, &rddata);    /* Use Micro register interface for reading RAM */
+    *val = rddata;
+    return SOC_E_NONE;
+}
+/* Micro RAM Core Word Write  */
+int merlin16_wrwc_uc_var(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint8_t addr, uint16_t wr_val) 
+{
+    uint16_t core_addr_offset;
+
+    if (addr%2 != 0) {       /* Validate even address */
+        return (SOC_E_PARAM);
+    }
+
+    core_addr_offset = CORE_VAR_RAM_BASE + addr;
+
+    /* Use Micro register interface for writing RAM */
+    return (merlin16_wrw_uc_ram(bcmsw, port, lane_mask, core_addr_offset, wr_val));             
+}
+
+
+int merlin16_get_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, struct merlin16_uc_core_config_st *get_val)
+{
+      
+     if(!get_val) {
+         return SOC_E_PARAM;
+     }
+     //ESTM(get_val->word = rdcv_config_word());
+     // define rdcv_config_word  merlin16_rdwc_uc_var(sa__,__ERR,0x0)
+     merlin16_rdwc_uc_var(bcmsw, port, lane_mask, 0x0, &get_val->word);
+
+     merlin16_INTERNAL_update_uc_core_config_st(get_val);
+
+     return SOC_E_NONE;
+} 
+
+/*-----------------------------------------*/
+/*  Write Core Config variables to uC RAM  */
+/*-----------------------------------------*/
+
+int merlin16_INTERNAL_set_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, struct merlin16_uc_core_config_st struct_val) 
+{
+    uint8_t reset_state;
+    //ESTM(reset_state = rdc_core_dp_reset_state());
+    //merlin16_pmd_rde_field_byte(sa__, 0xd0f8,13,13,__ERR)
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0f8, &val);
+    reset_state = val & 0x7; 
+
+    if(reset_state < 7) {
+        printk("ERROR: merlin16_INTERNAL_set_uc_core_config(..) called without core_dp_s_rstb=0\n");
+        return SOC_E_INTERNAL;
+    }
+
+    if(struct_val.vco_rate_in_Mhz > 0) {
+        struct_val.field.vco_rate = MHZ_TO_VCO_RATE(struct_val.vco_rate_in_Mhz);
+    }
+    merlin16_INTERNAL_update_uc_core_config_word(&struct_val);
+
+    //EFUN(wrcv_config_word(struct_val.word));
+    // ->merlin16_wrwc_uc_var(sa__,0x0,wr_val)
+    merlin16_wrwc_uc_var(bcmsw, port, lane_mask, 0x0, struct_val.word);
+
+    return (ERR_CODE_NONE);
+}
+
+int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, 
+                                         enum merlin16_pll_refclk_enum refclk,
+                                         enum merlin16_pll_div_enum div,
+                                         uint32_t vco_freq_khz,
+                                         enum merlin16_pll_option_enum pll_option) 
+{
+    uint32_t refclk_freq_hz;
+    uint16_t val;
+
+    //EFUN(merlin16_INTERNAL_resolve_pll_parameters(refclk, &refclk_freq_hz, &div, &vco_freq_khz, MERLIN16_PLL_OPTION_NONE));
+
+    /* Use this to restore defaults if reprogramming the PLL under dp-reset (typically Auto-Neg FW) - Need this for DUAL_PLL (see F16) */
+    /* EFUN(wrc_ams_pll_i_ndiv_int(0x42));                   */
+    /* EFUN(wrc_ams_pll_i_ndiv_frac_h(_ndiv_frac_h(0x0)));   */
+    /* EFUN(wrc_ams_pll_i_ndiv_frac_l(_ndiv_frac_l(0x0)));   */
+    /* EFUN(wrc_ams_pll_i_pll_frac_mode(0x2));               */
+
+    {
+        uint8_t  reset_state;
+        uint16_t val;
+        /* Use core_s_rstb to re-initialize all registers to default before calling this function. */
+        //ESTM(reset_state = rdc_core_dp_reset_state());
+        //_merlin16_pmd_rde_field_byte(sa__, 0xd0f8,13,13,__ERR)
+        merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0f8, &val);
+        reset_state = val & 0x7; 
+    
+        if(reset_state < 7) {
+            printk("ERROR: merlin16_configure_pll(..) called without core_dp_s_rstb=0\n");
+            return SOC_E_INTERNAL;
+        }
+    }
+
+    /* Clear PLL powerdown */
+    //EFUN(wrc_ams_pll_pwrdn(0));
+    // -> _merlin16_pmd_mwr_reg_byte(sa__, 0xd0b5,0x0080,7,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b5, 0x0080, 7, 0x0);  
+
+    //EFUN(wrc_ams_pll_i_ndiv_int(SRDS_INTERNAL_GET_PLL_DIV_INTEGER(div)));
+    //merlin16_pmd_mwr_reg(sa__, 0xd0b8,0x03ff,0,wr_val) 
+    // div is 0x40
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b8, 0x03ff, 0, (div & 0xFFF));  
+
+    {
+        //const uint32_t pll_fraction_num = SRDS_INTERNAL_GET_PLL_DIV_FRACTION_NUM(div, pll_fraction_width);
+        const uint32_t pll_fraction_num = 0;
+        const uint8_t  frac_mode_en = (pll_fraction_num != 0);
+
+        //EFUN(wrc_ams_pll_i_ndiv_frac_h   (_ndiv_frac_h(pll_fraction_num)));
+        // ->merlin16_pmd_mwr_reg(sa__, 0xd0b7,0x3fff,0,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b7, 0x3fff, 0, (pll_fraction_num>>4));
+
+        //EFUN(wrc_ams_pll_i_ndiv_frac_l   (_ndiv_frac_l(pll_fraction_num)));
+        // ->_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b6,0xf000,12,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b6, 0xf000, 12, (pll_fraction_num>>4));
+
+        //EFUN(wrc_ams_pll_sel_fp3cap      ((frac_mode_en) ? 0xF : 0x0));
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b9,0x0078,3,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b9, 0x0078, 3, ((frac_mode_en) ? 0xF : 0x0));
+
+        //EFUN(wrc_ams_pll_i_pfd_offset    ((frac_mode_en) ? 0x2 : 0x0));
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b6,0x0c00,10,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b6, 0x0c00, 10, ((frac_mode_en) ? 0x2 : 0x0));
+
+        //EFUN(wrc_ams_pll_i_ndiv_dither_en((frac_mode_en && (refclk != MERLIN16_PLL_REFCLK_50MHZ)) ? 0x1 : 0x0));
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b8,0x8000,15,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b8, 0x8000, 15, 
+                            ((frac_mode_en && (refclk != MERLIN16_PLL_REFCLK_50MHZ)) ? 0x1 : 0x0));
+
+        //EFUN(wrc_ams_pll_en_8p5g         ((vco_freq_khz <= 9375000) ? 0x1 : 0x0)); /* pll_ctrl<36> */
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b2,0x0010,4,wr_val)  : vco_freq_khz> 937500
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b2, 0x0010, 4, ((vco_freq_khz <= 9375000) ? 0x1 : 0x0));
+
+        //EFUN(wrc_ams_pll_en_8p5g_vco     ((vco_freq_khz <= 9375000) ? 0x1 : 0x0)); /* pll_ctrl<21> */
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b1,0x0020,5,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x0020, 5, ((vco_freq_khz <= 9375000) ? 0x1 : 0x0));
+
+        //EFUN(wrc_ams_pll_en_hcur_vco     (0x1));  /* pll_ctrl<31> */
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b1,0x8000,15,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x8000, 15, 0x1);
+
+        //EFUN(wrc_ams_pll_refclk_in_bias  (0x3F)); /* pll_ctrl<159:154> */
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0ba,0x003f,0,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0ba, 0x003f, 0, 0x3F);
+
+        //EFUN(wrc_ams_pll_vco_hkvco       ((vco_freq_khz <= 9375000) ? 0x1 : 0x0)); /* pll_ctrl<71>, now called VCO_HKVCO */
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b4,0x0080,7,wr_val)
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b4, 0x0080, 7, ((vco_freq_khz <= 9375000) ? 0x1 : 0x0));
+
+        /* Handle refclk PLL options */
+        if (pll_option == MERLIN16_PLL_OPTION_REFCLK_DIV2_EN) {
+            //EFUN(wrc_ams_pll_refclk_div2_frc_val(1));
+            //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0be,0x0002,1,wr_val)
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0be, 0x0002, 1, 1);
+
+            //EFUN(wrc_ams_pll_refclk_div_frc(1));
+            //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0be,0x0004,2,wr_val)
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0be, 0x0004, 2, 1);
+        } else if (pll_option == MERLIN16_PLL_OPTION_REFCLK_DIV4_EN) {
+            //EFUN(wrc_ams_pll_refclk_div4_frc_val(1));
+            //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0be,0x0001,0,wr_val)
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0be, 0x0001, 0, 1);
+
+            //EFUN(wrc_ams_pll_refclk_div_frc(1));
+            //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0be,0x0004,2,wr_val)
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0be, 0x0004, 2, 1);
+        }
+
+        /* pll_ctrl<19:16> */
+        if (refclk == MERLIN16_PLL_REFCLK_161P1328125MHZ) {
+            if (vco_freq_khz < 9375000) {        
+                //EFUN(wrc_ams_pll_curr_sel(0x3));
+                //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b1,0x000f,0,wr_val)
+                merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x000f, 0, 0x3);
+            } else {
+               //EFUN(wrc_ams_pll_curr_sel(0x5));
+               merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x000f, 0, 0x5);
+            }
+        } else if (frac_mode_en) {
+            //EFUN(wrc_ams_pll_curr_sel(0x3));
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x000f, 0, 0x3);
+        } else {
+            //EFUN(wrc_ams_pll_curr_sel(0xD));
+            merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b1, 0x000f, 0, 0xD);
+        }                                   
+                
+        /* pll_ctrl<11:9> */
+        if (refclk == MERLIN16_PLL_REFCLK_161P1328125MHZ) {
+            if (vco_freq_khz < 9375000) {         
+                //EFUN(wrc_ams_pll_rpar(0x2));
+                val = 0x2;
+            } else {                               
+                //EFUN(wrc_ams_pll_rpar(0x3));
+                val = 0x3;
+            }
+        } else if (refclk == MERLIN16_PLL_REFCLK_156P25MHZ) {
+            if (vco_freq_khz > 12000000) {        
+                //EFUN(wrc_ams_pll_rpar(0x5));
+                val = 0x5;
+            } else if (frac_mode_en) {              
+                //EFUN(wrc_ams_pll_rpar(0x2));
+                val = 0x2;
+            } else {                                
+                //EFUN(wrc_ams_pll_rpar(0x4));
+                val = 0x4;
+            }
+        } else if (refclk == MERLIN16_PLL_REFCLK_125MHZ) {
+            if (frac_mode_en) {                   
+                //EFUN(wrc_ams_pll_rpar(0x2));
+                val = 0x2;
+            } else if (vco_freq_khz < 9375000) {    
+                //EFUN(wrc_ams_pll_rpar(0x3));
+                val = 0x3;
+            } else {                                
+                //EFUN(wrc_ams_pll_rpar(0x4));
+                val = 0x4;
+            }
+        } else if (refclk == MERLIN16_PLL_REFCLK_50MHZ) {
+            if (frac_mode_en) {                   
+                //EFUN(wrc_ams_pll_rpar(0x1));
+                val = 0x1;
+            } else if (vco_freq_khz < 8500000) {    
+                //EFUN(wrc_ams_pll_rpar(0x1));
+                val = 0x1;
+            } else if (vco_freq_khz < 9375000) {    
+                //EFUN(wrc_ams_pll_rpar(0x2));
+                val = 0x2;
+            } else {                                
+                //EFUN(wrc_ams_pll_rpar(0x3));
+                val = 0x3;
+            }
+        } else {
+            //EFUN(wrc_ams_pll_rpar(0x2));
+            val = 0x2;
+        }
+        merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b0, 0x0e00, 9, val);
+
+    }
+
+    //EFUN(wrc_ams_pll_i_pll_frac_mode(0x2));
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b9,0x0006,1,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b9, 0x0006, 1, 0x2);
+
+    /* Toggling PLL mmd reset */
+    //EFUN(wrc_ams_pll_mmd_resetb(0x0));
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b9,0x0001,0,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b9, 0x0001, 0, 0x0);
+
+    //EFUN(wrc_ams_pll_mmd_resetb(0x1));
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b9, 0x0001, 0, 0x1);
+
+    /* NOTE: Might have to add some optimized PLL control bus settings post-DVT (See 28nm merlin_pll_config.c) */
+
+    /* Update core variables with the VCO rate. */
+    {
+        struct merlin16_uc_core_config_st core_config;
+        merlin16_get_uc_core_config(bcmsw, port, lane_mask, &core_config);
+        core_config.vco_rate_in_Mhz = (vco_freq_khz + 500) / 1000;
+        core_config.field.vco_rate = MHZ_TO_VCO_RATE(core_config.vco_rate_in_Mhz);
+        merlin16_INTERNAL_set_uc_core_config(bcmsw, port, lane_mask, core_config));
+    }
+
+    return (SOC_E_NONE);
+
+} /* merlin16_configure_pll */
+
+ /* AUTONEG timer set*/
+int qmod16_autoneg_timer_init(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask)              
+{
+#if 0
+    CL37_RESTARTr_t reg_cl37_restart_timers;
+    CL37_ACKr_t     reg_cl37_ack_timers;
+ 
+    LNK_UP_TYPEr_t  reg_link_up_timer;
+    SGMII_CL37_TMR_TYPEr_t reg_an_cl37_sgmii_tmr;
+ 
+    IGNORE_LNK_TMR_TYPEr_t  reg_ignore_link_timers;
+    LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr_t  reg_inhbt_not_cl72_timers;
+#endif
+
+    /*0x9250 AN_X1_TIMERS_cl37_restart */
+    //CL37_RESTARTr_CLR(reg_cl37_restart_timers);
+    /* coverity[operator_confusion] */
+    //CL37_RESTARTr_CL37_RESTART_TIMER_PERIODf_SET(reg_cl37_restart_timers, 0x29a);
+    //PHYMOD_IF_ERR_RETURN(WRITE_CL37_RESTARTr(pc, reg_cl37_restart_timers));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, 0x29a);
+
+    /*0x9251 AN_X1_TIMERS_cl37_ack */
+    //CL37_ACKr_CLR(reg_cl37_ack_timers);
+    /* coverity[operator_confusion] */
+    //CL37_ACKr_CL37_ACK_TIMER_PERIODf_SET(reg_cl37_ack_timers, 0x29a);
+    //PHYMOD_IF_ERR_RETURN(WRITE_CL37_ACKr(pc, reg_cl37_ack_timers)); 
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_CL37_ACKr, 0x29a);
+
+    /*TBD::0x9254 AN_X1_TIMERS_sgmii_cl73_timer_type*/
+    //SGMII_CL37_TMR_TYPEr_CLR(reg_an_cl37_sgmii_tmr);
+    /* coverity[operator_confusion] */
+    //SGMII_CL37_TMR_TYPEr_SGMII_TIMERf_SET(reg_an_cl37_sgmii_tmr, 0x6b);
+    //PHYMOD_IF_ERR_RETURN(WRITE_SGMII_CL37_TMR_TYPEr(pc, reg_an_cl37_sgmii_tmr));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_SGMII_CL37_TMR_TYPEr, 0x6b);
+
+    /*TBD::0x9255 AN_X1_TIMERS_link_up_typ*/ 
+    //LNK_UP_TYPEr_CLR(reg_link_up_timer);
+    //LNK_UP_TYPEr_SET(reg_link_up_timer, 0x29a);
+    //PHYMOD_IF_ERR_RETURN(WRITE_LNK_UP_TYPEr(pc, reg_link_up_timer));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_LNK_UP_TYPEr, 0x29a);
+
+    /*0x9256 AN_X1_TIMERS_ignore_link */
+    //IGNORE_LNK_TMR_TYPEr_CLR(reg_ignore_link_timers);
+    //IGNORE_LNK_TMR_TYPEr_SET(reg_ignore_link_timers, 0x29a);
+    //PHYMOD_IF_ERR_RETURN(WRITE_IGNORE_LNK_TMR_TYPEr(pc, reg_ignore_link_timers));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_IGNORE_LNK_TMR_TYPEr, 0x29a);
+
+    /*0x9256 AN_X1_TIMERS_link_fail_inhbt_tmr_not_cl72 */
+    //LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr_CLR(reg_inhbt_not_cl72_timers);
+    //LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr_SET(reg_inhbt_not_cl72_timers, 0x8382);
+    //PHYMOD_IF_ERR_RETURN(WRITE_LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr(pc, reg_inhbt_not_cl72_timers));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr, 0x8382);
+
+    return SOC_E_NONE;
+}
+
+int qmod16_master_port_num_set ( bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  int port_num) 
+{
+    //MAIN_SETUPr_t main_reg;
+
+    //MAIN_SETUPr_CLR(main_reg);
+    //MAIN_SETUPr_MASTER_PORT_NUMf_SET(main_reg, port_num);
+    //MODIFY_MAIN_SETUPr(pc, main_reg);  
+    //qmod_tsc_iblk_write(_pc,BCMI_QTC_XGXS_MAIN_SETUPr,(_r._main_setup))
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, 0x00030000);
+
+    return SOC_E_NONE;
+}
+
+int qtce16_phy_firmware_core_config_get(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  phymod_firmware_core_config_t* fw_config)
+{
+    struct merlin16_uc_core_config_st serdes_firmware_core_config;
+    merlin16_get_uc_core_config(bcmsw, port, lane_mask, &serdes_firmware_core_config);
+
+    memset(fw_config, 0, sizeof(*fw_config));
+    fw_config->CoreConfigFromPCS = serdes_firmware_core_config.field.core_cfg_from_pcs;
+    fw_config->VcoRate = serdes_firmware_core_config.field.vco_rate;
+    return SOC_E_NONE;
+}
+
 
 // three qtce16 cores
 static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
@@ -7820,10 +8263,11 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
    phymod_lane_map_t lane_map;
    uint32_t  uc_active = 0;
    int i;
+   phymod_firmware_core_config_t  firmware_core_config_tmp;
 #if 0    
     phymod_phy_access_t phy_access, phy_access_copy;
     phymod_core_access_t  core_copy;
-    phymod_firmware_core_config_t  firmware_core_config_tmp;
+    
 
     int i, num_lane, start_lane;
 
@@ -7927,40 +8371,41 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
                 (merlin16_check_ucode_crc(&core_copy.access, merlin16_ucode_crc, 250));
         }
     }
+#endif
 
-    PHYMOD_IF_ERR_RETURN(
-        merlin16_pmd_ln_h_rstb_pkill_override( &phy_access_copy.access, 0x0));
+    // PHYMOD_IF_ERR_RETURN(
+    //    merlin16_pmd_ln_h_rstb_pkill_override( &phy_access_copy.access, 0x0));
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd083, 0x0001, 0, 0x0);  
 
-    PHYMOD_IF_ERR_RETURN
-        (merlin16_core_soft_reset_release(&core_copy.access, 0));
+    //PHYMOD_IF_ERR_RETURN
+    //    (merlin16_core_soft_reset_release(&core_copy.access, 0));
+    // -> wrc_core_dp_s_rstb
+    //    _merlin16_pmd_mwr_reg_byte(sa__, 0xd0f4,0x2000,13,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0f4, 0x2000, 13, 0x0); 
 
     /* plldiv CONFIG */
-    if (PHYMOD_ACC_F_USXMODE_GET(&core->access)) {
-        PHYMOD_IF_ERR_RETURN
-            (merlin16_configure_pll_refclk_div(&core_copy.access, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_66));
-    } else {
-        PHYMOD_IF_ERR_RETURN
-            (merlin16_configure_pll_refclk_div(&core_copy.access, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_64));
-    }
+    //PHYMOD_IF_ERR_RETURN
+    //        (merlin16_configure_pll_refclk_div(&core_copy.access, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_64));
+    // -> merlin16_INTERNAL_configure_pll
+    merlin16_INTERNAL_configure_pll(bcmsw, port, lane_mask, MERLIN16_PLL_REFCLK_156P25MHZ, MERLIN16_PLL_DIV_64, 0, MERLIN16_PLL_OPTION_NONE);
    
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_autoneg_timer_init(&core_copy.access));
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_master_port_num_set(&core_copy.access, 0));
+    qmod16_autoneg_timer_init(bcmsw, port, lane_mask);
+
+
+    qmod16_master_port_num_set(bcmsw, port, lane_mask, 0);
 
     /* don't overide the fw that set in config set if not specified */
-    PHYMOD_IF_ERR_RETURN
-        (qtce16_phy_firmware_core_config_get(&phy_access_copy, &firmware_core_config_tmp));
+    qtce16_phy_firmware_core_config_get(bcmsw, port, lane_mask, &firmware_core_config_tmp);
     firmware_core_config_tmp.CoreConfigFromPCS = 0;
-    PHYMOD_IF_ERR_RETURN
-        (qtce16_phy_firmware_core_config_set(&phy_access_copy, firmware_core_config_tmp)); 
+    qtce16_phy_firmware_core_config_set(bcmsw, port, lane_mask, firmware_core_config_tmp); 
 
     /* release core soft reset */
-    PHYMOD_IF_ERR_RETURN
-        (merlin16_core_soft_reset_release(&core_copy.access, 1));
+    //PHYMOD_IF_ERR_RETURN
+    //    (merlin16_core_soft_reset_release(&core_copy.access, 1));
+    // -> wrc_core_dp_s_rstb
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0f4, 0x2000, 13, 0x1); 
         
-    return PHYMOD_E_NONE;
-#endif      
+
     return SOC_E_NONE;
 }
 
@@ -8137,8 +8582,6 @@ bcmi_esw_portctrl_probe_init(bcmsw_switch_t *bcmsw, int port)
 static int 
 bcmi_esw_portctrl_probe_pass1(bcmsw_switch_t *bcmsw, int port)
 {
-
-
     _pm4x10_qtc_pm_core_init(bcmsw, port);
 
    return 0;
