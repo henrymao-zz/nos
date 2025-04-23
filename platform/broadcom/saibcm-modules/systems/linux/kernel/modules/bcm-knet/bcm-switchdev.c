@@ -5058,10 +5058,11 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
     blk_no = gxblk[(phy_port-1)/8];
     index = (phy_port -1)%8;
 
-    if (index == 0) {
+    pmq_blk = g_pmqblk[(phy_port-1)/16];
+    pmq_index = (phy_port -1)%16;
+
+    if (pmq_index == 0) {
         /* special init process for PMQ(PM4x10Q in QSGMII mode) - to release PMQ's QSGMII reset state after QSGMII-PCS and UniMAC init. */
-        pmq_blk = g_pmqblk[(phy_port-1)/16];
-        pmq_index = (phy_port -1)%16;
         _reg32_read(bcmsw->dev, pmq_blk, CHIP_CONFIGr, &chip_reg.word);
         
         chip_reg.reg.QMODEf = 1;
