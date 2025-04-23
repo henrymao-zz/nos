@@ -8049,7 +8049,20 @@ int merlin16_INTERNAL_get_vco_from_refclk_div(uint32_t refclk_freq_hz, enum merl
     *vco_freq_khz = ((refclk_freq_hz + (numerator>>1)) / numerator) * denominator;
     return (SOC_E_NONE);
 }
-
+/** Extract the refclk frequency in Hz, based on a merlin16_pll_refclk_enum value. */
+int _merlin16_get_refclk_in_hz(enum merlin16_pll_refclk_enum refclk, uint32_t *refclk_in_hz) {
+    switch (refclk) {
+        case MERLIN16_PLL_REFCLK_50MHZ:          *refclk_in_hz =  50000000; break;
+        case MERLIN16_PLL_REFCLK_125MHZ:         *refclk_in_hz = 125000000; break;
+        case MERLIN16_PLL_REFCLK_156P25MHZ:      *refclk_in_hz = 156250000; break;
+        case MERLIN16_PLL_REFCLK_161P1328125MHZ: *refclk_in_hz = 161132813; break;
+        default:
+            printk("ERROR: Unknown refclk frequency:  0x%08X\n", (uint32_t)refclk);
+            *refclk_in_hz = 0xFFFFFFFF;
+            return (SOC_E_PARAM);
+    }
+    return (SOC_E_NONE);
+}
 
 int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, 
                                          enum merlin16_pll_refclk_enum refclk,
@@ -8061,7 +8074,8 @@ int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t la
     uint16_t val;
 
     //EFUN(merlin16_INTERNAL_resolve_pll_parameters(refclk, &refclk_freq_hz, &div, &vco_freq_khz, MERLIN16_PLL_OPTION_NONE));
-    merlin16_INTERNAL_get_vco_from_refclk_div(refclk, div, &vco_freq_khz, pll_option);
+    _merlin16_get_refclk_in_hz(refclk, &refclk_freq_hz);
+    merlin16_INTERNAL_get_vco_from_refclk_div(refclk_freq_hz, div, &vco_freq_khz, pll_option);
 
     printk("merlin16_INTERNAL_configure_pll vco_fre %d\n", vco_freq_khz);
 
@@ -8123,7 +8137,7 @@ int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t la
                             ((frac_mode_en && (refclk != MERLIN16_PLL_REFCLK_50MHZ)) ? 0x1 : 0x0));
 
         //EFUN(wrc_ams_pll_en_8p5g         ((vco_freq_khz <= 9375000) ? 0x1 : 0x0)); /* pll_ctrl<36> */
-        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b2,0x0010,4,wr_val)  : vco_freq_khz> 937500
+        //_merlin16_pmd_mwr_reg_byte(sa__, 0xd0b2,0x0010,4,wr_val)  : vco_freq_khz> 9375000
         merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd0b2, 0x0010, 4, ((vco_freq_khz <= 9375000) ? 0x1 : 0x0));
 
         //EFUN(wrc_ams_pll_en_8p5g_vco     ((vco_freq_khz <= 9375000) ? 0x1 : 0x0)); /* pll_ctrl<21> */
