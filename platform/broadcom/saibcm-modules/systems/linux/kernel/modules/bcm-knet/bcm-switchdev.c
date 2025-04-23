@@ -4993,7 +4993,7 @@ static int
     //GMIB1_MEM_INITf = 1
     //GP0_MEM_INITf = 1
     //GP1_MEM_INITf = 1
-    reg_val |= (0x7 << 16);
+    reg_val |= (0xf << 16);
     _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
 
     /* Wait for GP/GMIB mem to finish init */
