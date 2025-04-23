@@ -3070,7 +3070,208 @@ int unimac_enable_get(bcmsw_switch_t *bcmsw, int port, int *enable)
     return SOC_E_NONE;
 }
 
+int unimac_rx_max_size_set(bcmsw_switch_t *bcmsw, int port, int value)
+{
+    uint32 rx_ena;
+    int speed = 0;
+    int index, blk_no;
+    command_config_t command_config;
 
+    if (port > 48) {
+        return -1;
+    }
+    index = (port-1)%8;
+    blk_no = cmd_cfg_blk[(port-1)/8];    
+   
+    //if (IS_ST_PORT(unit, port)) {
+    //    value += 16; /* Account for 16 bytes of Higig2 header */
+    //}
+
+    _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+    rx_ena = command_config.reg.RX_ENAf;
+
+    /* If Rx is enabled then disable RX */
+    if (rx_ena) {
+        /* Disable RX */
+        command_config.reg.RX_ENAf = 0;
+        _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
+
+        /* Wait for maximum frame receiption time(for 16K) based on speed */
+        speed = command_config.reg.ETH_SPEEDf;
+        switch (speed) {
+        case SOC_UNIMAC_SPEED_2500:
+            msleep(1);
+            break;
+        case SOC_UNIMAC_SPEED_1000:
+            msleep(1);
+            break;
+        case SOC_UNIMAC_SPEED_100:
+            msleep(2);
+            break;
+        case SOC_UNIMAC_SPEED_10:
+            msleep(15);
+            break;
+        default:
+            break;
+        }
+    }
+
+    _reg32_write(bcmsw->dev, blk_no, FRM_LENGTHr+index, value);
+
+    /* if Rx was enabled before, restore it */
+    if (rx_ena) {
+        command_config.reg.RX_ENAf = 1;
+        _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
+    }
+
+    return SOC_E_NONE;
+}
+
+int unimac_soft_reset_set(bcmsw_switch_t *bcmsw, int port, int enable)
+{
+    int index, blk_no;
+    command_config_t command_config;
+
+    if (port > 48) {
+        return -1;
+    }
+    index = (port-1)%8;
+    blk_no = cmd_cfg_blk[(port-1)/8];        
+ 
+    /* SIDE EFFECT: TX and RX are enabled when SW_RESET is set. */
+    _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+    command_config.reg.SW_RESETf = enable;
+    _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
+
+    msleep(50);
+
+    return SOC_E_NONE;
+}
+
+/*
+ * Function:
+ *      unimac_init
+ * Purpose:
+ *      Initialize UniMAC into a known good state.
+ * Parameters:
+ *      unit - StrataSwitch unit #.
+ *      port - StrataSwitch port # on unit.
+ * Returns:
+ *      SOC_E_XXX
+ * Notes:
+ *      The initialization speed/duplex is arbitrary and must be
+ *      updated by linkscan before enabling the MAC.
+ */
+
+int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
+{
+    uint32_t reg_val;
+    int    frame_max, ignore_pause;
+    int    is_crc_fwd;
+    int    index, blk_no;
+    command_config_t command_config. old_command_config;
+ 
+    if (port > 48) {
+       return -1;
+    }
+    index = (port-1)%8;
+    blk_no = cmd_cfg_blk[(port-1)/8];             
+ 
+    is_crc_fwd = (init_flags & UNIMAC_INIT_F_RX_STRIP_CRC) ? 0 : 1;
+ 
+    /* Get MAC configurations from config settings. */
+     
+    frame_max = SOC_UNIMAC_MAX_FRAME_SIZE;
+    unimac_rx_max_size_set(bcmsw, port, frame_max);
+  
+    /* First put the MAC in reset and sleep */
+    unimac_soft_reset_set(bcmsw, port, TRUE);
+ 
+    /* Do the initialization */
+    _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+    old_command_config.word = command_config.word;
+ 
+    command_config.reg.TX_ENAf    = 0;
+    command_config.reg.RX_ENAf    = 0;
+    command_config.reg.ETH_SPEEDf = SOC_UNIMAC_SPEED_1000;
+    command_config.reg.PROMIS_ENf = 1;
+    command_config.reg.PAD_ENf    = 0;
+    command_config.reg.CRC_FWDf   = is_crc_fwd;
+    command_config.reg.PAUSE_FWDf = 0;
+ 
+    /* Ignore pause if using as stack port */
+    ignore_pause = 0;
+    command_config.reg.PAUSE_IGNOREf    = ignore_pause;
+    command_config.reg.IGNORE_TX_PAUSEf = ignore_pause;
+ 
+    command_config.reg.TX_ADDR_INSf     = 0;
+    command_config.reg.HD_ENAf          = 0;
+    command_config.reg.LOOP_ENAf        = 0;
+     
+    command_config.reg.NO_LGTH_CHECKf   = 1;
+    command_config.reg.LINE_LOOPBACKf   = 0;
+    command_config.reg.RX_ERR_DISCf     = 0;
+ 
+    command_config.reg.CNTL_FRM_ENAf    = 1;
+    command_config.reg.ENA_EXT_CONFIGf  = (init_flags & UNIMAC_INIT_F_AUTO_CFG) ? 1 : 0;
+ 
+    if (init_flags & UNIMAC_INIT_F_AUTO_CFG) {
+       command_config.reg.SW_OVERRIDE_RXf = 1;
+       command_config.reg.SW_OVERRIDE_TXf = 1;
+    }
+ 
+    if (old_command_config.word != command_config.word) {
+       _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
+    }
+ 
+    _reg32_read(bcmsw->dev, blk_no, TAG_0r+index, &reg_val);
+    //soc_reg_field_set(unit, TAG_0r, &reg_val, CONFIG_OUTER_TPID_ENABLEf, 0);
+    reg_val &= 0x1FFFF;
+    _reg32_write(bcmsw->dev, blk_no, TAG_0r+index, reg_val);
+ 
+    _reg32_read(bcmsw->dev, blk_no, TAG_1r+index, &reg_val);
+    reg_val &= 0x1FFFF;
+    _reg32_write(bcmsw->dev, blk_no, TAG_0r+index, reg_val);
+ 
+    _reg32_read(bcmsw->dev, blk_no, UMAC_TIMESTAMP_ADJUSTr+index, &reg_val);
+    reg_val &= ~(1<<10); //AUTO_ADJUSTf bit 10
+    _reg32_write(bcmsw->dev, blk_no, UMAC_TIMESTAMP_ADJUSTr+index, reg_val);
+ 
+    /* Bring the UniMAC out of reset */
+    unimac_soft_reset_set(bcmsw, port, FALSE);
+ 
+    
+    //soc_reg_field_set(unit, PAUSE_CONTROLr, &reg_val, ENABLEf, 1);
+    //soc_reg_field_set(unit, PAUSE_CONTROLr, &reg_val, VALUEf, 0x1ffff);
+    reg_val = 0x3FFFF;
+    _reg32_write(bcmsw->dev, blk_no, PAUSE_CONTROLr+index, reg_val);
+
+    _reg32_write(bcmsw->dev, blk_no, PAUSE_QUANTr+index, 0xffff);
+
+ 
+    _reg32_read(bcmsw->dev, blk_no, MAC_PFC_REFRESH_CTRLr+index, &reg_val);
+    //soc_reg_field_set(unit, MAC_PFC_REFRESH_CTRLr, &reg_val, PFC_REFRESH_ENf, 1);
+    //soc_reg_field_set(unit, MAC_PFC_REFRESH_CTRLr, &reg_val, PFC_REFRESH_TIMERf, 0xc000);
+    reg_val |= 0xc0000001;
+    _reg32_write(bcmsw->dev, blk_no, MAC_PFC_REFRESH_CTRLr+index, reg_val);
+ 
+    _reg32_write(bcmsw->dev, blk_no, TX_IPG_LENGTHr+index, 23);
+ 
+    /* Set egress enable */
+    
+ 
+    /* assigning proper setting for EEE feature :
+     * Note : GE speed force assigned for timer setting 
+     */
+    _reg32_write(bcmsw->dev, blk_no, UMAC_EEE_REF_COUNTr+index, SOC_UNIMAC_EEE_REF_CNT);
+
+    _reg32_write(bcmsw->dev, blk_no, GMII_EEE_WAKE_TIMERr+index, SOC_UNIMAC_WAKE_TIMER);
+
+    _reg32_write(bcmsw->dev, blk_no, GMII_EEE_DELAY_ENTRY_TIMERr+index, SOC_UNIMAC_LPI_TIMER);
+ 
+    return SOC_E_NONE;
+}
+ 
 
 //soc_helix5_idb_obm_reset_buffer
 static const uint32_t obm_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
@@ -8541,10 +8742,61 @@ _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
 
     return 0;
 }
-#if 0
+
+
+static int 
+_pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
+{
+    int pmq_blk, pmq_index, phy_port;
+    uint32 bitmap, reg_val, field_val;
+    int flags;
+
+    /* Init unimac */
+    flags = 0;
+    //if(PORTMOD_PORT_ADD_F_RX_SRIP_CRC_GET(add_info)) {
+    //    flags |= UNIMAC_INIT_F_RX_STRIP_CRC;
+    //}
+    unimac_init(bcmsw, port, flags);
+
+    phy_port = bcmsw->si->port_l2p_mapping[port];
+
+    if (phy_port <= 16) {
+        pmq_blk = SCHAN_BLK_PMQPORT0;
+    } else if (phy_port <= 32) {
+        pmq_blk = SCHAN_BLK_PMQPORT1; 
+    } else {
+        pmq_blk = SCHAN_BLK_PMQPORT2;
+    }
+
+    pmq_index = (phy_port-1)%16;
+    /* Init port ecc */
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
+    reg_val |= 0x1 << pmq_index;
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
+
+    /* Wait for UNIMAC mem to finish init */
+    msleep(1);
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
+    if ((reg_val & UNIMAC_MEM_INIT_DONE_MASK) == (0x1 << port_index)){
+        printk("_pm4x10_qtc_pm_port_init unimac mem init done for port %d\n", port);
+    } else {
+        printk("_pm4x10_qtc_pm_port_init unimac mem init failed for port %d reg 0x%08x\n", port, reg_val);
+    }
+
+    /*Mask the ECC status for each of the UNIMACs*/
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECCr, &reg_val);
+    reg_val &= ~(0x1 << port_index);
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECCr, reg_val);
+
+exit:
+     SOC_FUNC_RETURN;
+}
+
+
 static
 int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
 {
+#if 0    
     int port_i, my_i;
     int i, nof_phys = 0, usr_cfg_idx;
     uint32 bitmap, port_dynamic_state;
@@ -8637,6 +8889,8 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
                                           phymod_serdes_interface,
                                           PM_4x10_QTC_INFO(pm_info)->ref_clk,
                                           PORTMOD_INIT_F_INTERNAL_SERDES_ONLY));
+    // ->phymod_phy_interface_config_set -> qtce16_phy_interface_config_set
+
     /* set the default advert ability */
     _SOC_IF_ERR_EXIT
         (_pm4x10_qtc_port_ability_local_get(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &port_ability));
@@ -8647,18 +8901,20 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
      an.an_mode = phymod_AN_MODE_SGMII;
      an.enable = 1;
      _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_autoneg_set(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &an));
-
+#endif
     /* Initialize unimac and port*/
-    _SOC_IF_ERR_EXIT(_pm4x10_qtc_pm_port_init(unit, port, pm_info, add_info));
+    _pm4x10_qtc_pm_port_init(unit, port);
 
+#if 0    
     /* Disable Internal SerDes LPI bypass */
     _SOC_IF_ERR_EXIT(phymod_phy_eee_set(&phy_access[0], FALSE));
 
 exit:
     SOC_FUNC_RETURN;
+#endif
+    return SOC_E_NONE;
 }
 
-#endif
 
 static int 
 _pm4x10_qtc_pm_core_init (bcmsw_switch_t *bcmsw, int port)
@@ -8706,8 +8962,12 @@ static int
 bcmi_esw_portctrl_probe_pass2(bcmsw_switch_t *bcmsw, int port)
 {
 
+    // _pm4x10_qtc_port_attach ->
+    _pm4x10_qtc_port_attach_resume_fw_load(bcmsw, port);
 
-    //_pm4x10_qtc_port_attach_resume_fw_load(bcmsw, port);
+    /* Probe function should leave port disabled */
+    //rv = _bcm_esw_portctrl_enable_set(unit, port, pport,
+    //    PORTMOD_PORT_ENABLE_PHY, 0);
 
    return 0;
 }

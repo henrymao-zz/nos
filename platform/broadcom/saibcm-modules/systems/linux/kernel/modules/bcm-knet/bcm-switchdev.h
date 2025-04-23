@@ -1897,6 +1897,158 @@ typedef union q_sched_rqe_s {
 
 
 /*****************************************************************************************/
+/*                            UNIMAC                                                     */
+/*****************************************************************************************/
+#define SOC_UNIMAC_SPEED_10     0x0
+#define SOC_UNIMAC_SPEED_100    0x1
+#define SOC_UNIMAC_SPEED_1000   0x2
+#define SOC_UNIMAC_SPEED_2500   0x3
+
+#define SOC_UNIMAC_MAX_FRAME_SIZE   16360
+#define SOC_UNIMAC_WAKE_TIMER       17
+#define SOC_UNIMAC_LPI_TIMER        4
+
+/* EEE related defination */
+#define SOC_UNIMAC_MAX_EEE_SPEED    2500
+#define SOC_UNIMAC_EEE_REF_CNT       250
+
+
+
+#define UNIMAC_INIT_F_AUTO_CFG               0x1
+#define UNIMAC_INIT_F_RX_STRIP_CRC           0x2
+
+#define UNIMAC_ENABLE_SET_FLAGS_TX_EN              0x1
+#define UNIMAC_ENABLE_SET_FLAGS_RX_EN              0x2
+
+//Register: FRM_LENGTH.ge0 port register address 0x00010500
+//Flags:
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Maximum Frame Length.
+//Displaying: reset defaults, reset value 0x5ee mask 0x3fff
+#define FRM_LENGTHr                                0x00010500
+
+//Register: TAG_0.ge0 port register address 0x00011200
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Programmable vlan outer tag
+//Displaying: reset defaults, reset value 0x18100 mask 0x1ffff
+//  FRM_TAG_0<15:0> = 0x8100
+//  CONFIG_OUTER_TPID_ENABLE<16> = 1
+#define TAG_0r                                     0x00011200
+
+//Register: TAG_1.ge0 port register address 0x00011300
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Programmable vlan inner tag
+//Displaying: reset defaults, reset value 0x18100 mask 0x1ffff
+//  FRM_TAG_1<15:0> = 0x8100
+//  CONFIG_INNER_TPID_ENABLE<16> = 1
+//  BCM.0> listreg TAG_1 
+#define TAG_1r                                     0x00011300  
+  
+
+//Register: UMAC_TIMESTAMP_ADJUST.ge0 port register address 0x00011d00
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: 1588_one_step_timestamp control
+//Displaying: reset defaults, reset value 0x600 mask 0x7ff
+//  EN_1588<9> = 1
+//  AUTO_ADJUST<10> = 1
+//  ADJUST<8:0> = 0
+#define UMAC_TIMESTAMP_ADJUSTr                     0x00011d00
+
+//Register: PAUSE_CONTROL.ge0 port register address 0x0001cc00
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: PAUSE frame timer control register
+//Displaying: reset defaults, reset value 0x2ffff mask 0x3ffff
+//  VALUE<16:0> = 0xffff
+//  ENABLE<17> = 1
+#define PAUSE_CONTROLr                             0x0001cc00
+  
+//Register: PAUSE_QUANT.ge0 port register address 0x00010600
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Receive Pause Quanta.
+//Displaying: reset defaults, reset value 0xffff mask 0xffff
+//  STAD2<15:0> = 0xffff
+#define PAUSE_QUANTr                               0x00010600
+
+//Register: MAC_PFC_REFRESH_CTRL.ge0 port register address 0x0001d100
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: PPP refresh control register
+//Displaying: reset defaults, reset value 0 mask 0
+//  PFC_REFRESH_TIMER<31:16> = x
+//  PFC_REFRESH_EN<0> = x
+#define MAC_PFC_REFRESH_CTRLr                      0x0001d100
+
+     
+//Register: TX_IPG_LENGTH.ge0 port register address 0x00011700
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: Programmable Inter-Packet-Gap (IPG).
+//Displaying: reset defaults, reset value 0 mask 0x7f
+//  TX_IPG_LENGTH<6:0> = 0
+#define TX_IPG_LENGTHr                             0x00011700
+
+
+//Register: UMAC_EEE_REF_COUNT.ge0 port register address 0x00011c00
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: clock divider for 1 us quanta count in EEE
+//Displaying: reset defaults, reset value 0x7d mask 0xffff
+//  EEE_REF_COUNT<15:0> = 0x7d
+#define UMAC_EEE_REF_COUNTr                        0x00011c00
+
+
+//Register: GMII_EEE_WAKE_TIMER.ge0 port register address 0x00012100
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GMII_EEE Wake timer
+//Displaying: reset defaults, reset value 0x1e mask 0xffff
+//  GMII_EEE_WAKE_TIMER<15:0> = 0x1e
+#define GMII_EEE_WAKE_TIMERr                       0x00012100
+
+//Register: GMII_EEE_DELAY_ENTRY_TIMER.ge0 port register address 0x00011b00
+//Blocks: gxport0 gxport1 gxport2 gxport3 gxport4 gxport5 (6 copies)
+//Description: GMII_EEE LPI timer
+//Displaying: reset defaults, reset value 0x3c mask 0xffffffff
+//  GMII_EEE_LPI_TIMER<31:0> = 0x3c
+#define GMII_EEE_DELAY_ENTRY_TIMERr                0x00011b00
+
+//Register: PMQ_ECC_INIT_CTRL.pmqport0 general register address 0x02020200
+//Blocks: pmqport0 pmqport1 pmqport2 (3 copies)
+//Description: PMQ mode only -- GPORT and UniMAC Memory ECC ECC init control bits.
+//Displaying: reset defaults, reset value 0 mask 0xfffff
+//  UNIMAC_MEM_INIT<15:0> = 0
+//  GP1_MEM_INIT<17> = 0
+//  GP0_MEM_INIT<16> = 0
+//  GMIB1_MEM_INIT<19> = 0
+//  GMIB0_MEM_INIT<18> = 0
+#define PMQ_ECC_INIT_CTRLr                         0x02020200
+
+//Register: PMQ_ECC_INIT_STS.pmqport0 general register address 0x02020300
+//Flags: read-only
+//Blocks: pmqport0 pmqport1 pmqport2 (3 copies)
+//Description: PMQ mode only -- GPORT and UniMAC Memory ECC ECC init done status bits.
+//Displaying: reset defaults, reset value 0 mask 0xfffff
+//  UNIMAC_MEM_INIT_DONE<15:0> = 0 [RO]
+//  GP1_MEM_INIT_DONE<17> = 0 [RO]
+//  GP0_MEM_INIT_DONE<16> = 0 [RO]
+//  GMIB1_MEM_INIT_DONE<19> = 0 [RO]
+//  GMIB0_MEM_INIT_DONE<18> = 0 [RO]
+#define PMQ_ECC_INIT_STSr                         0x02020300
+#define UNIMAC_MEM_INIT_DONE_MASK                 0xffff
+
+
+//Register: PMQ_ECC.pmqport0 general register address 0x02020400
+//Flags:
+//Blocks: pmqport0 pmqport1 pmqport2 (3 copies)
+//Description: PMQ mode only -- GPORT and UniMAC Memory ECC status and per-port-ecc mask register.
+//ECC init/done is not required by firmware for PMQ Gen2 UniMAC fifos.
+//The GPORT MIBs should be initialized via the mib_clr control bit.
+//Bits [1:0] of this register are not used; bit 0 should always be written with 0, bit 1 can be ignored.
+//Displaying: reset defaults, reset value 0 mask 0xffff0000
+//  PORTNUM_ECCSTS_MASK<31:16> = 0
+//  MEM_INIT<0> = x
+//  INIT_DONE<1> = x [RO]
+//  ECC_ERROR_MASK<3> = x [RO]
+//  ECC_ERROR_EVENT<2> = x [RO]
+#define PMQ_ECCr                                  0x02020400
+
+/*****************************************************************************************/
 /*                            Port Mapping                                               */
 /*****************************************************************************************/
 
