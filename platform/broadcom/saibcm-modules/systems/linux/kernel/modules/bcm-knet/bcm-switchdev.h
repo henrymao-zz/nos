@@ -813,11 +813,11 @@ typedef union chip_config_s {
               PMD_PLL_CTRL_REFCLK_TERM_SELf:2,
               PMD_PLL_CTRL_REFCLK_DIV2f:1,
               PMD_PLL_CTRL_REFCLK_DIV4f:1,
-              r0:22,
+              r0:21,
               POWERSAVEf:1;
     #else
     uint32_t  POWERSAVEf:1,
-              r0:22,
+              r0:21,
               PMD_PLL_CTRL_REFCLK_DIV4f:1,
               PMD_PLL_CTRL_REFCLK_DIV2f:1,
               PMD_PLL_CTRL_REFCLK_TERM_SELf:2,
@@ -885,11 +885,12 @@ soc_field_info_t soc_XLPORT_XGXS0_CTRL_REG_BCM56980_A0r_fields[] = {
 };
  */
 typedef union xgxs0_ctrl_reg_s {
-    struct _ch_addr_ {
+    struct _xgxs0_ctrl_ {
     #if defined(LE_HOST)
     uint32_t  RSTB_HWf:1,
               EREFOUT_Nf:1,
               REFIN_ENf:1,
+              IDDQf:1,
               PWRDWNf:1,
               PWRDWN_CMLf:1,
               PWRDWN_CML_LCf:1,
@@ -903,6 +904,7 @@ typedef union xgxs0_ctrl_reg_s {
               PWRDWN_CML_LCf:1,
               PWRDWN_CMLf:1,
               PWRDWNf:1,
+              IDDQf:1,
               REFIN_ENf:1
               EREFOUT_Nf:1,
               RSTB_HWf:1;
@@ -933,7 +935,7 @@ soc_field_info_t soc_CHIP_SWRST_BCM53400_A0r_fields[] = {
 };
  */
 typedef union chip_swrst_reg_s {
-    struct _ch_addr_ {
+    struct _chip_swrst_ {
     #if defined(LE_HOST)
     uint32_t  SOFT_RESET_GPORT0f:1,
               SOFT_RESET_GPORT1f:1,
@@ -1743,7 +1745,7 @@ soc_field_info_t soc_GPORT_CONFIG_BCM53400_A0r_fields[] = {
 /*****************************************************************************************/
 // MIIM_CH0_ADDRESS          0x10019008
 typedef union miim_ch_address_s {
-    struct _ch_addr_ {
+    struct _miim_ch_addr_ {
     #if defined(LE_HOST)
     uint32_t  r0:6,
               PHY_IDf:5,

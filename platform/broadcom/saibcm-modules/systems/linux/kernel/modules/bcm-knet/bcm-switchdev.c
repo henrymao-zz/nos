@@ -3492,7 +3492,7 @@ _helix5_flex_idb_port_up(bcmsw_switch_t *bcmsw, int port)
     }
     return SOC_E_NONE;
 }
-static const uint32_t pmqblk[6] = {
+static const uint32_t g_pmqblk[3] = {
     SCHAN_BLK_PMQPORT0,
     SCHAN_BLK_PMQPORT1,
     SCHAN_BLK_PMQPORT2,
@@ -4987,18 +4987,18 @@ static int
 {
     uint32_t reg_val;
 
-
     /* Init port ecc */
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
     //GMIB0_MEM_INITf = 1
     //GMIB1_MEM_INITf = 1
     //GP0_MEM_INITf = 1
     //GP1_MEM_INITf = 1
-    reg_val |= 0x7 << 16;
+    reg_val |= (0x7 << 16);
     _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
 
     /* Wait for GP/GMIB mem to finish init */
     msleep(1);
+
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
     if ((reg_val & GP_GMIB_MEM_INIT_DONE_MASK) == GP_GMIB_MEM_INIT_DONE_MASK) {
         printk("_pm4x10_qtc_port_ecc_init mem init done %d\n", pmq_blk);
@@ -5019,13 +5019,13 @@ int pm4x10_qtc_port_tsc_reset_set(bcmsw_switch_t *bcmsw, int pmq_blk, int in_res
     xgxs0_ctrl_reg_t xgxs_reg;
 
     /* Bring Internal Phy OOR */
-    _reg32_read(dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, &xgxs_reg.word);
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, &xgxs_reg.word);
    
     xgxs_reg.reg.RSTB_HWf = in_reset ? 0 : 1;
     xgxs_reg.reg.PWRDWNf  = in_reset ? 1 : 0;
     xgxs_reg.reg.IDDQf    = in_reset ? 1 : 0;
 
-    _reg32_write(dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, xgxs_reg.word);
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, xgxs_reg.word);
 
     /* Based on the feedback from SJ pmd support team, ~10-15usecs would be sufficient
      * for the PLL/AFE to settle down out of IDDQ reset.
@@ -5045,29 +5045,36 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
     chip_config_t chip_reg;
     chip_swrst_reg_t swrst_reg;
 
+    if(port < 1|| port >48) {
+       printk("_pm4x10_qtc_pmq_gport_init invalid port %d\n", port);
+       return -1;
+    }
     phy_port = _bcmsw->si->port_l2p_mapping[port];
+    if (phy_port == -1 ) {
+      printk("_pm4x10_qtc_pmq_gport_init invalid phy port %d\n", phy_port);
+      return -1;
+    }
 
     blk_no = gxblk[(phy_port-1)/8];
     index = (phy_port -1)%8;
 
     if (index == 0) {
         /* special init process for PMQ(PM4x10Q in QSGMII mode) - to release PMQ's QSGMII reset state after QSGMII-PCS and UniMAC init. */
-        pmq_blk = pmqblk[(phy_port-1)/16];
+        pmq_blk = g_pmqblk[(phy_port-1)/16];
         pmq_index = (phy_port -1)%16;
         _reg32_read(bcmsw->dev, pmq_blk, CHIP_CONFIGr, &chip_reg.word);
         
-        chip_reg.QMODEf = 1;
+        chip_reg.reg.QMODEf = 1;
         /* According to PORTMACRO-210, when clk=300M or less, ip_tdm should be 2 or less */
-        chip_reg.IP_TDMf = 1;
-        chip_reg.PCS_USXGMII_MODE_ENf = 0;
-        chip_reg.PAUSE_PFC_SELf = 0;
+        chip_reg.reg.IP_TDMf = 1;
+        chip_reg.reg.PCS_USXGMII_MODE_ENf = 0;
+        chip_reg.reg.PAUSE_PFC_SELf = 0;
 
         _reg32_write(bcmsw->dev, pmq_blk, CHIP_CONFIGr, chip_reg.word);
 
         /* Get Serdes OOR */
         pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 1);
         pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 0);
-
 
         _reg32_read(bcmsw->dev, pmq_blk, CHIP_SWRSTr, &swrst_reg.word);
         swrst_reg.reg.SOFT_RESET_QSGMII_PCSf = 0x1;
@@ -5082,10 +5089,11 @@ int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
         _reg32_write(bcmsw->dev, pmq_blk, CHIP_SWRSTr, swrst_reg.word);
 
         /* Init port ecc */
-        _pm4x10_qtc_port_ecc_init(bcmsw->dev, pmq_blk);
+        _pm4x10_qtc_port_ecc_init(bcmsw, pmq_blk);
 
         //_SOC_IF_ERR_EXIT(PM4x10_QTC_IS_ACTIVE_SET(unit, pm_info, pm_is_active));
     }
+
     /* Initialize mask for purging packet data received from the MAC */
     val = 0x78;
     _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, val);
@@ -8845,7 +8853,7 @@ static int
 _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 {
     int pmq_blk, pmq_index, phy_port;
-    uint32_t reg_val, field_val;
+    uint32_t reg_val;
     int flags;
 
     /* Init unimac */
@@ -8857,15 +8865,9 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 
     phy_port = bcmsw->si->port_l2p_mapping[port];
 
-    if (phy_port <= 16) {
-        pmq_blk = SCHAN_BLK_PMQPORT0;
-    } else if (phy_port <= 32) {
-        pmq_blk = SCHAN_BLK_PMQPORT1; 
-    } else {
-        pmq_blk = SCHAN_BLK_PMQPORT2;
-    }
-
+    pmq_blk = g_pmqblk[(phy_port-1)/16];
     pmq_index = (phy_port-1)%16;
+
     /* Init port ecc */
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
     reg_val |= 0x1 << pmq_index;
