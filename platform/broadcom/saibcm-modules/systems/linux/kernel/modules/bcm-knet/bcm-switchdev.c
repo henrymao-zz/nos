@@ -7969,6 +7969,88 @@ int merlin16_INTERNAL_set_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32
     return (SOC_E_NONE);
 }
 
+/** Identify the ratio:
+ *
+ *     (numerator / denominator) = (1000 / divisor)
+ *
+ * such that this has as little rounding error as possible:
+ *
+ *     refclk_freq_hz = numerator * round(vco_freq_khz / denominator)
+ *
+ * This will yield the most accurate refclk_freq_hz.
+ * Common values of vco_freq_khz are considered in this.
+ */
+static int _merlin16_get_divisor_ratio(enum merlin16_pll_div_enum div, uint16_t *numerator, uint16_t *denominator)
+{
+    switch (div) {
+        case MERLIN16_PLL_DIV_52P751515:  *denominator = 162;  *numerator = 3071; break;
+        case MERLIN16_PLL_DIV_58P181818:  *denominator =  16;  *numerator =  275; break;
+        case MERLIN16_PLL_DIV_62P060606:  *denominator =  53;  *numerator =  854; break;
+        case MERLIN16_PLL_DIV_67P878788:  *denominator =  56;  *numerator =  825; break;
+        case MERLIN16_PLL_DIV_66P460703:  *denominator =  43;  *numerator =  647; break;
+        case MERLIN16_PLL_DIV_66P743079:  *denominator =  58;  *numerator =  869; break;
+        case MERLIN16_PLL_DIV_68P570764:  *denominator =  84;  *numerator = 1225; break;
+        case MERLIN16_PLL_DIV_68P856242:  *denominator =  65;  *numerator =  944; break;
+        case MERLIN16_PLL_DIV_69P152458:  *denominator = 102;  *numerator = 1475; break;
+        case MERLIN16_PLL_DIV_69P389964:  *denominator = 124;  *numerator = 1787; break;
+        case MERLIN16_PLL_DIV_69P818182:  *denominator =  96;  *numerator = 1375; break;
+        case MERLIN16_PLL_DIV_71P112952:  *denominator = 177;  *numerator = 2489; break;
+        case MERLIN16_PLL_DIV_54P4:       *denominator =  34;  *numerator =  625; break;
+        case MERLIN16_PLL_DIV_60:         *denominator =   3;  *numerator =   50; break;
+        case MERLIN16_PLL_DIV_64:         *denominator =   8;  *numerator =  125; break;
+        case MERLIN16_PLL_DIV_66:         *denominator =  33;  *numerator =  500; break;
+        case MERLIN16_PLL_DIV_68:         *denominator =  17;  *numerator =  250; break;
+        case MERLIN16_PLL_DIV_68P537598:  *denominator = 127;  *numerator = 1853; break;
+        case MERLIN16_PLL_DIV_68P828796:  *denominator = 104;  *numerator = 1511; break;
+        case MERLIN16_PLL_DIV_70:         *denominator =   7;  *numerator =  100; break;
+        case MERLIN16_PLL_DIV_70P713596:  *denominator = 106;  *numerator = 1499; break;
+        case MERLIN16_PLL_DIV_71P008:     *denominator = 205;  *numerator = 2887; break;
+        case MERLIN16_PLL_DIV_71P31347:   *denominator = 177;  *numerator = 2482; break;
+        case MERLIN16_PLL_DIV_71P5584:    *denominator = 118;  *numerator = 1649; break;
+        case MERLIN16_PLL_DIV_72:         *denominator =   9;  *numerator =  125; break;
+        case MERLIN16_PLL_DIV_73P335232:  *denominator = 250;  *numerator = 3409; break;
+        case MERLIN16_PLL_DIV_73P6:       *denominator =  46;  *numerator =  625; break;
+        case MERLIN16_PLL_DIV_75:         *denominator =   3;  *numerator =   40; break;
+        case MERLIN16_PLL_DIV_80:         *denominator =   2;  *numerator =   25; break;
+        case MERLIN16_PLL_DIV_82P5:       *denominator =  33;  *numerator =  400; break;
+        case MERLIN16_PLL_DIV_85P671997:  *denominator =  58;  *numerator =  677; break;
+        case MERLIN16_PLL_DIV_86P036:     *denominator = 130;  *numerator = 1511; break;
+        case MERLIN16_PLL_DIV_87P5:       *denominator =   7;  *numerator =   80; break;
+        case MERLIN16_PLL_DIV_88P392:     *denominator =  83;  *numerator =  939; break;
+        case MERLIN16_PLL_DIV_88P76:      *denominator = 199;  *numerator = 2242; break;
+        case MERLIN16_PLL_DIV_89P141838:  *denominator = 243;  *numerator = 2726; break;
+        case MERLIN16_PLL_DIV_89P447998:  *denominator = 128;  *numerator = 1431; break;
+        case MERLIN16_PLL_DIV_90:         *denominator =   9;  *numerator =  100; break;
+        case MERLIN16_PLL_DIV_91P669037:  *denominator = 296;  *numerator = 3229; break;
+        case MERLIN16_PLL_DIV_92:         *denominator =  23;  *numerator =  250; break;
+        case MERLIN16_PLL_DIV_100:        *denominator =   1;  *numerator =   10; break;
+        case MERLIN16_PLL_DIV_170:        *denominator =  17;  *numerator =  100; break;
+        case MERLIN16_PLL_DIV_187P5:      *denominator =   3;  *numerator =   16; break;
+        case MERLIN16_PLL_DIV_200:        *denominator =   1;  *numerator =    5; break;
+        case MERLIN16_PLL_DIV_206P25:     *denominator =  33;  *numerator =  160; break;
+        default:
+            printk("ERROR: Unknown divider value:  0x%08X\n", (uint32_t)div);
+            *numerator = 0;
+            *denominator = 0;
+            return (SOC_E_INTERNAL);
+    }
+    return (SOC_E_NONE);
+}
+/** Get the VCO frequency in kHz, based on the reference clock frequency and merlin16_pll_div_enum value. */
+int merlin16_INTERNAL_get_vco_from_refclk_div(uint32_t refclk_freq_hz, enum merlin16_pll_div_enum div, uint32_t *vco_freq_khz, enum merlin16_pll_option_enum pll_option) 
+{
+    uint16_t numerator, denominator;
+
+    _merlin16_get_divisor_ratio(div, &numerator, &denominator);
+
+    if (pll_option == MERLIN16_PLL_OPTION_REFCLK_DOUBLER_EN) refclk_freq_hz *= 2;
+    if (pll_option == MERLIN16_PLL_OPTION_REFCLK_DIV2_EN)    refclk_freq_hz /= 2;
+    if (pll_option == MERLIN16_PLL_OPTION_REFCLK_DIV4_EN)    refclk_freq_hz /= 4;
+    *vco_freq_khz = ((refclk_freq_hz + (numerator>>1)) / numerator) * denominator;
+    return (SOC_E_NONE);
+}
+
+
 int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, 
                                          enum merlin16_pll_refclk_enum refclk,
                                          enum merlin16_pll_div_enum div,
@@ -7979,6 +8061,9 @@ int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t la
     uint16_t val;
 
     //EFUN(merlin16_INTERNAL_resolve_pll_parameters(refclk, &refclk_freq_hz, &div, &vco_freq_khz, MERLIN16_PLL_OPTION_NONE));
+    merlin16_INTERNAL_get_vco_from_refclk_div(refclk, div, &vco_freq_khz, pll_option);
+
+    printk("merlin16_INTERNAL_configure_pll vco_fre %d\n", vco_freq_khz);
 
     /* Use this to restore defaults if reprogramming the PLL under dp-reset (typically Auto-Neg FW) - Need this for DUAL_PLL (see F16) */
     /* EFUN(wrc_ams_pll_i_ndiv_int(0x42));                   */
@@ -8254,6 +8339,16 @@ int qtce16_phy_firmware_core_config_get(bcmsw_switch_t *bcmsw, int port, uint32_
     return SOC_E_NONE;
 }
 
+int qtce16_phy_firmware_core_config_set((bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, phymod_firmware_core_config_t fw_config)
+{
+    struct merlin16_uc_core_config_st serdes_firmware_core_config;
+    PHYMOD_MEMSET(&serdes_firmware_core_config, 0, sizeof(serdes_firmware_core_config));
+    serdes_firmware_core_config.field.core_cfg_from_pcs = fw_config.CoreConfigFromPCS;
+    serdes_firmware_core_config.field.vco_rate = fw_config.VcoRate;
+ 
+    merlin16_INTERNAL_set_uc_core_config(bcmsw, port, lane_mask, serdes_firmware_core_config);
+    return SOC_E_NONE;
+}
 
 // three qtce16 cores
 static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
