@@ -4852,8 +4852,8 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
 
     _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
-    //printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
-    //      core_addr, reg_addr, val , data_mask, blk_id, rv);
+    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+          core_addr, reg_addr, val , data_mask, blk_id, rv);
 
     return rv;
 }
@@ -4884,8 +4884,8 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
 
     *val = mem_data[reg_val_offset];
 
-    //printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
-    //        core_addr, reg_addr, *val, blk_id, rv);
+    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+            core_addr, reg_addr, *val, blk_id, rv);
 
     return rv;
 }
@@ -8357,10 +8357,10 @@ int qtce16_phy_firmware_core_config_get(bcmsw_switch_t *bcmsw, int port, uint32_
     return SOC_E_NONE;
 }
 
-int qtce16_phy_firmware_core_config_set((bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, phymod_firmware_core_config_t fw_config)
+int qtce16_phy_firmware_core_config_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, phymod_firmware_core_config_t fw_config)
 {
     struct merlin16_uc_core_config_st serdes_firmware_core_config;
-    PHYMOD_MEMSET(&serdes_firmware_core_config, 0, sizeof(serdes_firmware_core_config));
+    memset(&serdes_firmware_core_config, 0, sizeof(serdes_firmware_core_config));
     serdes_firmware_core_config.field.core_cfg_from_pcs = fw_config.CoreConfigFromPCS;
     serdes_firmware_core_config.field.vco_rate = fw_config.VcoRate;
  
