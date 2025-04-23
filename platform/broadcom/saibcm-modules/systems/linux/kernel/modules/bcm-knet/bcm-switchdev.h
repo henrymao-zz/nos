@@ -788,8 +788,47 @@ typedef union schan_msg_u {
 #define SCHAN_BLK_GXPORT5   25
 
 #define TOP_SOFT_RESET_REGr            0x02000100
-#define TOP_SOFT_RESET_REG_2r            0x02000200
+#define TOP_SOFT_RESET_REG_2r          0x02000200
 #define TOP_CORE_CLK_FREQ_SELr         0x02007700
+
+/*
+soc_field_info_t soc_CHIP_CONFIG_BCM56370_A0r_fields[] = {
+    { IP_TDMf, 3, 1, SOCF_LE },
+    { PAUSE_PFC_SELf, 1, 4, 0 },
+    { PCS_USXGMII_MODE_ENf, 1, 5, 0 },
+    { PMD_PLL_CTRL_REFCLK_DIV2f, 1, 8, 0 },
+    { PMD_PLL_CTRL_REFCLK_DIV4f, 1, 9, 0 },
+    { PMD_PLL_CTRL_REFCLK_TERM_SELf, 2, 6, SOCF_LE },
+    { POWERSAVEf, 1, 31, 0 },
+    { QMODEf, 1, 0, 0 }
+};
+ */
+typedef union chip_config_s {
+    struct _ch_addr_ {
+    #if defined(LE_HOST)
+    uint32_t  QMODEf:1,
+              IP_TDMf:3,
+              PAUSE_PFC_SELf:1,
+              PCS_USXGMII_MODE_ENf:1,
+              PMD_PLL_CTRL_REFCLK_TERM_SELf:2,
+              PMD_PLL_CTRL_REFCLK_DIV2f:1,
+              PMD_PLL_CTRL_REFCLK_DIV4f:1,
+              r0:22,
+              POWERSAVEf:1;
+    #else
+    uint32_t  POWERSAVEf:1,
+              r0:22,
+              PMD_PLL_CTRL_REFCLK_DIV4f:1,
+              PMD_PLL_CTRL_REFCLK_DIV2f:1,
+              PMD_PLL_CTRL_REFCLK_TERM_SELf:2,
+              PCS_USXGMII_MODE_ENf:1,
+              PAUSE_PFC_SELf:1,
+              IP_TDMf:3,
+              QMODEf:1;
+    #endif
+    }reg;
+    uint32_t word;
+} chip_config_t;
 #define CHIP_CONFIGr                   0x2020000
 #define TOP_MISC_GENERIC_CONTROLr      0x2008600
 #define EGR_PORT_BUFFER_SFT_RESET_0r   0x2b130000
@@ -832,10 +871,88 @@ soc_field_info_t soc_ING_HW_RESET_CONTROL_2_BCM56970_A0r_fields[] = {
 #define XLPORT_MIB_RESETr              0x2022400
 #define XLPORT_XGXS0_CTRL_REGr         0x2021400
 
+/*
+soc_field_info_t soc_XLPORT_XGXS0_CTRL_REG_BCM56980_A0r_fields[] = {
+    { IDDQf, 1, 4, SOCF_RES },
+    { PWRDWNf, 1, 3, SOCF_RES },
+    { PWRDWN_CMLf, 1, 5, SOCF_RES },
+    { PWRDWN_CML_LCf, 1, 6, SOCF_RES },
+    { REFCMOSf, 1, 7, SOCF_RES },
+    { REFIN_ENf, 1, 2, SOCF_RES },
+    { REFOUT_ENf, 1, 1, SOCF_RES },
+    { REFSELf, 3, 8, SOCF_LE|SOCF_RES },
+    { RSTB_HWf, 1, 0, SOCF_RES }
+};
+ */
+typedef union xgxs0_ctrl_reg_s {
+    struct _ch_addr_ {
+    #if defined(LE_HOST)
+    uint32_t  RSTB_HWf:1,
+              EREFOUT_Nf:1,
+              REFIN_ENf:1,
+              PWRDWNf:1,
+              PWRDWN_CMLf:1,
+              PWRDWN_CML_LCf:1,
+              REFCMOSf:1,
+              REFSELf:3,
+              r0:21;
+    #else
+    uint32_t  r0:21,
+              REFSELf:3,
+              REFCMOSf:1,
+              PWRDWN_CML_LCf:1,
+              PWRDWN_CMLf:1,
+              PWRDWNf:1,
+              REFIN_ENf:1
+              EREFOUT_Nf:1,
+              RSTB_HWf:1;
+    #endif
+    }reg;
+    uint32_t word;
+} xgxs0_ctrl_reg_t;
 #define PMQ_XGXS0_CTRL_REGr            0x2020100
 #define ENHANCED_HASHING_CONTROL_2r    0x82001300
 #define XLPORT_MAC_CONTROLr            0x2021000
 
+//Register: CHIP_SWRST.pmqport0 general register address 0x02020800
+//Blocks: pmqport0 pmqport1 pmqport2 (3 copies)
+//Description: Soft Reset register for PM4x10Q Top
+//Displaying: reset defaults, reset value 0 mask 0xff
+//  SOFT_RESET_QSGMII_PCS<2> = 0
+//  SOFT_RESET_GPORT1<1> = 0
+//  SOFT_RESET_GPORT0<0> = 0
+//  ILKN_BYPASS_RSTN<7:4> = 0
+//  FLUSH<3> = 0
+/*
+soc_field_info_t soc_CHIP_SWRST_BCM53400_A0r_fields[] = {
+    { FLUSHf, 1, 3, 0 },
+    { ILKN_BYPASS_RSTNf, 4, 4, SOCF_LE },
+    { SOFT_RESET_GPORT0f, 1, 0, 0 },
+    { SOFT_RESET_GPORT1f, 1, 1, 0 },
+    { SOFT_RESET_QSGMII_PCSf, 1, 2, 0 }
+};
+ */
+typedef union chip_swrst_reg_s {
+    struct _ch_addr_ {
+    #if defined(LE_HOST)
+    uint32_t  SOFT_RESET_GPORT0f:1,
+              SOFT_RESET_GPORT1f:1,
+              SOFT_RESET_QSGMII_PCSf:1,
+              FLUSHf:1,
+              ILKN_BYPASS_RSTNf:4,
+              r0:24;
+    #else
+    uint32_t  r0:24,
+              ILKN_BYPASS_RSTNf:4,
+              FLUSHf:1,
+              SOFT_RESET_QSGMII_PCSf:1,
+              SOFT_RESET_GPORT1f:1,
+              SOFT_RESET_GPORT0f:1;
+    #endif
+    }reg;
+    uint32_t word;
+} chip_swrst_reg_t;
+#define CHIP_SWRSTr                    0x02020800
 
 /*****************************************************************************************/
 /*                            memory entries read from SCHAN                             */
@@ -2031,7 +2148,7 @@ typedef union q_sched_rqe_s {
 //  GMIB0_MEM_INIT_DONE<18> = 0 [RO]
 #define PMQ_ECC_INIT_STSr                         0x02020300
 #define UNIMAC_MEM_INIT_DONE_MASK                 0xffff
-
+#define GP_GMIB_MEM_INIT_DONE_MASK                0xf0000
 
 //Register: PMQ_ECC.pmqport0 general register address 0x02020400
 //Flags:
