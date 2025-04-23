@@ -3169,7 +3169,7 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
     int    frame_max, ignore_pause;
     int    is_crc_fwd;
     int    index, blk_no;
-    command_config_t command_config. old_command_config;
+    command_config_t command_config, old_command_config;
  
     if (port > 48) {
        return -1;
@@ -5053,8 +5053,8 @@ portmod_common_phy_sbus_reg_write(bcmsw_switch_t *bcmsw, int blk_id,
 
     _soc_mem_write(bcmsw->dev, PMQPORT_WC_UCMEM_DATAm, blk_id, 3, (uint32_t *)&mem_data); 
 
-    printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
-          core_addr, reg_addr, val , data_mask, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_write addr=0x%x reg=0x%08x data=0x%08x mask=0x%08x(%d/%d)\n",
+    //      core_addr, reg_addr, val , data_mask, blk_id, rv);
 
     return rv;
 }
@@ -5085,8 +5085,8 @@ portmod_common_phy_sbus_reg_read(bcmsw_switch_t *bcmsw, int blk_id, uint32_t cor
 
     *val = mem_data[reg_val_offset];
 
-    printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
-            core_addr, reg_addr, *val, blk_id, rv);
+    //printk("_portmod_utils_sbus_reg_read addr=0x%x reg=0x%08x data=0x%08x (%d/%d)\n",
+    //        core_addr, reg_addr, *val, blk_id, rv);
 
     return rv;
 }
@@ -8748,7 +8748,7 @@ static int
 _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 {
     int pmq_blk, pmq_index, phy_port;
-    uint32 bitmap, reg_val, field_val;
+    uint32_t reg_val, field_val;
     int flags;
 
     /* Init unimac */
@@ -8777,7 +8777,7 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
     /* Wait for UNIMAC mem to finish init */
     msleep(1);
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
-    if ((reg_val & UNIMAC_MEM_INIT_DONE_MASK) == (0x1 << port_index)){
+    if ((reg_val & UNIMAC_MEM_INIT_DONE_MASK) == (0x1 << pmq_index)){
         printk("_pm4x10_qtc_pm_port_init unimac mem init done for port %d\n", port);
     } else {
         printk("_pm4x10_qtc_pm_port_init unimac mem init failed for port %d reg 0x%08x\n", port, reg_val);
@@ -8785,11 +8785,10 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 
     /*Mask the ECC status for each of the UNIMACs*/
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECCr, &reg_val);
-    reg_val &= ~(0x1 << port_index);
+    reg_val &= ~(0x1 << pmq_index);
     _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECCr, reg_val);
 
-exit:
-     SOC_FUNC_RETURN;
+    return SOC_E_NONE;
 }
 
 
@@ -8903,7 +8902,7 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
      _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_autoneg_set(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &an));
 #endif
     /* Initialize unimac and port*/
-    _pm4x10_qtc_pm_port_init(unit, port);
+    _pm4x10_qtc_pm_port_init(bcmsw, port);
 
 #if 0    
     /* Disable Internal SerDes LPI bypass */
@@ -9966,7 +9965,7 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
          BCM_IF_ERROR_RETURN(r);
      }
  #endif
-     return SOC_E_NONE;
+     return rc;
  }
 
 static int
@@ -11088,7 +11087,7 @@ _esw_l2_init(bcmsw_switch_t *bcmsw)
      */
     rv = _bcm_esw_l2_cache_init(bcmsw);
     
-    return SOC_E_NONE;
+    return rv;
 }
 
 /*****************************************************************************************/
