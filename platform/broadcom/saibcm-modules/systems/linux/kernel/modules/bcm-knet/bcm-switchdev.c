@@ -11963,6 +11963,16 @@ _proc_reg32_show(struct seq_file *m, void *v)
             }   
             break;
 
+        case PMQ_ECCr:
+        case PMQ_ECC_INIT_STSr:
+        case PMQ_ECC_INIT_CTRLr:
+            _reg32_read(_bcmsw->dev, SCHAN_BLK_PMQPORT0, p_data->reg_addr, &val);
+            seq_printf(m, "0x%08x[%d]  0x%08x\n", p_data->reg_addr, SCHAN_BLK_PMQPORT0, val);
+            _reg32_read(_bcmsw->dev, SCHAN_BLK_PMQPORT1, p_data->reg_addr, &val);
+            seq_printf(m, "0x%08x[%d]  0x%08x\n", p_data->reg_addr, SCHAN_BLK_PMQPORT1, val);
+            _reg32_read(_bcmsw->dev, SCHAN_BLK_PMQPORT2, p_data->reg_addr, &val);
+            seq_printf(m, "0x%08x[%d]  0x%08x\n", p_data->reg_addr, SCHAN_BLK_PMQPORT2, val);
+            break;
         default:
             seq_printf(m," Not implemented\n");
             break;
@@ -13089,9 +13099,33 @@ static int _procfs_reg_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }                
-
-
-
+    // /proc/switchdev/reg/PMQ_ECC_INIT_CTRL
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = PMQ_ECC_INIT_CTRLr;
+    entry = proc_create_data("PMQ_ECC_INIT_CTRL", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    // /proc/switchdev/reg/PMQ_ECC_INIT_STS
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = PMQ_ECC_INIT_STSr;
+    entry = proc_create_data("PMQ_ECC_INIT_STS", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    // /proc/switchdev/reg/PMQ_ECC
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = PMQ_ECCr;
+    entry = proc_create_data("PMQ_ECC", 0666, proc_reg_base, &_proc_reg32_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
     return 0;
 create_fail:
     return -1;
@@ -13334,6 +13368,9 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("IDB_CA_CPU_CONTROL", proc_reg_base);
     remove_proc_entry("IDB_CA_BSK_CONTROL", proc_reg_base);
     remove_proc_entry("PMQ_XGXS0_CTRL_REG", proc_reg_base);
+    remove_proc_entry("PMQ_ECC_INIT_CTRL", proc_reg_base);
+    remove_proc_entry("PMQ_ECC_INIT_STS", proc_reg_base);
+    remove_proc_entry("PMQ_ECC", proc_reg_base);
     
     remove_proc_entry("reg", proc_switchdev_base);
 
