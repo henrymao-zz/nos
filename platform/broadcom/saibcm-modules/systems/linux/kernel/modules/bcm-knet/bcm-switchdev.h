@@ -1318,6 +1318,23 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_MAIN_LN_SWPr_SIZE 4
 
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  CL37_RESTART
+ * BLOCKS:   AN_X1_TIMERS
+ * REGADDR:  0x9250
+ * DESC:     CL37 AUTO-NEG RESTART TIMER
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_RESTART_TIMER_PERIOD Period/range is 10 mssingle copyCL37 auto-neg restart timer. Timer for the amout of time to send restart pages.
+ */
+#define BCMI_QTC_XGXS_CL37_RESTARTr (0x00109250 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_CL37_RESTARTr_SIZE 4
+
+
 /*******************************************************************************
  * CHIP:  BCMI_QTC_XGXS
  * REGISTER:  CL37_RESTART

@@ -7869,19 +7869,23 @@ int merlin16_rdw_uc_ram(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uin
 int merlin16_wrw_uc_ram(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  uint16_t addr, uint16_t wr_val) {
 
     //EFUN(wrc_micro_autoinc_wraddr_en(0));
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x2000, 13, 0x0);
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x1000,12,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x1000, 12, 0x0);
 
     /* Select 16bit write datasize */
-    //EFUN(wrc_micro_ra_wrdatasize(0x1));                 
-    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x0030, 4, 0x1);
+    //EFUN(wrc_micro_ra_wrdatasize(0x1));    
+    //_merlin16_pmd_mwr_reg_byte(sa__, 0xd202,0x0003,0,wr_val)             
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd202, 0x0003, 0, 0x1);
 
     /* Upper 16bits of RAM address to be written to */
-    //EFUN(wrc_micro_ra_wraddr_msw(0x2000));          
-    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd209, 0x2000);
+    //EFUN(wrc_micro_ra_wraddr_msw(0x2000));        
+    // merlin16_pmd_wr_reg(sa__, 0xd205,wr_val)  
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd205, 0x2000);
 
     /* Lower 16bits of RAM address to be written to */
-    //EFUN(wrc_micro_ra_wraddr_lsw(addr));              
-    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd208, addr);
+    //EFUN(wrc_micro_ra_wraddr_lsw(addr));      
+    //merlin16_pmd_wr_reg(sa__, 0xd204,wr_val)        
+    merlin16_pmd_wr_reg(bcmsw, port, lane_mask, 0xd204, addr);
 
      /* uC RAM lower 16bits write data */
     //EFUN(wrc_micro_ra_wrdata_lsw(wr_val));
@@ -8292,7 +8296,7 @@ int qmod16_autoneg_timer_init(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mas
     /* coverity[operator_confusion] */
     //CL37_RESTARTr_CL37_RESTART_TIMER_PERIODf_SET(reg_cl37_restart_timers, 0x29a);
     //PHYMOD_IF_ERR_RETURN(WRITE_CL37_RESTARTr(pc, reg_cl37_restart_timers));
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MAIN_SETUPr, 0x29a);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_CL37_RESTARTr, 0x29a);
 
     /*0x9251 AN_X1_TIMERS_cl37_ack */
     //CL37_ACKr_CLR(reg_cl37_ack_timers);
