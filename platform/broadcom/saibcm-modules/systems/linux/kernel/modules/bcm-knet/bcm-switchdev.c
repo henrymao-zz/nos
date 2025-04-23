@@ -599,7 +599,7 @@ _mem_field_get(uint32_t *entry,
         } else {
             val[0] = 0;
         }
-        return val;
+        return;
     }
 
     if (flags & SOCF_LE) {
@@ -7945,7 +7945,8 @@ int merlin16_get_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_m
 
 int merlin16_INTERNAL_set_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, struct merlin16_uc_core_config_st struct_val) 
 {
-    uint8_t reset_state;
+    uint8_t  reset_state;
+    uint16_t val;
     //ESTM(reset_state = rdc_core_dp_reset_state());
     //merlin16_pmd_rde_field_byte(sa__, 0xd0f8,13,13,__ERR)
     merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0f8, &val);
@@ -7965,7 +7966,7 @@ int merlin16_INTERNAL_set_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32
     // ->merlin16_wrwc_uc_var(sa__,0x0,wr_val)
     merlin16_wrwc_uc_var(bcmsw, port, lane_mask, 0x0, struct_val.word);
 
-    return (ERR_CODE_NONE);
+    return (SOC_E_NONE);
 }
 
 int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, 
@@ -8166,7 +8167,7 @@ int merlin16_INTERNAL_configure_pll(bcmsw_switch_t *bcmsw, int port, uint32_t la
         merlin16_get_uc_core_config(bcmsw, port, lane_mask, &core_config);
         core_config.vco_rate_in_Mhz = (vco_freq_khz + 500) / 1000;
         core_config.field.vco_rate = MHZ_TO_VCO_RATE(core_config.vco_rate_in_Mhz);
-        merlin16_INTERNAL_set_uc_core_config(bcmsw, port, lane_mask, core_config));
+        merlin16_INTERNAL_set_uc_core_config(bcmsw, port, lane_mask, core_config);
     }
 
     return (SOC_E_NONE);

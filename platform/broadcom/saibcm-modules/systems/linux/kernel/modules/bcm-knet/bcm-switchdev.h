@@ -1441,6 +1441,20 @@ typedef struct phymod_lane_map_s {
 #define MHZ_TO_VCO_RATE(mhz) ((uint8_t)((((uint16_t)(mhz) + 125) / 250) - 22))
 #define VCO_RATE_TO_MHZ(vco_rate) (((uint16_t)(vco_rate) + 22) * 250)
 
+/** Lane Config Variable Structure in Microcode */
+struct merlin16_uc_lane_config_field_st {
+  uint8_t  lane_cfg_from_pcs ;
+  uint8_t  an_enabled        ;
+  uint8_t  dfe_on            ;
+  uint8_t  force_brdfe_on    ;
+  uint8_t  media_type        ;
+  uint8_t  unreliable_los    ;
+  uint8_t  scrambling_dis    ;
+  uint8_t  cl72_auto_polarity_en ;
+  uint8_t  cl72_restart_timeout_en;
+  uint16_t reserved;
+};
+
 /** Core Config Variable Structure in Microcode */
 struct merlin16_uc_core_config_field_st {
     uint8_t  core_cfg_from_pcs ;
@@ -1449,6 +1463,13 @@ struct merlin16_uc_core_config_field_st {
     uint8_t  reserved1         ;
     uint8_t  reserved2         ;
 };
+
+typedef struct phymod_firmware_core_config_s {
+    uint32_t CoreConfigFromPCS;
+    uint32_t VcoRate; /**< vco rate */
+    uint32_t disable_write_pll_iqp; /**< When 1 ucode will not update pll_iqp */
+    uint32_t osr_2p5_en; /**< Enable 2p5 Oversample Mode */
+} phymod_firmware_core_config_t;
   
 /** Lane Config Struct */
 struct  merlin16_uc_lane_config_st {
