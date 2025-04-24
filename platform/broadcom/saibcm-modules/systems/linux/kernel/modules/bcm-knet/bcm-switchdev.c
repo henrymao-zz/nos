@@ -3140,7 +3140,9 @@ int unimac_soft_reset_set(bcmsw_switch_t *bcmsw, int port, int enable)
  
     /* SIDE EFFECT: TX and RX are enabled when SW_RESET is set. */
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+    printk("unimac_soft_reset_set read port %d command_config 0x%08x\n",port, command_config.word);
     command_config.reg.SW_RESETf = enable;
+    printk("unimac_soft_reset_set write port %d command_config 0x%08x\n",port, command_config.word);
     _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
 
     msleep(50);
@@ -3189,6 +3191,7 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
  
     /* Do the initialization */
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
+    printk("unimac_init 1 read: port %d command_config 0x%08x\n",port, command_config.word);
     old_command_config.word = command_config.word;
  
     command_config.reg.TX_ENAf    = 0;
@@ -3221,6 +3224,7 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
     }
  
     if (old_command_config.word != command_config.word) {
+       printk("unimac_init 2 write: port %d command_config 0x%08x\n",port, command_config.word);
        _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
     }
  
@@ -8871,7 +8875,8 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 
     /* Init port ecc */
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
-    reg_val |= 0x1 << pmq_index;
+    reg_val |= (0x1 << pmq_index);
+    printk("_pm4x10_qtc_pm_port_init port %d reg 0x%08x\n",port, reg_val);
     _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
 
     /* Wait for UNIMAC mem to finish init */
@@ -8885,7 +8890,8 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 
     /*Mask the ECC status for each of the UNIMACs*/
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECCr, &reg_val);
-    reg_val &= ~(0x1 << pmq_index);
+    reg_val &= ((~(0x1 << pmq_index))<<16 | 0xFFFF);
+    printk("_pm4x10_qtc_pm_port_init pmq_ecc port %d reg 0x%08x\n", port, reg_val);
     _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECCr, reg_val);
 
     return SOC_E_NONE;
