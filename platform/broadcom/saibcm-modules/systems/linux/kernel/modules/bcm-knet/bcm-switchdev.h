@@ -1561,12 +1561,12 @@ typedef enum {
 
 #define BCMI_TSCE16_XGXS_TLB_TX_TLB_TX_MISC_CFGr_SIZE 4
 
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_GET(r) (((r) >> 2) & 0x1)
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_GET(r) (((r) >> 1) & 0x1)
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
-#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_GET(r) (((r) >> 2) & 0x1)
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_GET(r) (((r) >> 1) & 0x1)
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
+#define TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*******************************************************************************
@@ -1587,12 +1587,17 @@ typedef enum {
 
 #define BCMI_TSCE16_XGXS_TLB_RX_TLB_RX_MISC_CFGr_SIZE 4
 
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_GET(r) (((r) >> 2) & 0x1)
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_GET(r) (((r) >> 1) & 0x1)
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
-#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+typedef struct phymod_polarity_s {
+    uint32_t rx_polarity; /**< TX polarity bitmap */
+    uint32_t tx_polarity; /**< RX polarity bitmap */
+} phymod_polarity_t;
+
+#define TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_GET(r) (((r) >> 2) & 0x1)
+#define TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_GET(r) (((r) >> 1) & 0x1)
+#define TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
+#define TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*******************************************************************************
@@ -1612,12 +1617,12 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_PMA_CTLr_SIZE 4
 
-#define BCMI_QTC_XGXS_PMA_CTLr_OS_MODEf_GET(r) (((r) >> 3) & 0xf)
-#define BCMI_QTC_XGXS_PMA_CTLr_OS_MODEf_SET(r,f) r=((r & ~((uint32_t)0xf << 3)) | ((((uint32_t)f) & 0xf) << 3)) | (15 << (16 + 3))
-#define BCMI_QTC_XGXS_PMA_CTLr_RX_GBOX_AFRST_ENf_GET(r) (((r) >> 1) & 0x1)
-#define BCMI_QTC_XGXS_PMA_CTLr_RX_GBOX_AFRST_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
-#define BCMI_QTC_XGXS_PMA_CTLr_RSTB_LANEf_GET(r) ((r) & 0x1)
-#define BCMI_QTC_XGXS_PMA_CTLr_RSTB_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define PMA_CTLr_OS_MODEf_GET(r) (((r) >> 3) & 0xf)
+#define PMA_CTLr_OS_MODEf_SET(r,f) r=((r & ~((uint32_t)0xf << 3)) | ((((uint32_t)f) & 0xf) << 3)) | (15 << (16 + 3))
+#define PMA_CTLr_RX_GBOX_AFRST_ENf_GET(r) (((r) >> 1) & 0x1)
+#define PMA_CTLr_RX_GBOX_AFRST_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define PMA_CTLr_RSTB_LANEf_GET(r) ((r) & 0x1)
+#define PMA_CTLr_RSTB_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*******************************************************************************
@@ -1637,12 +1642,12 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_MISCr_SIZE 4
 
-#define BCMI_QTC_XGXS_MISCr_TX_FIFO_WATERMARKf_SET(r,f) r = ((r & ~((uint32_t)0x3f << 2)) | ((((uint32_t)f) & 0x3f) << 2)) | (63 << (16 + 2))
-#define BCMI_QTC_XGXS_MISCr_TX_FIFO_WATERMARKf_GET(r) (((r) >> 2) & 0x3f)
-#define BCMI_QTC_XGXS_MISCr_RSTB_TX_LANEf_GET(r) (((r) >> 1) & 0x1)
-#define BCMI_QTC_XGXS_MISCr_RSTB_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
-#define BCMI_QTC_XGXS_MISCr_ENABLE_TX_LANEf_GET(r) ((r) & 0x1)
-#define BCMI_QTC_XGXS_MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define MISCr_TX_FIFO_WATERMARKf_SET(r,f) r = ((r & ~((uint32_t)0x3f << 2)) | ((((uint32_t)f) & 0x3f) << 2)) | (63 << (16 + 2))
+#define MISCr_TX_FIFO_WATERMARKf_GET(r) (((r) >> 2) & 0x3f)
+#define MISCr_RSTB_TX_LANEf_GET(r) (((r) >> 1) & 0x1)
+#define MISCr_RSTB_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define MISCr_ENABLE_TX_LANEf_GET(r) ((r) & 0x1)
+#define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*****************************************************************************************/

@@ -3140,9 +3140,9 @@ int unimac_soft_reset_set(bcmsw_switch_t *bcmsw, int port, int enable)
  
     /* SIDE EFFECT: TX and RX are enabled when SW_RESET is set. */
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
-    printk("unimac_soft_reset_set read port %d command_config 0x%08x\n",port, command_config.word);
+    //printk("unimac_soft_reset_set read port %d command_config 0x%08x\n",port, command_config.word);
     command_config.reg.SW_RESETf = enable;
-    printk("unimac_soft_reset_set write port %d command_config 0x%08x\n",port, command_config.word);
+    //printk("unimac_soft_reset_set write port %d command_config 0x%08x\n",port, command_config.word);
     _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
 
     msleep(50);
@@ -3191,7 +3191,7 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
  
     /* Do the initialization */
     _reg32_read(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, &command_config.word);
-    printk("unimac_init 1 read: port %d command_config 0x%08x\n",port, command_config.word);
+    //printk("unimac_init 1 read: port %d command_config 0x%08x\n",port, command_config.word);
     old_command_config.word = command_config.word;
  
     command_config.reg.TX_ENAf    = 0;
@@ -3224,7 +3224,7 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
     }
  
     if (old_command_config.word != command_config.word) {
-       printk("unimac_init 2 write: port %d command_config 0x%08x\n",port, command_config.word);
+       //printk("unimac_init 2 write: port %d command_config 0x%08x\n",port, command_config.word);
        _reg32_write(bcmsw->dev, blk_no, COMMAND_CONFIGr+index, command_config.word);
     }
  
@@ -8838,10 +8838,10 @@ int qmod16_tx_rx_polarity_set (bcmsw_switch_t *bcmsw, int port, uint32_t lane_ma
 {
     uint32_t val;
 
-    BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(val, tx_polarity);
+    TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(val, tx_polarity);
     phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_TLB_TX_TLB_TX_MISC_CFGr,val);
 
-    BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(val, rx_polarity);
+    TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(val, rx_polarity);
     phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_TLB_RX_TLB_RX_MISC_CFGr,val);
 
     return SOC_E_NONE;
@@ -8899,16 +8899,23 @@ int qmod16_tx_lane_control_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_ma
         MISCr_RSTB_TX_LANEf_SET(val, 1);
         phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
 
+        //printk("qmod16_tx_lane_control_set 1 val 0x%08x\n", val);
+        val = 0;
         MISCr_ENABLE_TX_LANEf_SET(val, 1);
         MISCr_TX_FIFO_WATERMARKf_SET(val,16);
+        //printk("qmod16_tx_lane_control_set 1 val 0x%08x\n", val);
         phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+
+        val = 0;
+        phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, &val);
+        //printk("qmod16_tx_lane_control_set read val 0x%08x\n", val);
         break;
     case QMOD16_TX_LANE_RESET_TRAFFIC_DISABLE:
         MISCr_RSTB_TX_LANEf_SET(val, 0);
         phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
 
         val = 0;
-        MISCr_ENABLE_TX_LANEf_SET(reg_misc_ctrl, 0);
+        MISCr_ENABLE_TX_LANEf_SET(val, 0);
         phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
         break;
     default:
@@ -8921,6 +8928,7 @@ int qtce16_phy_init(bcmsw_switch_t *bcmsw, int port)
 {
     int start_lane, num_lane, lane_id;
     uint32_t lane_mask;
+    phymod_polarity_t tmp_pol;
 
     /* next program the tx fir taps and driver current based on the input */
     //PHYMOD_IF_ERR_RETURN
@@ -8937,13 +8945,14 @@ int qtce16_phy_init(bcmsw_switch_t *bcmsw, int port)
     //        return PHYMOD_E_NONE;
     //    }
     //}
-    if (((port -1)%16)%4) != 0) {
+    if ((((port -1)%16)%4) != 0) {
         /* this lane has been initialized */
         return 0;
     } 
 
     start_lane = ((port -1)%16)/4;  
-    lane_mask  = 1 << start_lane;
+    lane_mask  = (1 << start_lane);
+    //printk("qtce16_phy_init port %d start_lane %d\n", port, start_lane);
 
 
     /* per lane based reset release */
@@ -9021,6 +9030,7 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 
     /* Wait for UNIMAC mem to finish init */
     msleep(1);
+    reg_val = 0;
     _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
     if ((reg_val & UNIMAC_MEM_INIT_DONE_MASK) == (0x1 << pmq_index)){
         printk("_pm4x10_qtc_pm_port_init unimac mem init done for port %d\n", port);
