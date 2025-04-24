@@ -8834,6 +8834,146 @@ static int qtce16_core_init(bcmsw_switch_t *bcmsw, int port)
     return SOC_E_NONE;
 }
 
+int qmod16_tx_rx_polarity_set (bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t tx_polarity, uint32_t rx_polarity) 
+{
+    uint32_t val;
+
+    BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(val, tx_polarity);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_TLB_TX_TLB_TX_MISC_CFGr,val);
+
+    BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(val, rx_polarity);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,BCMI_TSCE16_XGXS_TLB_RX_TLB_RX_MISC_CFGr,val);
+
+    return SOC_E_NONE;
+}
+
+
+int qtce16_phy_polarity_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, const phymod_polarity_t* polarity)
+{        
+    qmod16_tx_rx_polarity_set(bcmsw, port, lane_mask, polarity->tx_polarity, polarity->rx_polarity);
+
+    return SOC_E_NONE;
+}    
+
+int qmod16_rx_lane_control_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  int enable)         /* RX_LANE_CONTROL */
+{
+    uint32_t val;
+
+    if (enable) {
+        PMA_CTLr_RSTB_LANEf_SET(val, 1);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_PMA_CTLr, val);
+    } else {
+        /* bit set to 0 for disabling RXP */
+        PMA_CTLr_RSTB_LANEf_SET(val, 0);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_PMA_CTLr, val);
+    }
+    return SOC_E_NONE;
+}
+
+
+int qmod16_tx_lane_control_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  tx_lane_disable_type_t tx_dis_type)         /* TX_LANE_CONTROL */
+{
+    uint32_t val;
+
+    val = 0;
+
+    switch (tx_dis_type) {
+    case QMOD16_TX_LANE_RESET:
+        MISCr_RSTB_TX_LANEf_SET(val, 0);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+
+        val = 0;
+        MISCr_RSTB_TX_LANEf_SET(val, 1);
+        val = ((1 << 1) | (1 << (16 + 1)));
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+        break;
+    case QMOD16_TX_LANE_TRAFFIC_ENABLE:
+        MISCr_ENABLE_TX_LANEf_SET(val, 1);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+        break;
+    case QMOD16_TX_LANE_TRAFFIC_DISABLE:
+        MISCr_ENABLE_TX_LANEf_SET(val, 0);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+        break;
+    case QMOD16_TX_LANE_RESET_TRAFFIC_ENABLE:
+        MISCr_RSTB_TX_LANEf_SET(val, 1);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+
+        MISCr_ENABLE_TX_LANEf_SET(val, 1);
+        MISCr_TX_FIFO_WATERMARKf_SET(val,16);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+        break;
+    case QMOD16_TX_LANE_RESET_TRAFFIC_DISABLE:
+        MISCr_RSTB_TX_LANEf_SET(val, 0);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+
+        val = 0;
+        MISCr_ENABLE_TX_LANEf_SET(reg_misc_ctrl, 0);
+        phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_MISCr, val);
+        break;
+    default:
+        break;
+    }
+    return SOC_E_NONE;
+}
+
+int qtce16_phy_init(bcmsw_switch_t *bcmsw, int port)
+{
+    int start_lane, num_lane, lane_id;
+    uint32_t lane_mask;
+
+    /* next program the tx fir taps and driver current based on the input */
+    //PHYMOD_IF_ERR_RETURN
+    //    (phymod_util_lane_config_get(pm_acc, &start_lane, &num_lane));
+    //PHYMOD_IF_ERR_RETURN
+    //    (qmod16_lane_info(&phy->access, &lane_id, &sub_port));
+
+
+    //if (PHYMOD_ACC_F_QMODE_GET(&phy->access) || PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
+    //    PHYMOD_IF_ERR_RETURN(qmod16_port_state_set(&pm_phy_copy.access, QMOD16_PORT_STATE_CONFIGED, sub_port, 1));
+    //    PHYMOD_IF_ERR_RETURN(qmod16_speedchange_get(&pm_phy_copy.access, &sc_enable)) ;
+    //    /* this lane has been initialized */
+    //    if (sc_enable) {
+    //        return PHYMOD_E_NONE;
+    //    }
+    //}
+    if (((port -1)%16)%4) != 0) {
+        /* this lane has been initialized */
+        return 0;
+    } 
+
+    start_lane = ((port -1)%16)/4;  
+    lane_mask  = 1 << start_lane;
+
+
+    /* per lane based reset release */
+    qmod16_pmd_x4_reset(bcmsw, port, lane_mask);
+
+    /* poll for per lane uc_dsc_ready */
+    //num_lane = 1
+    //merlin16_lane_soft_reset_release(&pm_phy_copy.access, 1);
+    //   ->_merlin16_pmd_mwr_reg_byte(sa__, 0xd081,0x0001,0,wr_val)
+    merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd081, 0x0001, 0, 1); 
+
+    /* program the rx/tx polarity */
+    tmp_pol.tx_polarity = 0; 
+    tmp_pol.rx_polarity = 0;
+    qtce16_phy_polarity_set(bcmsw, port, lane_mask, &tmp_pol);
+
+    /* configure TX parameters */
+    //PHYMOD_IF_ERR_RETURN
+    //    (qtce16_phy_tx_set(phy, &init_config->tx[0]));
+
+
+    qmod16_rx_lane_control_set(bcmsw, port, lane_mask, TRUE);
+
+    /* TX_LANE_CONTROL */
+    qmod16_tx_lane_control_set(bcmsw, port, lane_mask, QMOD16_TX_LANE_RESET_TRAFFIC_ENABLE);        
+        
+    return SOC_E_NONE;
+}
+
+
 static
 int _pm4x10_qtc_pm_serdes_core_init(bcmsw_switch_t *bcmsw, int port)
 {
@@ -8901,6 +9041,11 @@ _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
 static
 int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
 {
+    // lane mapping
+    // port 1  - 16 :   (1 - 4) 0,    (5 - 8) 1,  (9 - 12) 2, (13 - 16) 3
+    // port 17 - 32 : (17 - 20) 0,  (21 - 24) 1, (25 - 28) 2, (29 - 32) 3
+    // port 33 - 48 : (33 - 36) 0,  (37 - 40) 1, (41 - 44) 2, (45 - 48) 3
+    // port_index 0 - 15  nof_phys = 2    
 #if 0    
     int port_i, my_i;
     int i, nof_phys = 0, usr_cfg_idx;
@@ -8921,7 +9066,8 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
                                                            &nof_phys));
 
     /* Initialze phys */
-    _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_index_get(unit, port, pm_info, &port_index, &bitmap));
+    // _SOC_IF_ERR_EXIT(_pm4x10_qtc_port_index_get(unit, port, pm_info, &port_index, &bitmap));
+
     if (PM_4x10_QTC_INFO(pm_info)->nof_phys[port_index] > 0) {
         my_i = 0, usr_cfg_idx = 0;
         for (i = 0; i < MAX_PORTS_PER_PM4X10_QTC; i++) {
@@ -8974,10 +9120,12 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
                         add_info->interface_config.pll_divider_req;
         init_config.interface.ref_clock = PM_4x10_QTC_INFO(pm_info)->ref_clk;
 
-        _SOC_IF_ERR_EXIT(portmod_port_phychain_phy_init(unit, phy_access, nof_phys,
-                                                        &init_config));
-    }
-
+#endif
+    //portmod_port_phychain_phy_init(unit, phy_access, nof_phys,
+    //                                                    &init_config));
+    // -->phymod_phy_init -->qtce16_phy_init
+    qtce16_phy_init(bcmsw, port);
+#if 0
     /* PHY interface set  */
     if (add_info->interface_config.serdes_interface != SOC_PORT_IF_NULL) {
         _SOC_IF_ERR_EXIT(portmod_intf_to_phymod_intf(unit,

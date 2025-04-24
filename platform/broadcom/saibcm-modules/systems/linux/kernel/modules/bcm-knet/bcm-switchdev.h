@@ -1543,6 +1543,108 @@ typedef enum {
 
 #define BCMI_QTC_XGXS_LNK_FAIL_INHBT_TMR_NOT_CL72_TYPEr_SIZE 4
 
+/*******************************************************************************
+ * CHIP:  BCMI_TSCE16_XGXS
+ * REGISTER:  TLB_TX_TLB_TX_MISC_CFG
+ * BLOCKS:   TLB_TX
+ * REGADDR:  0xd0e3
+ * DEVAD:    1
+ * DESC:     TLB TX Misc. Control
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     TX_PMD_DP_INVERT TX PMD Datapath Invert Control.When Enabled by writing to 1'b1, it will invert all the datapath bits of the logical lane.Recommended for use in case P and N pads are swapped on the PCB board.
+ *     TX_PCS_NATIVE_ANA_FRMT_EN TX PCS Interface Native Analog Format Enable.1 => TX PCS Interface is enabled in the Native Analog Format mode. TX PCS sends the over-sampled data in this mode which is sent directly to AFE.0 => Raw Data Mode where for every data request TX PCS will send 20 bits of valid data.
+ *     TX_MUX_SEL_ORDER TX Data MUX Select Priority Order. When 1'b1 then priority of Pattern and PRBS generators are swapped w.r.t. CL72.0 => TX Data Mux select order from higher to lower priority is {rmt_lpbk, patt_gen, cl72_tx, prbs_gen, tx_pcs}.1 => TX Data Mux select order from higher to lower priority is {rmt_lpbk, prbs_gen, cl72_tx, patt_gen, tx_pcs}.
+ */
+#define BCMI_TSCE16_XGXS_TLB_TX_TLB_TX_MISC_CFGr (0x0001d0e3 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_TSCE16_XGXS_TLB_TX_TLB_TX_MISC_CFGr_SIZE 4
+
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_GET(r) (((r) >> 2) & 0x1)
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_MUX_SEL_ORDERf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_GET(r) (((r) >> 1) & 0x1)
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PCS_NATIVE_ANA_FRMT_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
+#define BCMI_QTC_XGXS_TLB_TX_TLB_TX_MISC_CFGr_TX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_TSCE16_XGXS
+ * REGISTER:  TLB_RX_TLB_RX_MISC_CFG
+ * BLOCKS:   TLB_RX
+ * REGADDR:  0xd0d3
+ * DEVAD:    1
+ * DESC:     TLB RX Misc. Control
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     RX_PMD_DP_INVERT RX PMD Datapath Invert Control.When Enabled by writing to 1'b1, it will invert all the datapath bits of the logical lane.Recommended for use in case P and N pads are swapped on the PCB board.
+ *     RX_AGGREGATOR_BYPASS_EN RX Aggregator Bypass EnableWhen Enabled by writing to 1'b1, DSC Data will bypass the RX Data aggregator block and sent directly to PCS along with a sync pulse which will indicate the (clk_cnt ==0).Recommended for use if low latency is desired and where data aggregation will be done in the PCS block based on the sync pulse.
+ *     DBG_MASK_DIG_LPBK_EN Mask bit for dig_lpbk_en in the pmd_rx_lock equation. This is a debug register.1 => pmd_rx_lock will be forced to 1'b0 during digital loopback.0 => pmd_rx_lock will be forced to 1'b1 during digital loopback.
+ */
+#define BCMI_TSCE16_XGXS_TLB_RX_TLB_RX_MISC_CFGr (0x0001d0d3 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_TSCE16_XGXS_TLB_RX_TLB_RX_MISC_CFGr_SIZE 4
+
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_GET(r) (((r) >> 2) & 0x1)
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_DBG_MASK_DIG_LPBK_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_GET(r) (((r) >> 1) & 0x1)
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_AGGREGATOR_BYPASS_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_GET(r) ((r) & 0x1)
+#define BCMI_QTC_XGXS_TLB_RX_TLB_RX_MISC_CFGr_RX_PMD_DP_INVERTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  PMA_CTL
+ * BLOCKS:   RX_X4_CONTROL0
+ * REGADDR:  0xc162
+ * DESC:     Rx PMA control register
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     RSTB_LANE        Low activer per lane reset for RXP
+ *     RX_GBOX_AFRST_EN 
+ *     OS_MODE          0: OS MODE 1 - divide by 11: OS MODE 2 - divide by 22: OS MODE 3 - divide by 33: OS MODE 3.3 - divide by 3.3.Bit repeating pattern is 3,3,3,4,3,3,4,3,3,44: OS MODE 4 - divide by 45: OS MODE 5 - divide by 56: OS MODE 8 - divide by 87: OS MODE 8.25 - divide by 8.25.Bit repeating pattern is 8,8,8,98: OS MODE 10 - divide by 10
+ */
+#define BCMI_QTC_XGXS_PMA_CTLr (0x0000c162 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_PMA_CTLr_SIZE 4
+
+#define BCMI_QTC_XGXS_PMA_CTLr_OS_MODEf_GET(r) (((r) >> 3) & 0xf)
+#define BCMI_QTC_XGXS_PMA_CTLr_OS_MODEf_SET(r,f) r=((r & ~((uint32_t)0xf << 3)) | ((((uint32_t)f) & 0xf) << 3)) | (15 << (16 + 3))
+#define BCMI_QTC_XGXS_PMA_CTLr_RX_GBOX_AFRST_ENf_GET(r) (((r) >> 1) & 0x1)
+#define BCMI_QTC_XGXS_PMA_CTLr_RX_GBOX_AFRST_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define BCMI_QTC_XGXS_PMA_CTLr_RSTB_LANEf_GET(r) ((r) & 0x1)
+#define BCMI_QTC_XGXS_PMA_CTLr_RSTB_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  MISC
+ * BLOCKS:   TX_X4_CONTROL0
+ * REGADDR:  0xc140
+ * DESC:     Misc register
+ * RESETVAL: 0x3c (60)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     ENABLE_TX_LANE   Per lane enable to allow DVs from MAC to enter TXP
+ *     RSTB_TX_LANE     Low active reset for txp lanes
+ *     TX_FIFO_WATERMARK Per logical lane tx fifo watermark for tx gearboxN: Accumulate N words before sending the first data out.
+ */
+#define BCMI_QTC_XGXS_MISCr (0x0000c140 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_MISCr_SIZE 4
+
+#define BCMI_QTC_XGXS_MISCr_TX_FIFO_WATERMARKf_SET(r,f) r = ((r & ~((uint32_t)0x3f << 2)) | ((((uint32_t)f) & 0x3f) << 2)) | (63 << (16 + 2))
+#define BCMI_QTC_XGXS_MISCr_TX_FIFO_WATERMARKf_GET(r) (((r) >> 2) & 0x3f)
+#define BCMI_QTC_XGXS_MISCr_RSTB_TX_LANEf_GET(r) (((r) >> 1) & 0x1)
+#define BCMI_QTC_XGXS_MISCr_RSTB_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define BCMI_QTC_XGXS_MISCr_ENABLE_TX_LANEf_GET(r) ((r) & 0x1)
+#define BCMI_QTC_XGXS_MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+
 /*****************************************************************************************/
 /*                           merlin16                                                    */
 /*****************************************************************************************/
@@ -1620,6 +1722,14 @@ struct  merlin16_uc_core_config_st {
     int vco_rate_in_Mhz; /* if >0 then will get converted and replace field.vco_rate when update is called */
 };
 
+typedef enum {
+    QMOD16_TX_LANE_RESET = 0,
+    QMOD16_TX_LANE_TRAFFIC_ENABLE = 1,
+    QMOD16_TX_LANE_TRAFFIC_DISABLE = 2,
+    QMOD16_TX_LANE_RESET_TRAFFIC_ENABLE = 3,
+    QMOD16_TX_LANE_RESET_TRAFFIC_DISABLE = 4,
+    QMOD16_TX_LANE_TYPE_COUNT
+}tx_lane_disable_type_t;
 
 
 enum merlin16_pll_refclk_enum {
@@ -1628,7 +1738,7 @@ enum merlin16_pll_refclk_enum {
     MERLIN16_PLL_REFCLK_125MHZ         = 0x0010007DUL, /* 125 MHz         */
     MERLIN16_PLL_REFCLK_156P25MHZ      = 0x00400271UL, /* 156.25 MHz      */
     MERLIN16_PLL_REFCLK_161P1328125MHZ = 0x08005091UL  /* 161.1328125 MHz */
-    };
+};
 
 
 enum merlin16_pll_div_enum {
