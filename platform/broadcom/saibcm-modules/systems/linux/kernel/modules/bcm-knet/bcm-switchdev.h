@@ -1818,6 +1818,7 @@ typedef struct phymod_autoneg_control_s {
     uint32_t flags; /**< see AN_F */
     uint32_t enable;
 } phymod_autoneg_control_t;
+
 #define PHYMOD_AN_F_ALLOW_PLL_CHANGE 0x1
 #define PHYMOD_AN_F_SET_PRIOR_ENABLE 0x2
 #define PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE 0x4
@@ -2208,6 +2209,33 @@ struct  merlin16_uc_core_config_st {
     uint16_t word;
     int vco_rate_in_Mhz; /* if >0 then will get converted and replace field.vco_rate when update is called */
 };
+
+typedef enum phymod_firmware_media_type_e {
+    phymodFirmwareMediaTypePcbTraceBackPlane = 0, /**< back plane */
+    phymodFirmwareMediaTypeCopperCable, /**< copper cable */
+    phymodFirmwareMediaTypeOptics, /**< optical */
+    phymodFirmwareMediaTypeCount
+} phymod_firmware_media_type_t;
+
+typedef struct phymod_firmware_lane_config_s {
+    uint32_t LaneConfigFromPCS;
+    uint32_t AnEnabled; /**< Autoneg */
+    uint32_t DfeOn; /**< Enable DFE */
+    uint32_t ForceBrDfe; /**< Force Baud rate DFE */
+    uint32_t LpDfeOn; /**< Enable low power DFE */
+    phymod_firmware_media_type_t MediaType; /**< Media Type */
+    uint32_t UnreliableLos; /**< For optical use */
+    uint32_t ScramblingDisable; /**< disable scrambling */
+    uint32_t Cl72AutoPolEn; /**< Forced CL72 */
+    uint32_t Cl72RestTO; /**< Forced CL72 */
+    uint32_t ForceExtenedReach; /**< Forced extened reach mode */
+    uint32_t ForceNormalReach; /**< Forced normal reach mode */
+    uint32_t LpPrecoderEnabled; /**< linker partner has pre-coder on */
+    uint32_t ForcePAM4Mode; /**< Force PAM4 mode */
+    uint32_t ForceNRZMode; /**< Forced CL72 */
+    uint32_t AnCl72TxInitSkipOnRestart; /**< skip the TXFIR initialization in a restart event during the AN link training */
+    uint32_t ForceOsCdr; /**< Force Over sample CDr */
+} phymod_firmware_lane_config_t;
 
 typedef enum {
     QMOD16_TX_LANE_RESET = 0,
@@ -3052,28 +3080,6 @@ typedef struct {
 #define PHY_BCM542XX_REG_15_RDB_EN              (0x0000)
 #define PHY_BCM542XX_REG_15_RDB_DIS             (0x8000)
 #define PHY_BCM542XX_REG_1E_SELECT_RDB          (0x0087)
-
-typedef enum phymod_an_mode_type_e {
-    phymod_AN_MODE_NONE = 0,
-    phymod_AN_MODE_CL73,
-    phymod_AN_MODE_CL37,
-    phymod_AN_MODE_CL73BAM,
-    phymod_AN_MODE_CL37BAM,
-    phymod_AN_MODE_HPAM,
-    phymod_AN_MODE_SGMII,
-    phymod_AN_MODE_CL37BAM_10P9375G_VCO,
-    phymod_AN_MODE_CL37_SGMII,
-    phymod_AN_MODE_CL73_MSA,
-    phymod_AN_MODE_MSA,
-    phymod_AN_MODE_Count
-} phymod_an_mode_type_t;
-
-typedef struct phymod_autoneg_control_s {
-    phymod_an_mode_type_t an_mode;
-    uint32_t num_lane_adv; /**< The number of lanes the autoneg advert */
-    uint32_t flags; /**< see AN_F */
-    uint32_t enable;
-} phymod_autoneg_control_t;
 
 /*****************************************************************************************/
 /*                              MAC related                                              */
