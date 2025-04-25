@@ -1650,6 +1650,488 @@ typedef struct phymod_polarity_s {
 #define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  SC_X4_CTL
+ * BLOCKS:   SC_X4_CONTROL
+ * REGADDR:  0xc020
+ * DESC:     SW speed change control
+ * RESETVAL: 0xff (255)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     SW_SPEED         Speed to be setFor USXGMII SPEED_10p3125G_X1 is used
+ *     SW_SPEED_CHANGE  Start SW speed change.HW will detect possedge of this field and start or restart the speed change logic.To restart speed change logic SW must write 0 to this bit and then write 1.
+ */
+#define BCMI_QTC_XGXS_SC_X4_CTLr (0x0000c020 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_SC_X4_CTLr_SIZE 4
+
+#define SC_X4_CTLr_SW_SPEED_CHANGEf_GET(r) (((r) >> 8) & 0x1)
+#define SC_X4_CTLr_SW_SPEED_CHANGEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
+#define SC_X4_CTLr_SW_SPEEDf_GET(r) ((r) & 0xff)
+#define SC_X4_CTLr_SW_SPEEDf_SET(r,f) r=((r & ~((uint32_t)0xff)) | (((uint32_t)f) & 0xff)) | (0xff << 16)
+
+
+typedef enum {
+    QMOD16_SPD_ZERO             = 0   ,  /*!< Illegal value (enum boundary)   */
+    QMOD16_SPD_10_X1_SGMII            ,  /*!< 10Mb SGMII (serial)             */
+    QMOD16_SPD_100_X1_SGMII           ,  /*!< 100Mb SGMII (serial)            */
+    QMOD16_SPD_1000_X1_SGMII          ,  /*!< 1Gb SGMII (serial)              */
+    QMOD16_SPD_2500_X1                ,  /*!< 2.5Gb  based on 1000BASE-X      */
+    QMOD16_SPD_10_SGMII               ,  /*!< 10Mb SGMII (serial)             */
+    QMOD16_SPD_100_SGMII              ,  /*!< 100Mb SGMII (serial)            */
+    QMOD16_SPD_1000_SGMII             ,  /*!< 1Gb SGMII (serial)              */
+    QMOD16_SPD_2500                   ,  /*!< 2.5Gb  based on 1000BASE-X      */
+    QMOD16_SPD_5000                   ,  /*!< 5Gb  CL36                       */
+    QMOD16_SPD_1000_XFI               ,  /*!< 1Gb                             */
+    QMOD16_SPD_5000_XFI               ,  /*!< 5Gb  CL49                       */
+    QMOD16_SPD_10000_XFI              ,  /*!< 10Gb serial XFI                 */
+    QMOD16_SPD_10600_XFI_HG           ,  /*!< 10.5Gb serial XFI (HgSOLO)      */
+    QMOD16_SPD_10000_HI               ,  /*!< 10Gb XAUI HiG                   */
+    QMOD16_SPD_10000                  ,  /*!< 10Gb XAUI                       */
+    QMOD16_SPD_12000_HI               ,  /*!< 12Gb XAUI HiG                   */
+    QMOD16_SPD_13000                  ,  /*!< 13Gb XAUI                       */
+    QMOD16_SPD_15000                  ,  /*!< 15Gb XAUI                       */
+    QMOD16_SPD_16000                  ,  /*!< 16Gb XAUI                       */
+    QMOD16_SPD_20000                  ,  /*!< 20Gb XAUI                       */
+    QMOD16_SPD_20000_SCR              ,  /*!< 20Gb XAUI scrambled             */
+    QMOD16_SPD_21000                  ,  /*!< 21Gb XAUI                       */
+    QMOD16_SPD_25455                  ,  /*!< 25Gb XAUI  64/66 codec          */
+    QMOD16_SPD_31500                  ,  /*!< 31.5Gb quad lane XAUI           */
+    QMOD16_SPD_31500_MLD              ,  /*!< 31.5Gb quad lane MLD            */
+    QMOD16_SPD_40G_X4                 ,  /*!< 40Gb quad lane XAUI             */
+    QMOD16_SPD_42G_X4                 ,  /*!< 40Gb quad lane XAUI  HiG        */
+    QMOD16_SPD_40G_XLAUI              ,  /*!< 40Gb quad lane  MLD             */
+    QMOD16_SPD_42G_XLAUI              ,  /*!< 42Gb quad lane  MLD             */
+    QMOD16_SPD_10000_X2               ,  /*!< 10Gb dual lane                  */
+    QMOD16_SPD_10000_HI_DXGXS         ,  /*!< 10Gb dual lane XGXS HiG         */
+    QMOD16_SPD_10000_DXGXS            ,  /*!< 10Gb dual lane XGXS             */
+    QMOD16_SPD_10000_HI_DXGXS_SCR       ,  /*!< 10Gb dual lane,scrambled,HiG    */
+    QMOD16_SPD_10000_DXGXS_SCR        ,  /*!< 10Gb dual lane scrambled        */
+    QMOD16_SPD_10500_HI               ,  /*!< 10.5Gb XAUI  lane XGXS HiG      */
+    QMOD16_SPD_10500_HI_DXGXS         ,  /*!< 10.5Gb  dual lane XGXS HiG      */
+    QMOD16_SPD_12773_HI_DXGXS         ,  /*!< 12.73Gb dual lane XGXS HiG      */
+    QMOD16_SPD_12773_DXGXS            ,  /*!< 12.73Gb dual lane XGXS          */
+    QMOD16_SPD_15750_HI_DXGXS         ,  /*!< 15.75Gb scrambled dual lane HiG */
+    QMOD16_SPD_20G_MLD_DXGXS          ,  /*!< 20Gb dual lane MLD              */
+    QMOD16_SPD_21G_HI_MLD_DXGXS       ,  /*!< 20Gb dual lane HiG MLD          */
+    QMOD16_SPD_20G_DXGXS              ,  /*!< 20Gb dual lane BRCM             */
+    QMOD16_SPD_21G_HI_DXGXS           ,  /*!< 21.2Gb dual HiG(20+plldiv=70)   */
+    QMOD16_SPD_100G_CR10              ,  /*!< 100G                            */
+    QMOD16_SPD_107G_HG_CR10           ,  /*!< 107G                            */
+    QMOD16_SPD_120G_CR12              ,  /*!< 120G                            */
+    QMOD16_SPD_127G_HG_CR12           ,  /*!< 127G                            */
+    QMOD16_SPD_4000                   ,  /*!< 4G QSGMII                       */
+    QMOD16_SPD_10_X1_10               ,  /*!< 10Mb SGMII (serial) vco 10      */
+    QMOD16_SPD_100_X1_10              ,  /*!< 100Mb SGMII (serial) vco 10     */
+    QMOD16_SPD_1000_X1_10             ,  /*!< 1Gb SGMII (serial) vco 10       */
+    QMOD16_SPD_10_X1_12P5             ,  /*!< 10Mb SGMII (serial) vco 12p5    */
+    QMOD16_SPD_100_X1_12P5            ,  /*!< 100Mb SGMII (serial) vco 12p5   */
+    QMOD16_SPD_1000_X1_12P5           ,  /*!< 1Gb SGMII (serial) vco 12p5     */
+    QMOD16_SPD_2500_X1_12P5           ,  /*!< 2.5Gb  SGMII vco 12p5           */
+    QMOD16_SPD_10G_X1_USXGMII         ,  /*!< 4x2.5G USXGMII vco 10p3125G     */
+    QMOD16_SPD_2500_USXGMII           ,  /*!< 2.5 USGMII vco 10p3125          */
+    QMOD16_SPD_ILLEGAL                  /*!< Illegal value (enum boundary)   */
+  } qmod16_spd_intfc_type;
+
+  #define digital_operationSpeeds_SPEED_10p3125G_X1          72
+#define digital_operationSpeeds_SPEED_5G_X1_12p5           65
+#define digital_operationSpeeds_SPEED_2p5G_X1_12p5         64
+#define digital_operationSpeeds_SPEED_1000M_12p5           63
+#define digital_operationSpeeds_SPEED_100M_12p5            62
+#define digital_operationSpeeds_SPEED_10M_12p5             61
+#define digital_operationSpeeds_SPEED_4G_X1_10             60
+#define digital_operationSpeeds_SPEED_1000M_X1_10          59
+#define digital_operationSpeeds_SPEED_100M_X1_10           58
+#define digital_operationSpeeds_SPEED_10M_X1_10            57
+#define digital_operationSpeeds_SPEED_2p5G_X1_10p3125      56
+#define digital_operationSpeeds_SPEED_1000M_10p3125        55
+#define digital_operationSpeeds_SPEED_100M_10p3125         54
+#define digital_operationSpeeds_SPEED_10M_10p3125          53
+#define digital_operationSpeeds_SPEED_10p5G_X4             50
+#define digital_operationSpeeds_SPEED_5G_KR1               49
+#define digital_operationSpeeds_SPEED_127G_X12             39
+#define digital_operationSpeeds_SPEED_120G_X12             38
+#define digital_operationSpeeds_SPEED_107G_X10             37
+#define digital_operationSpeeds_SPEED_100G_CR10            36
+#define digital_operationSpeeds_SPEED_42G_X4               35
+#define digital_operationSpeeds_SPEED_40G_CR4              34
+#define digital_operationSpeeds_SPEED_40G_KR4              33
+#define digital_operationSpeeds_SPEED_21G_X2               32
+#define digital_operationSpeeds_SPEED_20G_CR2              31
+#define digital_operationSpeeds_SPEED_20G_KR2              30
+#define digital_operationSpeeds_SPEED_10p6_X1              29
+#define digital_operationSpeeds_SPEED_10G_KR1              28
+#define digital_operationSpeeds_SPEED_40G_X4               27
+#define digital_operationSpeeds_SPEED_20G_X2               26
+#define digital_operationSpeeds_SPEED_20G_CX2              25
+#define digital_operationSpeeds_SPEED_31p5G_KR4            24
+#define digital_operationSpeeds_SPEED_31p5G_X4             23
+#define digital_operationSpeeds_SPEED_15p75G_X2            22
+#define digital_operationSpeeds_SPEED_25p45G_X4            21
+#define digital_operationSpeeds_SPEED_12p7G_X2             20
+#define digital_operationSpeeds_SPEED_21G_X4               19
+#define digital_operationSpeeds_SPEED_10p5G_X2             18
+#define digital_operationSpeeds_SPEED_20G_X4               17
+#define digital_operationSpeeds_SPEED_10G_X2               16
+#define digital_operationSpeeds_SPEED_10G_CX2              15
+#define digital_operationSpeeds_SPEED_20G_CX4              14
+#define digital_operationSpeeds_SPEED_16G_X4               13
+#define digital_operationSpeeds_SPEED_15G_X4               12
+#define digital_operationSpeeds_SPEED_13G_X4               11
+#define digital_operationSpeeds_SPEED_10G_X4               10
+#define digital_operationSpeeds_SPEED_10G_KX4              9
+#define digital_operationSpeeds_SPEED_10G_CX4              8
+#define digital_operationSpeeds_SPEED_5G_X1                7
+#define digital_operationSpeeds_SPEED_2p5G_X1              6
+#define digital_operationSpeeds_SPEED_1G_KX1               5
+#define digital_operationSpeeds_SPEED_1G_CX1               4
+#define digital_operationSpeeds_SPEED_1000M                3
+#define digital_operationSpeeds_SPEED_100M                 2
+#define digital_operationSpeeds_SPEED_10M                  1
+
+
+
+#define PORTMOD_PORT_IS_AUTONEG_MODE_UPDATED(port_dynamic_state)          (port_dynamic_state & 0x2)
+#define PORTMOD_PORT_AUTONEG_MODE_UPDATED_SET(port_dynamic_state)         (port_dynamic_state |= 0x2)
+#define PORTMOD_PORT_AUTONEG_MODE_UPDATED_CLR(port_dynamic_state)         (port_dynamic_state &= 0xfffd) 
+
+typedef enum phymod_an_mode_type_e {
+    phymod_AN_MODE_NONE = 0,
+    phymod_AN_MODE_CL73,
+    phymod_AN_MODE_CL37,
+    phymod_AN_MODE_CL73BAM,
+    phymod_AN_MODE_CL37BAM,
+    phymod_AN_MODE_HPAM,
+    phymod_AN_MODE_SGMII,
+    phymod_AN_MODE_CL37BAM_10P9375G_VCO,
+    phymod_AN_MODE_CL37_SGMII,
+    phymod_AN_MODE_CL73_MSA,
+    phymod_AN_MODE_MSA,
+    phymod_AN_MODE_Count
+} phymod_an_mode_type_t;
+
+
+typedef struct phymod_autoneg_control_s {
+    phymod_an_mode_type_t an_mode;
+    uint32_t num_lane_adv; /**< The number of lanes the autoneg advert */
+    uint32_t flags; /**< see AN_F */
+    uint32_t enable;
+} phymod_autoneg_control_t;
+#define PHYMOD_AN_F_ALLOW_PLL_CHANGE 0x1
+#define PHYMOD_AN_F_SET_PRIOR_ENABLE 0x2
+#define PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE 0x4
+#define PHYMOD_AN_F_IGNORE_MEDIUM_CHECK 0x8
+#define PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE 0x10
+#define PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE 0x20
+#define PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE 0x40
+#define PHYMOD_AN_F_AUTO_MEDIUM_DETECT 0x80
+#define PHYMOD_AN_F_FEC_RS272_CLR 0x100
+#define PHYMOD_AN_F_SGMII_MASTER_MODE 0x200
+#define PHYMOD_AN_F_FEC_RS272_REQ 0x400
+
+#define PHYMOD_AN_F_ALLOW_PLL_CHANGE_SET(an) ((an)->flags |= PHYMOD_AN_F_ALLOW_PLL_CHANGE)
+#define PHYMOD_AN_F_SET_PRIOR_ENABLE_SET(an) ((an)->flags |= PHYMOD_AN_F_SET_PRIOR_ENABLE)
+#define PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE_SET(an) ((an)->flags |= PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE)
+#define PHYMOD_AN_F_IGNORE_MEDIUM_CHECK_SET(an) ((an)->flags |= PHYMOD_AN_F_IGNORE_MEDIUM_CHECK)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE_SET(an) ((an)->flags |= PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE_SET(an) ((an)->flags |= PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE)
+#define PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE_SET(an) ((an)->flags |= PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE)
+#define PHYMOD_AN_F_AUTO_MEDIUM_DETECT_SET(an) ((an)->flags |= PHYMOD_AN_F_AUTO_MEDIUM_DETECT)
+#define PHYMOD_AN_F_FEC_RS272_CLR_SET(an) ((an)->flags |= PHYMOD_AN_F_FEC_RS272_CLR)
+#define PHYMOD_AN_F_SGMII_MASTER_MODE_SET(an) ((an)->flags |= PHYMOD_AN_F_SGMII_MASTER_MODE)
+#define PHYMOD_AN_F_FEC_RS272_REQ_SET(an) ((an)->flags |= PHYMOD_AN_F_FEC_RS272_REQ)
+
+#define PHYMOD_AN_F_ALLOW_PLL_CHANGE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_ALLOW_PLL_CHANGE)
+#define PHYMOD_AN_F_SET_PRIOR_ENABLE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_SET_PRIOR_ENABLE)
+#define PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE)
+#define PHYMOD_AN_F_IGNORE_MEDIUM_CHECK_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_IGNORE_MEDIUM_CHECK)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE)
+#define PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE)
+#define PHYMOD_AN_F_AUTO_MEDIUM_DETECT_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_AUTO_MEDIUM_DETECT)
+#define PHYMOD_AN_F_FEC_RS272_CLR_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_FEC_RS272_CLR)
+#define PHYMOD_AN_F_SGMII_MASTER_MODE_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_SGMII_MASTER_MODE)
+#define PHYMOD_AN_F_FEC_RS272_REQ_CLR(an) ((an)->flags &= ~PHYMOD_AN_F_FEC_RS272_REQ)
+
+#define PHYMOD_AN_F_ALLOW_PLL_CHANGE_GET(an) ((an)->flags & PHYMOD_AN_F_ALLOW_PLL_CHANGE ? 1 : 0)
+#define PHYMOD_AN_F_SET_PRIOR_ENABLE_GET(an) ((an)->flags & PHYMOD_AN_F_SET_PRIOR_ENABLE ? 1 : 0)
+#define PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE_GET(an) ((an)->flags & PHYMOD_AN_F_ALLOW_CL72_CONFIG_CHANGE ? 1 : 0)
+#define PHYMOD_AN_F_IGNORE_MEDIUM_CHECK_GET(an) ((an)->flags & PHYMOD_AN_F_IGNORE_MEDIUM_CHECK ? 1 : 0)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE_GET(an) ((an)->flags & PHYMOD_AN_F_SET_CL73_PDET_KX_ENABLE ? 1 : 0)
+#define PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE_GET(an) ((an)->flags & PHYMOD_AN_F_SET_CL73_PDET_KX4_ENABLE ? 1 : 0)
+#define PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE_GET(an) ((an)->flags & PHYMOD_AN_F_SET_CL73_PDET_2P5G_KX_ENABLE ? 1 : 0)
+#define PHYMOD_AN_F_AUTO_MEDIUM_DETECT_GET(an) ((an)->flags & PHYMOD_AN_F_AUTO_MEDIUM_DETECT ? 1 : 0)
+#define PHYMOD_AN_F_FEC_RS272_CLR_GET(an) ((an)->flags & PHYMOD_AN_F_FEC_RS272_CLR ? 1 : 0)
+#define PHYMOD_AN_F_SGMII_MASTER_MODE_GET(an) ((an)->flags & PHYMOD_AN_F_SGMII_MASTER_MODE ? 1 : 0)
+#define PHYMOD_AN_F_FEC_RS272_REQ_GET(an) ((an)->flags & PHYMOD_AN_F_FEC_RS272_REQ ? 1 : 0)
+
+typedef enum {
+    QMOD16_AN_MODE_NONE = 0,
+    QMOD16_AN_MODE_CL37 = 1,
+    QMOD16_AN_MODE_CL37BAM = 2,
+    QMOD16_AN_MODE_SGMII = 4,
+    QMOD16_AN_MODE_TYPE_COUNT
+}qmod16_an_mode_type_t;
+
+typedef enum {
+    QMOD_AN_PROPERTY_ENABLE_NONE = 0x00000000 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_SGMII_MASTER_MODE = 0x00000001 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_AN_PD_TO_CL37 = 0x00000002 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_SGMII_TO_CL37_AUTO = 0x00000004 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_CL37_BAM_to_SGMII_AUTO = 0x00000008 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_HPAM_TO_CL73_AUTO = 0x00000010 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_CL73_BAM_TO_HPAM_AUTO = 0x00000020 ,  /*!<  */
+    QMOD_AN_PROPERTY_ENABLE_ILLEGAL = 0x00000040   /*!<  */
+  } an_property_enable;
+
+typedef struct qmod16_an_control_s {
+    qmod16_an_mode_type_t an_type; 
+    uint16_t num_lane_adv; 
+    uint16_t enable;
+    uint16_t pd_kx_en;
+    uint16_t pd_kx4_en;
+    an_property_enable  an_property_type;
+} qmod16_an_control_t;
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABIL
+ * BLOCKS:   AN_X4_ABILITIES_SP0
+ * REGADDR:  0xc201
+ * DESC:     CL37 BASE PAGE ABILITIES
+ * RESETVAL: 0x2 (2)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     SGMII_SPEED      SGMII or USXGMII speed:3'b111, 3'b110, 3'b101 = Reserved;3'b100 = 2500 Mb/s (USXGMII only);3'b011 = Reserved;3'b010 = 1000 Mb/s; 3'b001 = 100 Mb/s; 3'b000 = 10 Mb/s.
+ *     SGMII_FULL_DUPLEX USXGMII/SGMII full duplex is supported.
+ *     CL37_FULL_DUPLEX 
+ *     CL37_HALF_DUPLEX 
+ *     CL37_PAUSE       Pause Ability[7:6]00 - No PAUSE ability10 - Asymmetric-toward-link-partner PAUSE ability01 - Symmetric PAUSE ability11 - Both symmetric and asymmetric-toward-local-device PAUSE ability
+ *     CL37_NEXT_PAGE   
+ *     SGMII_MASTER_MODE Set the current device as SGMII master for AN, only for debug.Not supported for USXGMII.
+ *     LINK_STATUS      link status to pass to RD, USXGMII only.
+ *     CL37_AN_RESTART_RESET_DISABLE Disable full pipeline reset when CL37 AN is restarted by remote partner.Do not set this bit for BAM modes.
+ *     CL37_SW_RESTART_RESET_DISABLE Disable full pipeline reset when CL37 AN is restarted by SW.Do not set this bit when enabling AN for the first time. Only set it before restarting AN.Do not set this bit for BAM modes.
+ *     CL37_AN_DISABLE_RESET_DISABLE Disable full pipeline reset when AN is being disabled by SW.Please set this bit for IEEE37 and SGMII AN. Do not set this bit for BAM modes.
+ *     EEE_CLOCK_STOP_CAPABILITY EEE clock stop capability to pass to RD, USXGMII only.
+ *     EEE_CAPABILITY   EEE capability to pass to RD, USXGMII only.
+ */
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr (0x0000c201 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr_SIZE 4
+
+#define AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr_CLR(r)  r = 0
+#define AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr_SET(r,d) r = d
+#define AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr_GET(r)  r
+  
+#define AN_X4_ABI_SP0_LOC_DEV_CL37_BASE_ABILr_CL37_FULL_DUPLEXf_SET(r,f) r=((r & ~((uint32_t)0x1 << 4)) | ((((uint32_t)f) & 0x1) << 4)) | (1 << (16 + 4))
+
+
+
+#define AN_X4_ABI_SP0_ENSr_CLR(r) r = 0
+#define AN_X4_ABI_SP0_ENSr_SET(r,d) r = d
+#define AN_X4_ABI_SP0_ENSr_GET(r) r
+#define AN_X4_ABI_SP0_ENSr_CL37_AN_RESTARTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define AN_X4_ABI_SP0_ENSr_CL37_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 3)) | ((((uint32_t)f) & 0x1) << 3)) | (1 << (16 + 3))
+#define AN_X4_ABI_SP0_ENSr_CL37_SGMII_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 4)) | ((((uint32_t)f) & 0x1) << 4)) | (1 << (16 + 4))
+#define AN_X4_ABI_SP0_ENSr_CL37_BAM_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 5)) | ((((uint32_t)f) & 0x1) << 5)) | (1 << (16 + 5))
+#define AN_X4_ABI_SP0_ENSr_QSGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 7)) | ((((uint32_t)f) & 0x1) << 7)) | (1 << (16 + 7))
+#define AN_X4_ABI_SP0_ENSr_USXGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
+
+#define AN_X4_ABI_SP1_ENSr_CLR(r) r = 0
+#define AN_X4_ABI_SP1_ENSr_CL37_AN_RESTARTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define AN_X4_ABI_SP1_ENSr_CL37_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 3)) | ((((uint32_t)f) & 0x1) << 3)) | (1 << (16 + 3))
+#define AN_X4_ABI_SP1_ENSr_CL37_SGMII_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 4)) | ((((uint32_t)f) & 0x1) << 4)) | (1 << (16 + 4))
+#define AN_X4_ABI_SP1_ENSr_CL37_BAM_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 5)) | ((((uint32_t)f) & 0x1) << 5)) | (1 << (16 + 5))
+#define AN_X4_ABI_SP1_ENSr_QSGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 7)) | ((((uint32_t)f) & 0x1) << 7)) | (1 << (16 + 7))
+#define AN_X4_ABI_SP1_ENSr_USXGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
+
+#define AN_X4_ABI_SP2_ENSr_CLR(r) r = 0
+#define AN_X4_ABI_SP2_ENSr_LINK_STATUS_ECHOf_GET(r) (((r) >> 13) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_LINK_STATUS_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 13)) | ((((uint32_t)f) & 0x1) << 13)) | (1 << (16 + 13))
+#define AN_X4_ABI_SP2_ENSr_DUPLEX_MODE_ECHOf_GET(r) (((r) >> 12) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_DUPLEX_MODE_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 12)) | ((((uint32_t)f) & 0x1) << 12)) | (1 << (16 + 12))
+#define AN_X4_ABI_SP2_ENSr_SPEED_ECHOf_GET(r) (((r) >> 11) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_SPEED_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 11)) | ((((uint32_t)f) & 0x1) << 11)) | (1 << (16 + 11))
+#define AN_X4_ABI_SP2_ENSr_EEE_CAPABILITY_ECHOf_GET(r) (((r) >> 10) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_EEE_CAPABILITY_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 10)) | ((((uint32_t)f) & 0x1) << 10)) | (1 << (16 + 10))
+#define AN_X4_ABI_SP2_ENSr_EEE_CLOCK_CAPABILITY_ECHOf_GET(r) (((r) >> 9) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_EEE_CLOCK_CAPABILITY_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 9)) | ((((uint32_t)f) & 0x1) << 9)) | (1 << (16 + 9))
+#define AN_X4_ABI_SP2_ENSr_USXGMII_ENf_GET(r) (((r) >> 8) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_USXGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
+#define AN_X4_ABI_SP2_ENSr_QSGMII_ENf_GET(r) (((r) >> 7) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_QSGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 7)) | ((((uint32_t)f) & 0x1) << 7)) | (1 << (16 + 7))
+#define AN_X4_ABI_SP2_ENSr_DISABLE_REMOTE_FAULT_REPORTINGf_GET(r) (((r) >> 6) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_DISABLE_REMOTE_FAULT_REPORTINGf_SET(r,f) r=((r & ~((uint32_t)0x1 << 6)) | ((((uint32_t)f) & 0x1) << 6)) | (1 << (16 + 6))
+#define AN_X4_ABI_SP2_ENSr_CL37_BAM_ENABLEf_GET(r) (((r) >> 5) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_CL37_BAM_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 5)) | ((((uint32_t)f) & 0x1) << 5)) | (1 << (16 + 5))
+#define AN_X4_ABI_SP2_ENSr_CL37_SGMII_ENABLEf_GET(r) (((r) >> 4) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_CL37_SGMII_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 4)) | ((((uint32_t)f) & 0x1) << 4)) | (1 << (16 + 4))
+#define AN_X4_ABI_SP2_ENSr_CL37_ENABLEf_GET(r) (((r) >> 3) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_CL37_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 3)) | ((((uint32_t)f) & 0x1) << 3)) | (1 << (16 + 3))
+#define AN_X4_ABI_SP2_ENSr_CL37_BAM_TO_SGMII_AUTO_ENABLEf_GET(r) (((r) >> 2) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_CL37_BAM_TO_SGMII_AUTO_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define AN_X4_ABI_SP2_ENSr_SGMII_TO_CL37_AUTO_ENABLEf_GET(r) (((r) >> 1) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_SGMII_TO_CL37_AUTO_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define AN_X4_ABI_SP2_ENSr_CL37_AN_RESTARTf_GET(r) ((r) & 0x1)
+#define AN_X4_ABI_SP2_ENSr_CL37_AN_RESTARTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+
+#define AN_X4_ABI_SP3_ENSr_CLR(r) r = 0
+#define AN_X4_ABI_SP3_ENSr_SET(r,d) r = d
+#define AN_X4_ABI_SP3_ENSr_GET(r) r
+
+/*
+ * These macros can be used to access individual fields.
+ */
+#define AN_X4_ABI_SP3_ENSr_LINK_STATUS_ECHOf_GET(r) (((r) >> 13) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_LINK_STATUS_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 13)) | ((((uint32_t)f) & 0x1) << 13)) | (1 << (16 + 13))
+#define AN_X4_ABI_SP3_ENSr_DUPLEX_MODE_ECHOf_GET(r) (((r) >> 12) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_DUPLEX_MODE_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 12)) | ((((uint32_t)f) & 0x1) << 12)) | (1 << (16 + 12))
+#define AN_X4_ABI_SP3_ENSr_SPEED_ECHOf_GET(r) (((r) >> 11) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_SPEED_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 11)) | ((((uint32_t)f) & 0x1) << 11)) | (1 << (16 + 11))
+#define AN_X4_ABI_SP3_ENSr_EEE_CAPABILITY_ECHOf_GET(r) (((r) >> 10) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_EEE_CAPABILITY_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 10)) | ((((uint32_t)f) & 0x1) << 10)) | (1 << (16 + 10))
+#define AN_X4_ABI_SP3_ENSr_EEE_CLOCK_CAPABILITY_ECHOf_GET(r) (((r) >> 9) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_EEE_CLOCK_CAPABILITY_ECHOf_SET(r,f) r=((r & ~((uint32_t)0x1 << 9)) | ((((uint32_t)f) & 0x1) << 9)) | (1 << (16 + 9))
+#define AN_X4_ABI_SP3_ENSr_USXGMII_ENf_GET(r) (((r) >> 8) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_USXGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
+#define AN_X4_ABI_SP3_ENSr_QSGMII_ENf_GET(r) (((r) >> 7) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_QSGMII_ENf_SET(r,f) r=((r & ~((uint32_t)0x1 << 7)) | ((((uint32_t)f) & 0x1) << 7)) | (1 << (16 + 7))
+#define AN_X4_ABI_SP3_ENSr_DISABLE_REMOTE_FAULT_REPORTINGf_GET(r) (((r) >> 6) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_DISABLE_REMOTE_FAULT_REPORTINGf_SET(r,f) r=((r & ~((uint32_t)0x1 << 6)) | ((((uint32_t)f) & 0x1) << 6)) | (1 << (16 + 6))
+#define AN_X4_ABI_SP3_ENSr_CL37_BAM_ENABLEf_GET(r) (((r) >> 5) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_CL37_BAM_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 5)) | ((((uint32_t)f) & 0x1) << 5)) | (1 << (16 + 5))
+#define AN_X4_ABI_SP3_ENSr_CL37_SGMII_ENABLEf_GET(r) (((r) >> 4) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_CL37_SGMII_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 4)) | ((((uint32_t)f) & 0x1) << 4)) | (1 << (16 + 4))
+#define AN_X4_ABI_SP3_ENSr_CL37_ENABLEf_GET(r) (((r) >> 3) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_CL37_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 3)) | ((((uint32_t)f) & 0x1) << 3)) | (1 << (16 + 3))
+#define AN_X4_ABI_SP3_ENSr_CL37_BAM_TO_SGMII_AUTO_ENABLEf_GET(r) (((r) >> 2) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_CL37_BAM_TO_SGMII_AUTO_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 2)) | ((((uint32_t)f) & 0x1) << 2)) | (1 << (16 + 2))
+#define AN_X4_ABI_SP3_ENSr_SGMII_TO_CL37_AUTO_ENABLEf_GET(r) (((r) >> 1) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_SGMII_TO_CL37_AUTO_ENABLEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
+#define AN_X4_ABI_SP3_ENSr_CL37_AN_RESTARTf_GET(r) ((r) & 0x1)
+#define AN_X4_ABI_SP3_ENSr_CL37_AN_RESTARTf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  AN_X4_ABI_SP0_ENS
+ * BLOCKS:   AN_X4_ABILITIES_SP0
+ * REGADDR:  0xc200
+ * DESC:     AN ENABLES
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_AN_RESTART  CL37 Auto-Negotiation RestartA transition from zero to one on this bit will restart CL37 AN
+ *     SGMII_TO_CL37_AUTO_ENABLE SGMII to IEEE CL37 Auto-Detect EnableWhen doing Cisco SGMII auto-negotiation, if the other device is doing IEEECL37 auto-negotiation, then restart auto-negotiation in IEEE CL37 mode.
+ *     CL37_BAM_TO_SGMII_AUTO_ENABLE Broadcom to SGMII Auto-Detect EnableWhen doing Broadcom CL37 auto-negotioation, if the other device is doing CiscoSGMII auto-negotiation, then restart auto-negotiation in Cisco SGMII mode.
+ *     CL37_ENABLE      IEEE CL37 Auto-Negotiation Mode Enable
+ *     CL37_SGMII_ENABLE Cisco SGMII Auto-Negotiation Mode Enable
+ *     CL37_BAM_ENABLE  Broadcom CL37 Auto-Negotiation Mode Enable
+ *     DISABLE_REMOTE_FAULT_REPORTING 1 = disable automatic reporting of remote faults, such as auto-negotiation error0 = report remote fault status to link partner via auto-negotiation when fiber mode is selected. (SGMII does not support remote faults)
+ *     QSGMII_EN        Sets the AN logic in QSGMII Mode and enables all 4 AN for subport independently. Default is SGMII Mode (i.e. Subport 0 AN is running)
+ *     USXGMII_EN       Sets the AN logic in USXGMII Mode.
+ *     EEE_CLOCK_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     EEE_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     SPEED_ECHO       Enable base page echo. USXGMII only.
+ *     DUPLEX_MODE_ECHO Enable base page echo. USXGMII only.
+ *     LINK_STATUS_ECHO Enable base page echo. USXGMII only.
+ */
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP0_ENSr (0x0000c200 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP0_ENSr_SIZE 4
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  AN_X4_ABI_SP1_ENS
+ * BLOCKS:   AN_X4_ABILITIES_SP1
+ * REGADDR:  0xc210
+ * DESC:     AN ENABLES
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_AN_RESTART  CL37 Auto-Negotiation RestartA transition from zero to one on this bit will restart CL37 AN
+ *     SGMII_TO_CL37_AUTO_ENABLE SGMII to IEEE CL37 Auto-Detect EnableWhen doing Cisco SGMII auto-negotiation, if the other device is doing IEEECL37 auto-negotiation, then restart auto-negotiation in IEEE CL37 mode.
+ *     CL37_BAM_TO_SGMII_AUTO_ENABLE Broadcom to SGMII Auto-Detect EnableWhen doing Broadcom CL37 auto-negotioation, if the other device is doing CiscoSGMII auto-negotiation, then restart auto-negotiation in Cisco SGMII mode.
+ *     CL37_ENABLE      IEEE CL37 Auto-Negotiation Mode Enable
+ *     CL37_SGMII_ENABLE Cisco SGMII Auto-Negotiation Mode Enable
+ *     CL37_BAM_ENABLE  Broadcom CL37 Auto-Negotiation Mode Enable
+ *     DISABLE_REMOTE_FAULT_REPORTING 1 = disable automatic reporting of remote faults, such as auto-negotiation error0 = report remote fault status to link partner via auto-negotiation when fiber mode is selected. (SGMII does not support remote faults)
+ *     QSGMII_EN        Sets the AN logic in QSGMII Mode and enables all 4 AN for subport independently. Default is SGMII Mode (i.e. Subport 0 AN is running)
+ *     USXGMII_EN       Sets the AN logic in USXGMII Mode.
+ *     EEE_CLOCK_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     EEE_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     SPEED_ECHO       Enable base page echo. USXGMII only.
+ *     DUPLEX_MODE_ECHO Enable base page echo. USXGMII only.
+ *     LINK_STATUS_ECHO Enable base page echo. USXGMII only.
+ */
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP1_ENSr (0x0000c210 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP1_ENSr_SIZE 4
+
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  AN_X4_ABI_SP2_ENS
+ * BLOCKS:   AN_X4_ABILITIES_SP2
+ * REGADDR:  0xc220
+ * DESC:     AN ENABLES
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_AN_RESTART  CL37 Auto-Negotiation RestartA transition from zero to one on this bit will restart CL37 AN
+ *     SGMII_TO_CL37_AUTO_ENABLE SGMII to IEEE CL37 Auto-Detect EnableWhen doing Cisco SGMII auto-negotiation, if the other device is doing IEEECL37 auto-negotiation, then restart auto-negotiation in IEEE CL37 mode.
+ *     CL37_BAM_TO_SGMII_AUTO_ENABLE Broadcom to SGMII Auto-Detect EnableWhen doing Broadcom CL37 auto-negotioation, if the other device is doing CiscoSGMII auto-negotiation, then restart auto-negotiation in Cisco SGMII mode.
+ *     CL37_ENABLE      IEEE CL37 Auto-Negotiation Mode Enable
+ *     CL37_SGMII_ENABLE Cisco SGMII Auto-Negotiation Mode Enable
+ *     CL37_BAM_ENABLE  Broadcom CL37 Auto-Negotiation Mode Enable
+ *     DISABLE_REMOTE_FAULT_REPORTING 1 = disable automatic reporting of remote faults, such as auto-negotiation error0 = report remote fault status to link partner via auto-negotiation when fiber mode is selected. (SGMII does not support remote faults)
+ *     QSGMII_EN        Sets the AN logic in QSGMII Mode and enables all 4 AN for subport independently. Default is SGMII Mode (i.e. Subport 0 AN is running)
+ *     USXGMII_EN       Sets the AN logic in USXGMII Mode.
+ *     EEE_CLOCK_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     EEE_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     SPEED_ECHO       Enable base page echo. USXGMII only.
+ *     DUPLEX_MODE_ECHO Enable base page echo. USXGMII only.
+ *     LINK_STATUS_ECHO Enable base page echo. USXGMII only.
+ */
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP2_ENSr (0x0000c220 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP2_ENSr_SIZE 4
+
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  AN_X4_ABI_SP3_ENS
+ * BLOCKS:   AN_X4_ABILITIES_SP3
+ * REGADDR:  0xc230
+ * DESC:     AN ENABLES
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     CL37_AN_RESTART  CL37 Auto-Negotiation RestartA transition from zero to one on this bit will restart CL37 AN
+ *     SGMII_TO_CL37_AUTO_ENABLE SGMII to IEEE CL37 Auto-Detect EnableWhen doing Cisco SGMII auto-negotiation, if the other device is doing IEEECL37 auto-negotiation, then restart auto-negotiation in IEEE CL37 mode.
+ *     CL37_BAM_TO_SGMII_AUTO_ENABLE Broadcom to SGMII Auto-Detect EnableWhen doing Broadcom CL37 auto-negotioation, if the other device is doing CiscoSGMII auto-negotiation, then restart auto-negotiation in Cisco SGMII mode.
+ *     CL37_ENABLE      IEEE CL37 Auto-Negotiation Mode Enable
+ *     CL37_SGMII_ENABLE Cisco SGMII Auto-Negotiation Mode Enable
+ *     CL37_BAM_ENABLE  Broadcom CL37 Auto-Negotiation Mode Enable
+ *     DISABLE_REMOTE_FAULT_REPORTING 1 = disable automatic reporting of remote faults, such as auto-negotiation error0 = report remote fault status to link partner via auto-negotiation when fiber mode is selected. (SGMII does not support remote faults)
+ *     QSGMII_EN        Sets the AN logic in QSGMII Mode and enables all 4 AN for subport independently. Default is SGMII Mode (i.e. Subport 0 AN is running)
+ *     USXGMII_EN       Sets the AN logic in USXGMII Mode.
+ *     EEE_CLOCK_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     EEE_CAPABILITY_ECHO Enable base page echo. USXGMII only.
+ *     SPEED_ECHO       Enable base page echo. USXGMII only.
+ *     DUPLEX_MODE_ECHO Enable base page echo. USXGMII only.
+ *     LINK_STATUS_ECHO Enable base page echo. USXGMII only.
+ */
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP3_ENSr (0x0000c230 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define BCMI_QTC_XGXS_AN_X4_ABI_SP3_ENSr_SIZE 4
+
+
 /*****************************************************************************************/
 /*                           merlin16                                                    */
 /*****************************************************************************************/
