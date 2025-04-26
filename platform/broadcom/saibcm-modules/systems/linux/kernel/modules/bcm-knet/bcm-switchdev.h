@@ -2158,6 +2158,9 @@ typedef struct qmod16_an_control_s {
 #define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRC_VALf_GET(r) ((r) & 0xf)
 #define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRC_VALf_SET(r,f) r=((r & ~((uint32_t)0xf)) | (((uint32_t)f) & 0xf)) | (0xf << 16)
 
+
+
+
 /*****************************************************************************************/
 /*                           merlin16                                                    */
 /*****************************************************************************************/
@@ -2373,6 +2376,113 @@ enum merlin16_pll_option_enum {
     MERLIN16_PLL_OPTION_REFCLK_DIV4_EN,
     MERLIN16_PLL_OPTION_DISABLE_VERIFY
 };
+
+
+typedef enum phymod_interface_e {
+    phymodInterfaceBypass = 0,
+    phymodInterfaceSR,
+    phymodInterfaceSR4,
+    phymodInterfaceKX,
+    phymodInterfaceKX4,
+    phymodInterfaceKR,
+    phymodInterfaceKR2,
+    phymodInterfaceKR4,
+    phymodInterfaceCX,
+    phymodInterfaceCX2,
+    phymodInterfaceCX4,
+    phymodInterfaceCR,
+    phymodInterfaceCR2,
+    phymodInterfaceCR4,
+    phymodInterfaceCR10,
+    phymodInterfaceXFI,
+    phymodInterfaceSFI,
+    phymodInterfaceSFPDAC,
+    phymodInterfaceXGMII,
+    phymodInterface1000X,
+    phymodInterfaceSGMII,
+    phymodInterfaceXAUI,
+    phymodInterfaceRXAUI,
+    phymodInterfaceX2,
+    phymodInterfaceXLAUI,
+    phymodInterfaceXLAUI2,
+    phymodInterfaceCAUI,
+    phymodInterfaceQSGMII,
+    phymodInterfaceLR4,
+    phymodInterfaceLR,
+    phymodInterfaceLR2,
+    phymodInterfaceER,
+    phymodInterfaceER2,
+    phymodInterfaceER4,
+    phymodInterfaceSR2,
+    phymodInterfaceSR10,
+    phymodInterfaceCAUI4,
+    phymodInterfaceVSR,
+    phymodInterfaceLR10,
+    phymodInterfaceKR10,
+    phymodInterfaceCAUI4_C2C,
+    phymodInterfaceCAUI4_C2M,
+    phymodInterfaceZR,
+    phymodInterfaceLRM,
+    phymodInterfaceXLPPI,
+    phymodInterfaceOTN,
+    phymodInterfaceCount
+} phymod_interface_t;
+
+typedef enum phymod_ref_clk_e {
+    phymodRefClk156Mhz = 0, /**< 156.25MHz */
+    phymodRefClk125Mhz, /**< 125MHz */
+    phymodRefClk106Mhz, /**< 106Mhz */
+    phymodRefClk161Mhz, /**< 161Mhz */
+    phymodRefClk174Mhz, /**< 174Mhz */
+    phymodRefClk312Mhz, /**< 312Mhz */
+    phymodRefClk322Mhz, /**< 322Mhz */
+    phymodRefClk349Mhz, /**< 349Mhz */
+    phymodRefClk644Mhz, /**< 644Mhz */
+    phymodRefClk698Mhz, /**< 698Mhz */
+    phymodRefClk155Mhz, /**< 155Mhz */
+    phymodRefClk156P6Mhz, /**< 156P6Mhz */
+    phymodRefClk157Mhz, /**< 157Mhz */
+    phymodRefClk158Mhz, /**< 158Mhz */
+    phymodRefClk159Mhz, /**< 159Mhz */
+    phymodRefClk168Mhz, /**< 168Mhz */
+    phymodRefClk172Mhz, /**< 172Mhz */
+    phymodRefClk173Mhz, /**< 173Mhz */
+    phymodRefClk169P409Mhz, /**< 169P409Mhz */
+    phymodRefClk348P125Mhz, /**< 348P125Mhz */
+    phymodRefClk162P948Mhz, /**< 162P948Mhz */
+    phymodRefClk336P094Mhz, /**< 336P094Mhz */
+    phymodRefClk168P12Mhz, /**< 168P12Mhz */
+    phymodRefClk346P74Mhz, /**< 346P74Mhz */
+    phymodRefClk167P41Mhz, /**< 167P41Mhz */
+    phymodRefClk345P28Mhz, /**< 345P28Mhz */
+    phymodRefClk162P26Mhz, /**< 162P26Mhz */
+    phymodRefClk334P66Mhz, /**< 334P66Mhz */
+    phymodRefClkCount
+} phymod_ref_clk_t;
+
+typedef enum phymod_otn_type_e {
+    phymodOTNOTU1 = 0,
+    phymodOTNOTU1e,
+    phymodOTNOTU2,
+    phymodOTNOTU2e,
+    phymodOTNOTU2f,
+    phymodOTNOTU3,
+    phymodOTNOTU3e2,
+    phymodOTNOTU4,
+    phymodOTNOTU4p10,
+    phymodOTNCount
+} phymod_otn_type_t;
+
+typedef struct phymod_phy_inf_config_s {
+    phymod_interface_t interface_type;
+    uint32_t data_rate;
+    uint32_t interface_modes;
+    phymod_ref_clk_t ref_clock; /**< Core reference clock. */
+    phymod_ref_clk_t com_clock; /**< Core common clock. */
+    uint16_t pll_divider_req; /**< Core pll divider request. */
+    void* device_aux_modes; /**< Device auxiliary modes. */
+    phymod_otn_type_t otn_type; /**< OTN type. */
+} phymod_phy_inf_config_t;
 
 /*****************************************************************************************/
 /*                           GPORT   BCM56370                                            */

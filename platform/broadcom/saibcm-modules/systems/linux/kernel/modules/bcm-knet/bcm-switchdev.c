@@ -8284,9 +8284,6 @@ int merlin16_rdwl_uc_var(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, ui
     uint16_t lane_var_ram_base=0, lane_var_ram_size=0;
     uint8_t lane;
 
-    if(!err_code_p) {
-        return(SOC_E_PARAM);
-    }
     /* Validate even address */
     if (addr%2 != 0) {                                                                
         return (SOC_E_PARAM);
@@ -9318,15 +9315,15 @@ int qmod16_get_plldiv (bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint
 
 int qmod16_speedchange_get (bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t* enable)
 {
-    SC_X4_CTLr_t reg_sc_ctrl;
+    uint32_t reg_sc_ctrl;
 
-    QMOD16_DBG_IN_FUNC_INFO(pc);
-    SC_X4_CTLr_CLR(reg_sc_ctrl);
+    reg_sc_ctrl = 0;
 
-    PHYMOD_IF_ERR_RETURN(READ_SC_X4_CTLr(pc,&reg_sc_ctrl));
+    phymod_tsc_iblk_read(bcmsw, port, lane_mask,BCMI_QTC_XGXS_SC_X4_CTLr,&reg_sc_ctrl);
+
     *enable = SC_X4_CTLr_SW_SPEED_CHANGEf_GET(reg_sc_ctrl);
 
-    return PHYMOD_E_NONE;
+    return SOC_E_NONE;
 } 
 
 
@@ -9398,18 +9395,16 @@ _qtce16_phy_firmware_lane_config_set(bcmsw_switch_t *bcmsw, int port, uint32_t l
     return SOC_E_NONE;
 }
 
-int qtce16_phy_firmware_lane_config_get(bcmsw_switch_t *bcmsw, int port, const phymod_phy_access_t* phy, phymod_firmware_lane_config_t* fw_config)
+int qtce16_phy_firmware_lane_config_get(bcmsw_switch_t *bcmsw, int port, phymod_firmware_lane_config_t* fw_config)
 {        
     
     struct merlin16_uc_lane_config_st serdes_firmware_config;
-    phymod_phy_access_t phy_copy;
     int lane_id, sub_port;
-    uint32_t lane_mask
+    uint32_t lane_mask;
 
     lane_id = ((port -1)%16)/4;     
     sub_port = (port -1)%4;
     
-    PHYMOD_MEMCPY(&phy_copy, phy, sizeof(phy_copy));
     lane_mask = 1 << lane_id;
 
     merlin16_get_uc_lane_cfg(bcmsw, port, lane_mask, &serdes_firmware_config);
@@ -9471,6 +9466,21 @@ int qtce16_phy_autoneg_set(bcmsw_switch_t *bcmsw, int port, const phymod_autoneg
     return _qtce16_qsgmii_autoneg_set(bcmsw, port, an);
 }
 
+
+
+typedef struct qmod16_sc_pmd_entry_t
+{
+  int num_lanes;
+  int t_pma_os_mode;
+  int pll_mode;
+  int vco_rate;
+  int media_type;  /* 0: PCB traces or Backplane, 1: Copper cable, 2: Optics */
+  int brdfe_on;
+  int osdfe_on;
+  int cl72_emulation_en;
+  int scrambling_dis;
+  /* add additional entries here */
+} qmod16_sc_pmd_entry_st;
 
 static qmod16_sc_pmd_entry_st qmod16_sc_pmd_entry[] = {
     /*SPD_10M              0*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
@@ -9584,12 +9594,17 @@ int qmod16_pmd_osmode_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, q
     //PHYMOD_IF_ERR_RETURN
     //    (MODIFY_RXTXCOM_OSR_MODE_CTLr(pc, reg_osr_mode));
     // ->phymod_tsc_iblk_write(_pc,BCMI_TSCE16_XGXS_RXTXCOM_OSR_MODE_CTLr,(_r._rxtxcom_osr_mode_ctl))
-    phymod_tsc_iblk_write(bcmsw, port, lane_mask, BRXTXCOM_OSR_MODE_CTLr, reg_osr_mode);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, RXTXCOM_OSR_MODE_CTLr, reg_osr_mode);
     return SOC_E_NONE;
 }
 
+int _qtce16_qsgmii_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_phy_inf_config_t* config)
+{
+    return 0;
+}
 
 int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_phy_inf_config_t* config)
+{
     uint32_t current_pll_div=0;
     uint32_t new_pll_div=0;
     uint16_t new_speed_vec=0;
@@ -9599,6 +9614,7 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
     uint32_t sc_enable = 0;
     uint32_t u_os_mode = 0;
     phymod_firmware_lane_config_t firmware_lane_config;
+    uint32_t lane_mask;
 
     firmware_lane_config.MediaType = phymodFirmwareMediaTypePcbTraceBackPlane;  /* MediaType=0 */
 
@@ -9611,7 +9627,8 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
 
     
     /* Set subport speed if the lane speed is configured in QSGMII/USXGMII mode */
-    qmod16_speedchange_get(&pm_phy_copy.access, &sc_enable) ;
+    qmod16_speedchange_get(bcmsw, port, lane_mask, &sc_enable) ;
+    printk("qtce16_phy_interface_config_set_serdes sc_enable %d\n", sc_enable);
     if (sc_enable) {
         return _qtce16_qsgmii_interface_config_set_serdes(bcmsw, port, config);
     }
@@ -9627,7 +9644,7 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
         merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd081, 0x0001, 0, 0);             
     }
 
-    qtce16_phy_firmware_lane_config_get(bcmsw, port, lane_mask, &firmware_lane_config);
+    qtce16_phy_firmware_lane_config_get(bcmsw, port, &firmware_lane_config);
 
     /* make sure that an and config from pcs is off */
     firmware_lane_config.AnEnabled = 0;
@@ -9677,7 +9694,7 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
     qmod16_get_plldiv(bcmsw, port, lane_mask, &current_pll_div);
     printk("qtce16_phy_interface_config_set_serdes qmod16_get_plldiv %d\n", current_pll_div);
 
-    qmod16_plldiv_lkup_get(bcmsw, port, lane_mask, spd_intf, &new_pll_div, &new_speed_vec);
+    qmod16_plldiv_lkup_get(bcmsw, port, spd_intf, &new_pll_div, &new_speed_vec);
 
     qmod16_pmd_osmode_set(bcmsw, port, lane_mask, spd_intf, u_os_mode);
 
@@ -9688,7 +9705,7 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
 
     for (i = 0; i < num_lane; i++) {
         lane_mask = 0x1 << (start_lane + i);
-        _qtce16_phy_firmware_lane_config_set(bcmsw, port, lane_mask, firmware_lane_config));
+        _qtce16_phy_firmware_lane_config_set(bcmsw, port, lane_mask, firmware_lane_config);
     }
 
     /* Release the per lane soft reset bit */
@@ -9701,12 +9718,12 @@ int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phym
     }
 
     /* Set lane speed ID and trigger speed change */
-    qmod16_set_spd_intf(&pm_phy_copy.access, spd_intf, 0);
+    qmod16_set_spd_intf(bcmsw, port, lane_mask, spd_intf, 0);
 
     /* Set sub-port speed of this lane */
     //if (PHYMOD_ACC_F_QMODE_GET(&phy->access) || PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
     //    PHYMOD_IF_ERR_RETURN
-    _qtce16_qsgmii_interface_config_set_serdes(bcmsw, port, lane_mask, config);
+    _qtce16_qsgmii_interface_config_set_serdes(bcmsw, port, config);
     //}
 
 
@@ -9909,13 +9926,13 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
     //                                      PM_4x10_QTC_INFO(pm_info)->ref_clk,
     //                                      PORTMOD_INIT_F_INTERNAL_SERDES_ONLY));
     // ->phymod_phy_interface_config_set -> qtce16_phy_interface_config_set
-    memset(config, 0, sizeof(config));
+    memset(&config, 0, sizeof(config));
     config.interface_type  = phymodInterfaceSGMII;
     config.data_rate       = 1000;
     config.interface_modes = 0;
     config.ref_clock       = 0;
     config.com_clock       = 0;
-    config.pll_divder_req  = 165;
+    config.pll_divider_req = 165;
     config.otn_type        = 0;
 
     qtce16_phy_interface_config_set_serdes(bcmsw, port, &config);
