@@ -8273,8 +8273,33 @@ int merlin16_wrwl_uc_var(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, ui
     lane_addr_offset = lane_var_ram_base+addr+(lane*lane_var_ram_size);
      /* Use Micro register interface for writing RAM */
     return merlin16_wrw_uc_ram(bcmsw, port, lane_mask, lane_addr_offset, wr_val);   
-
 }
+
+
+
+
+/* Micro RAM Lane Word Read */
+int merlin16_rdwl_uc_var(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint16_t addr, uint16_t *rddata) {
+    uint16_t lane_addr_offset = 0;
+    uint16_t lane_var_ram_base=0, lane_var_ram_size=0;
+    uint8_t lane;
+
+    if(!err_code_p) {
+        return(SOC_E_PARAM);
+    }
+    /* Validate even address */
+    if (addr%2 != 0) {                                                                
+        return (SOC_E_PARAM);
+    }
+    lane = merlin16_get_lane(lane_mask);
+    lane_var_ram_base = LANE_VAR_RAM_BASE;
+    lane_var_ram_size = LANE_VAR_RAM_SIZE;
+    lane_addr_offset = lane_var_ram_base+addr+(lane*lane_var_ram_size);
+
+    /* Use Micro register interface for reading RAM */
+    return merlin16_rdw_uc_ram(bcmsw, port, lane_mask, lane_addr_offset, rddata);    
+}
+
 
 
 int merlin16_get_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, struct merlin16_uc_core_config_st *get_val)
@@ -8292,6 +8317,36 @@ int merlin16_get_uc_core_config(bcmsw_switch_t *bcmsw, int port, uint32_t lane_m
      return SOC_E_NONE;
 } 
 
+
+int merlin16_INTERNAL_update_uc_lane_config_st(struct  merlin16_uc_lane_config_st *st) {
+    uint16_t in = st->word;
+    st->field.lane_cfg_from_pcs = in & BFMASK(1); in >>= 1;
+    st->field.an_enabled = in & BFMASK(1); in >>= 1;
+    st->field.dfe_on = in & BFMASK(1); in >>= 1;
+    st->field.force_brdfe_on = in & BFMASK(1); in >>= 1;
+    st->field.media_type = in & BFMASK(2); in >>= 2;
+    st->field.unreliable_los = in & BFMASK(1); in >>= 1;
+    st->field.scrambling_dis = in & BFMASK(1); in >>= 1;  
+    st->field.cl72_auto_polarity_en = in & BFMASK(1); in >>= 1;
+    st->field.cl72_restart_timeout_en = in & BFMASK(1); in >>= 1;
+    st->field.reserved = in & BFMASK(6); in >>= 6;
+    return(SOC_E_NONE);
+}
+
+int merlin16_get_uc_lane_cfg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask,  struct merlin16_uc_lane_config_st *get_val) {
+
+    if(!get_val) {
+       return(SOC_E_PARAM);
+    }
+    //ESTM(get_val->word = rdv_config_word());
+    // ->merlin16_rdwl_uc_var(sa__,__ERR,0x0)
+    merlin16_rdwl_uc_var(bcmsw, port, lane_mask, 0x0, &(get_val->word));
+
+    merlin16_INTERNAL_update_uc_lane_config_st(get_val);
+    return (SOC_E_NONE);
+  }
+
+  
 /*-----------------------------------------*/
 /*  Write Core Config variables to uC RAM  */
 /*-----------------------------------------*/
@@ -9203,6 +9258,79 @@ int qmod16_set_spd_intf(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmo
     return SOC_E_NONE;
 }
 
+static const uint8_t pll_fraction_width = 18;
+int merlin16_INTERNAL_read_pll_div(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t *div) {
+    uint16_t val;
+    uint16_t ndiv_int, ndiv_frac_h, ndiv_frac_l;
+    uint32_t ndiv_frac;
+    //ESTM(ndiv_int = rdc_ams_pll_i_ndiv_int());
+    // ->  _merlin16_pmd_rde_field(sa__, 0xd0b8,6,6,__ERR)
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0b8, &val);
+    ndiv_int = (val & 0x3FF);
+
+    //ESTM(ndiv_frac = _ndiv_frac_decode(rdc_ams_pll_i_ndiv_frac_l(), rdc_ams_pll_i_ndiv_frac_h()));
+    // rdc_ams_pll_i_ndiv_frac_l ->_merlin16_pmd_rde_field_byte(sa__, 0xd0b6,0,12,__ERR)
+    // rdc_ams_pll_i_ndiv_frac_h -> _merlin16_pmd_rde_field(sa__, 0xd0b7,2,2,__ERR)
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0b6, &val);
+    ndiv_frac_l = (val>>12);
+
+    merlin16_pmd_rdt_reg(bcmsw, port, lane_mask,0xd0b7, &val);
+    ndiv_frac_h = (val & 0x3FFF);
+
+    ndiv_frac = ((ndiv_frac_l & 0xF) | (ndiv_frac_h <<4));
+    
+    *div = SRDS_INTERNAL_COMPOSE_PLL_DIV(ndiv_int, ndiv_frac, pll_fraction_width);
+
+    return (SOC_E_NONE);
+}
+
+
+int qmod16_get_plldiv (bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t *pll_mode)
+{
+
+    uint32_t pll_div;
+
+    merlin16_INTERNAL_read_pll_div(bcmsw, port, lane_mask, &pll_div);
+
+    /* merlin16_INTERNAL_read_pll_div() puts one of merlin16_pll_div_enum
+     * as the returned value in pll_div
+     */ 
+    switch (pll_div) {
+        case 0x00000046UL: *pll_mode = QMOD16_PLL_MODE_DIV_70;
+            break;
+        case 0x00000042UL: *pll_mode = QMOD16_PLL_MODE_DIV_66;
+            break;
+        case 0x00000040UL: *pll_mode = QMOD16_PLL_MODE_DIV_64;
+            break;
+        case 0x0000003CUL: *pll_mode = QMOD16_PLL_MODE_DIV_60;
+            break;
+        case 0x0000005CUL: *pll_mode = QMOD16_PLL_MODE_DIV_92;
+            break;
+        case 0x00000050UL: *pll_mode = QMOD16_PLL_MODE_DIV_80;
+            break;
+        default: return SOC_E_NONE;
+            break;
+    }
+
+    return SOC_E_NONE;
+}
+
+
+int qmod16_speedchange_get (bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, uint32_t* enable)
+{
+    SC_X4_CTLr_t reg_sc_ctrl;
+
+    QMOD16_DBG_IN_FUNC_INFO(pc);
+    SC_X4_CTLr_CLR(reg_sc_ctrl);
+
+    PHYMOD_IF_ERR_RETURN(READ_SC_X4_CTLr(pc,&reg_sc_ctrl));
+    *enable = SC_X4_CTLr_SW_SPEED_CHANGEf_GET(reg_sc_ctrl);
+
+    return PHYMOD_E_NONE;
+} 
+
+
+
 int merlin16_INTERNAL_update_uc_lane_config_word(struct merlin16_uc_lane_config_st *st) 
 {
     uint16_t in = 0;
@@ -9227,6 +9355,7 @@ int merlin16_set_uc_lane_cfg(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask
     //ESTM(reset_state = rd_rx_lane_dp_reset_state());
     //  -> _merlin16_pmd_rde_field_byte(sa__, 0xd189,13,13,__ERR)
     merlin16_pmd_rdt_reg(bcmsw, port, lane_mask, 0xd189, &val);
+
     reset_state = (val & 0x7);
     if(reset_state < 7) {
         printk("ERROR: merlin16_set_uc_lane_cfg(..) called without ln_dp_s_rstb=0\n");
@@ -9269,6 +9398,36 @@ _qtce16_phy_firmware_lane_config_set(bcmsw_switch_t *bcmsw, int port, uint32_t l
     return SOC_E_NONE;
 }
 
+int qtce16_phy_firmware_lane_config_get(bcmsw_switch_t *bcmsw, int port, const phymod_phy_access_t* phy, phymod_firmware_lane_config_t* fw_config)
+{        
+    
+    struct merlin16_uc_lane_config_st serdes_firmware_config;
+    phymod_phy_access_t phy_copy;
+    int lane_id, sub_port;
+    uint32_t lane_mask
+
+    lane_id = ((port -1)%16)/4;     
+    sub_port = (port -1)%4;
+    
+    PHYMOD_MEMCPY(&phy_copy, phy, sizeof(phy_copy));
+    lane_mask = 1 << lane_id;
+
+    merlin16_get_uc_lane_cfg(bcmsw, port, lane_mask, &serdes_firmware_config);
+
+    memset(fw_config, 0, sizeof(*fw_config));
+
+    fw_config->LaneConfigFromPCS = serdes_firmware_config.field.lane_cfg_from_pcs;
+    fw_config->AnEnabled         = serdes_firmware_config.field.an_enabled;
+    fw_config->DfeOn             = serdes_firmware_config.field.dfe_on;
+    fw_config->ForceBrDfe        = serdes_firmware_config.field.force_brdfe_on;
+    fw_config->Cl72AutoPolEn        = serdes_firmware_config.field.cl72_auto_polarity_en;
+    fw_config->Cl72RestTO      = serdes_firmware_config.field.cl72_restart_timeout_en;
+    fw_config->ScramblingDisable = serdes_firmware_config.field.scrambling_dis;
+    fw_config->UnreliableLos     = serdes_firmware_config.field.unreliable_los;
+    fw_config->MediaType         = serdes_firmware_config.field.media_type;
+
+    return SOC_E_NONE;    
+}
 
 
 static int 
@@ -9312,44 +9471,149 @@ int qtce16_phy_autoneg_set(bcmsw_switch_t *bcmsw, int port, const phymod_autoneg
     return _qtce16_qsgmii_autoneg_set(bcmsw, port, an);
 }
 
-#if 0
-int qtce16_phy_interface_config_set(bcmsw_switch_t *bcmsw, int port)
+
+static qmod16_sc_pmd_entry_st qmod16_sc_pmd_entry[] = {
+    /*SPD_10M              0*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_10M              1*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_100M             2*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_1000M            3*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_1G_CX1           4*/ { 1, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_1G_KX1           5*/ { 1, QMOD16_PMA_OS_MODE_8_25, QMOD16_PLL_MODE_DIV_66,  0, 0,  1},
+    /*SPD_2p5G             6*/ { 1, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_5G_X1            7*/ { 1, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_40,  1, 0,  0},
+    /*SPD_10G_CX4          8*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_10G_KX4          9*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_10G_X4          10*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_13G_X4          11*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_52,  0, 0,  1},
+    /*SPD_15G_X4          12*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_60,  0, 0,  1},
+    /*SPD_16G_X4          13*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_64,  0, 0,  1},
+    /*SPD_20G_CX4         14*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_10G_CX2         15*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_40,  0, 0,  1},
+    /*SPD_10G_X2          16*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_40,  1, 0,  1},
+    /*SPD_20G_X4          17*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_40,  1, 0,  1},
+    /*SPD_10p5G_X2        18*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_42,  1, 0,  0},
+    /*SPD_21G_X4          19*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_42,  1, 0,  0},
+    /*SPD_12p7G_X2        20*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_42,  1, 0,  0},
+    /*SPD_25p45G_X4       21*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_42,  1, 0,  0},
+    /*SPD_15p75G_X2       22*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_52,  1, 0,  0},
+    /*SPD_31p5G_X4        23*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_52,  1, 0,  0},
+    /*SPD_31p5G_KR4       24*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_52,  1, 0,  0},
+    /*SPD_20G_CX2         25*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_20G_X2          26*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_40G_X4          27*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_10G_KR1         28*/ { 0, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_10p6_X1         29*/ { 0, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_70,  1, 0,  0},
+    /*SPD_20G_KR2         30*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_20G_CR2         31*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_21G_X2          32*/ { 2, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_70,  1, 0,  0},
+    /*SPD_40G_KR4         33*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_40G_CR4         34*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_42G_X4          35*/ { 4, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_70,  1, 0,  0},
+    /*SPD_100G_CR10       36*/ {10, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_107G_CR10       37*/ {10, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_70,  1, 0,  0},
+    /*SPD_120G_X12        38*/ {12, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_66,  1, 0,  0},
+    /*SPD_127G_X12        39*/ {12, QMOD16_PMA_OS_MODE_1,  QMOD16_PLL_MODE_DIV_70,  1, 0,  0},
+    /*SPD_ILLEGAL         40*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         41*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         42*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         43*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         44*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         45*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         46*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         47*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         48*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_5G_KR1          49*/ { 0, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPD_10p5G_X4        50*/ { 4, QMOD16_PMA_OS_MODE_2,  QMOD16_PLL_MODE_DIV_42,  0, 0,  0},
+    /*SPD_ILLEGAL         51*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_ILLEGAL         52*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0},
+    /*SPD_10M_10p3125     53*/ { 1, QMOD16_PMA_OS_MODE_8_25, QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPD_100M_10p3125    54*/ { 1, QMOD16_PMA_OS_MODE_8_25, QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPD_1000M_10p3125   55*/ { 1, QMOD16_PMA_OS_MODE_8_25, QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPD_2p5G_X1_10p3125 56*/ { 1, QMOD16_PMA_OS_MODE_3_3,QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPEED_10M_X1_10 :   57*/ { 1, QMOD16_PMA_OS_MODE_8, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_100M_X1_10 :  58*/ { 1, QMOD16_PMA_OS_MODE_8, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_1000M_X1_10 : 59*/ { 1, QMOD16_PMA_OS_MODE_8, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    60*/ { 1, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    61*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    62*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    63*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    64*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    65*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    66*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    67*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    68*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    69*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    70*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_4G_X1_10 :    71*/ { 0, QMOD16_PMA_OS_MODE_2, QMOD16_PLL_MODE_DIV_64,  0, 0,  0},
+    /*SPEED_10G_X1_10:    72*/ { 1, QMOD16_PMA_OS_MODE_1, QMOD16_PLL_MODE_DIV_66,  0, 0,  0},
+    /*SPD_ILLEGAL         73*/ { 0, QMOD16_PMA_OS_MODE_5,  QMOD16_PLL_MODE_DIV_40,  0, 0,  0}
+};
+
+int qmod16_plldiv_lkup_get(bcmsw_switch_t *bcmsw, int port, qmod16_spd_intfc_type spd_intf, uint32_t *plldiv, uint16_t *speed_vec)
 {
+    int speed_id;
+
+    qmod16_get_mapped_speed(spd_intf, &speed_id);
+    *plldiv = qmod16_sc_pmd_entry[speed_id].pll_mode;
+    *speed_vec = speed_id ;
+
+    return SOC_E_NONE;
+}
+
+/* INIT_PMD */
+int qmod16_pmd_osmode_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmod16_spd_intfc_type spd_intf, int os_mode)   
+{
+    uint32_t    reg_osr_mode;
+    int speed;
+    
+    RXTXCOM_OSR_MODE_CTLr_CLR(reg_osr_mode);
+    qmod16_get_mapped_speed(spd_intf, &speed);
+    
+    /*os_mode         = 0x0; */ /* 0= OS MODE 1;  1= OS MODE 2; 2=OS MODE 3; 
+                                   3=OS MODE 3.3; 4=OS MODE 4; 5=OS MODE 5; 
+                                   6=OS MODE 8;   7=OS MODE 8.25; 8: OS MODE 10*/
+    if (os_mode & 0x80000000) {
+        os_mode =  (os_mode) & 0x0000ffff;
+    } else {
+        os_mode =  qmod16_sc_pmd_entry[speed].t_pma_os_mode; 
+    }
+    
+    RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRCf_SET(reg_osr_mode, 1);
+    RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRC_VALf_SET(reg_osr_mode, os_mode);
+
+    //PHYMOD_IF_ERR_RETURN
+    //    (MODIFY_RXTXCOM_OSR_MODE_CTLr(pc, reg_osr_mode));
+    // ->phymod_tsc_iblk_write(_pc,BCMI_TSCE16_XGXS_RXTXCOM_OSR_MODE_CTLr,(_r._rxtxcom_osr_mode_ctl))
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, BRXTXCOM_OSR_MODE_CTLr, reg_osr_mode);
+    return SOC_E_NONE;
+}
+
+
+int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_phy_inf_config_t* config)
     uint32_t current_pll_div=0;
     uint32_t new_pll_div=0;
     uint16_t new_speed_vec=0;
     qmod16_spd_intfc_type spd_intf = QMOD16_SPD_ILLEGAL;
-    phymod_phy_access_t pm_phy_copy;
     int start_lane, num_lane, i;
     int      lane_id, sub_port ;
     uint32_t sc_enable = 0;
     uint32_t u_os_mode = 0;
     phymod_firmware_lane_config_t firmware_lane_config;
 
-    PHYMOD_MEMCPY(&pm_phy_copy, phy, sizeof(pm_phy_copy));
-
     firmware_lane_config.MediaType = phymodFirmwareMediaTypePcbTraceBackPlane;  /* MediaType=0 */
 
-    /* next program the tx fir taps and driver current based on the input */
-    /* get num_lane only in QTC */
-    PHYMOD_IF_ERR_RETURN
-        (phymod_util_lane_config_get(&phy->access, &start_lane, &num_lane));
 
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_lane_info(&phy->access, &lane_id, &sub_port));
-
-
-
-    start_lane = ((port -1)%16)/4;  
+    lane_id = ((port -1)%16)/4;     
+    sub_port = (port -1)%4;
+    start_lane = lane_id;  
     lane_mask  = (1 << start_lane);
+    num_lane = 1;
 
     
     /* Set subport speed if the lane speed is configured in QSGMII/USXGMII mode */
-    if (PHYMOD_ACC_F_QMODE_GET(&phy->access) || PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
-        qmod16_speedchange_get(&pm_phy_copy.access, &sc_enable) ;
-        if (sc_enable) {
-            return _qtce16_qsgmii_interface_config_set(phy, flags, config);
-        }
+    qmod16_speedchange_get(&pm_phy_copy.access, &sc_enable) ;
+    if (sc_enable) {
+        return _qtce16_qsgmii_interface_config_set_serdes(bcmsw, port, config);
     }
 
     qmod16_reset(bcmsw, port, lane_mask); 
@@ -9363,16 +9627,14 @@ int qtce16_phy_interface_config_set(bcmsw_switch_t *bcmsw, int port)
         merlin16_pmd_mwr_reg(bcmsw, port, lane_mask, 0xd081, 0x0001, 0, 0);             
     }
 
-    pm_phy_copy.access.lane_mask = 0x1 << start_lane;
-     PHYMOD_IF_ERR_RETURN
-        (qtce16_phy_firmware_lane_config_get(&pm_phy_copy, &firmware_lane_config));
+    qtce16_phy_firmware_lane_config_get(bcmsw, port, lane_mask, &firmware_lane_config);
 
     /* make sure that an and config from pcs is off */
     firmware_lane_config.AnEnabled = 0;
     firmware_lane_config.LaneConfigFromPCS = 0;
-    if (PHYMOD_INTF_MODES_FIBER_GET(config)) {
-        firmware_lane_config.MediaType = phymodFirmwareMediaTypeOptics;
-    }     
+    //if (PHYMOD_INTF_MODES_FIBER_GET(config)) {
+    //    firmware_lane_config.MediaType = phymodFirmwareMediaTypeOptics;
+    //}     
 
     if (config->data_rate == 10 || config->data_rate == 100 || config->data_rate == 1000) {
         if (config->interface_type == phymodInterfaceSGMII) {
@@ -9406,25 +9668,22 @@ int qtce16_phy_interface_config_set(bcmsw_switch_t *bcmsw, int port)
         break;
     }
 
-    if (PHYMOD_ACC_F_QMODE_GET(&phy->access)) {
-         spd_intf = QMOD16_SPD_4000;
-    } else if (PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
-         spd_intf = QMOD16_SPD_10G_X1_USXGMII;
-    }
+    //if (PHYMOD_ACC_F_QMODE_GET(&phy->access)) {
+    spd_intf = QMOD16_SPD_4000;
+    //} else if (PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
+    //     spd_intf = QMOD16_SPD_10G_X1_USXGMII;
+    //}
 
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_get_plldiv(&pm_phy_copy.access, &current_pll_div));
+    qmod16_get_plldiv(bcmsw, port, lane_mask, &current_pll_div);
+    printk("qtce16_phy_interface_config_set_serdes qmod16_get_plldiv %d\n", current_pll_div);
 
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_plldiv_lkup_get(&pm_phy_copy.access, spd_intf, &new_pll_div, &new_speed_vec));
+    qmod16_plldiv_lkup_get(bcmsw, port, lane_mask, spd_intf, &new_pll_div, &new_speed_vec);
 
-    PHYMOD_IF_ERR_RETURN
-        (qmod16_pmd_osmode_set(&pm_phy_copy.access, spd_intf, u_os_mode));
+    qmod16_pmd_osmode_set(bcmsw, port, lane_mask, spd_intf, u_os_mode);
 
     /* Don't support PLL change because 10.3125G is for USXGMII and 10G for QSGMII/SGMII/GMII.*/
     if (current_pll_div != new_pll_div) {
-        printk("Not support VCO change: %u %u\r\n",
-                                 current_pll_div, new_pll_div);
+        printk("Not support VCO change: %u %u\r\n", current_pll_div, new_pll_div);
     }
 
     for (i = 0; i < num_lane; i++) {
@@ -9447,14 +9706,13 @@ int qtce16_phy_interface_config_set(bcmsw_switch_t *bcmsw, int port)
     /* Set sub-port speed of this lane */
     //if (PHYMOD_ACC_F_QMODE_GET(&phy->access) || PHYMOD_ACC_F_USXMODE_GET(&phy->access)) {
     //    PHYMOD_IF_ERR_RETURN
-    //        (_qtce16_qsgmii_interface_config_set(phy, flags, config));
+    _qtce16_qsgmii_interface_config_set_serdes(bcmsw, port, lane_mask, config);
     //}
 
 
     return 0;
 }
 
-#endif
 
 static
 int _pm4x10_qtc_pm_serdes_core_init(bcmsw_switch_t *bcmsw, int port)
@@ -9554,6 +9812,7 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
     // port 33 - 48 : (33 - 36) 0,  (37 - 40) 1, (41 - 44) 2, (45 - 48) 3
     // port_index 0 - 15  nof_phys = 2    
     phymod_autoneg_control_t an;
+    phymod_phy_inf_config_t  config;
 #if 0    
     int port_i, my_i;
     int i, nof_phys = 0, usr_cfg_idx;
@@ -9640,17 +9899,28 @@ int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
                                 add_info->interface_config.serdes_interface,
                                 &phymod_serdes_interface));
     }
-
+#endif
     /* Apply to SerDes with same interface config */
-    _SOC_IF_ERR_EXIT(
-            portmod_port_phychain_interface_config_set(unit, port, phy_access, nof_phys,
-                                          add_info->interface_config.flags ,
-                                          &init_config.interface,
-                                          phymod_serdes_interface,
-                                          PM_4x10_QTC_INFO(pm_info)->ref_clk,
-                                          PORTMOD_INIT_F_INTERNAL_SERDES_ONLY));
+    //_SOC_IF_ERR_EXIT(
+    //        portmod_port_phychain_interface_config_set(unit, port, phy_access, nof_phys,
+    //                                      add_info->interface_config.flags ,
+    //                                      &init_config.interface,
+    //                                      phymod_serdes_interface,
+    //                                      PM_4x10_QTC_INFO(pm_info)->ref_clk,
+    //                                      PORTMOD_INIT_F_INTERNAL_SERDES_ONLY));
     // ->phymod_phy_interface_config_set -> qtce16_phy_interface_config_set
+    memset(config, 0, sizeof(config));
+    config.interface_type  = phymodInterfaceSGMII;
+    config.data_rate       = 1000;
+    config.interface_modes = 0;
+    config.ref_clock       = 0;
+    config.com_clock       = 0;
+    config.pll_divder_req  = 165;
+    config.otn_type        = 0;
 
+    qtce16_phy_interface_config_set_serdes(bcmsw, port, &config);
+
+#if 0    
     /* set the default advert ability */
     _SOC_IF_ERR_EXIT
         (_pm4x10_qtc_port_ability_local_get(unit, port, pm_info, PORTMOD_INIT_F_INTERNAL_SERDES_ONLY, &port_ability));

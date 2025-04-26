@@ -1732,9 +1732,9 @@ typedef enum {
     QMOD16_SPD_10G_X1_USXGMII         ,  /*!< 4x2.5G USXGMII vco 10p3125G     */
     QMOD16_SPD_2500_USXGMII           ,  /*!< 2.5 USGMII vco 10p3125          */
     QMOD16_SPD_ILLEGAL                  /*!< Illegal value (enum boundary)   */
-  } qmod16_spd_intfc_type;
+} qmod16_spd_intfc_type;
 
-  #define digital_operationSpeeds_SPEED_10p3125G_X1          72
+#define digital_operationSpeeds_SPEED_10p3125G_X1          72
 #define digital_operationSpeeds_SPEED_5G_X1_12p5           65
 #define digital_operationSpeeds_SPEED_2p5G_X1_12p5         64
 #define digital_operationSpeeds_SPEED_1000M_12p5           63
@@ -2132,6 +2132,31 @@ typedef struct qmod16_an_control_s {
 
 #define BCMI_QTC_XGXS_AN_X4_ABI_SP3_ENSr_SIZE 4
 
+/*******************************************************************************
+ * CHIP:  BCMI_TSCE16_XGXS
+ * REGISTER:  RXTXCOM_OSR_MODE_CTL
+ * BLOCKS:   RXTXCOM_CKRST_CTRL
+ * REGADDR:  0xd080
+ * DEVAD:    1
+ * DESC:     OSR_MODE_CONTROL
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     OSR_MODE_FRC_VAL oversample (OS) mode Decoding of this register is as follows.OSX1          4'd0OSX2          4'd1OSX3          4'd2OSX3P3        4'd3OSX4          4'd4OSX5          4'd5OSX7P5        4'd6OSX8          4'd7OSX8P25       4'd8OSX10         4'd9
+ *     OSR_MODE_FRC     oversample (OS) mode force. Setting this bit will allow the register value to be used for OS mode.Othersise, the pin input values are used for OS mode
+ */
+#define RXTXCOM_OSR_MODE_CTLr (0x0001d080 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define RXTXCOM_OSR_MODE_CTLr_SIZE 4
+
+#define RXTXCOM_OSR_MODE_CTLr_CLR(r) r = 0
+#define RXTXCOM_OSR_MODE_CTLr_SET(r,d) r = d
+#define RXTXCOM_OSR_MODE_CTLr_GET(r) r
+
+#define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRCf_GET(r) (((r) >> 15) & 0x1)
+#define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRCf_SET(r,f) r=((r & ~((uint32_t)0x1 << 15)) | ((((uint32_t)f) & 0x1) << 15)) | (1 << (16 + 15))
+#define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRC_VALf_GET(r) ((r) & 0xf)
+#define RXTXCOM_OSR_MODE_CTLr_OSR_MODE_FRC_VALf_SET(r,f) r=((r & ~((uint32_t)0xf)) | (((uint32_t)f) & 0xf)) | (0xf << 16)
 
 /*****************************************************************************************/
 /*                           merlin16                                                    */
@@ -2166,6 +2191,11 @@ typedef struct phymod_lane_map_s {
 #define BFMASK(n) ((1<<((n)))-1)
 #define MHZ_TO_VCO_RATE(mhz) ((uint8_t)((((uint16_t)(mhz) + 125) / 250) - 22))
 #define VCO_RATE_TO_MHZ(vco_rate) (((uint16_t)(vco_rate) + 22) * 250)
+
+#define SRDS_INTERNAL_COMPOSE_PLL_DIV(integer_, fraction_num_, fraction_num_width_)                   \
+    (((uint32_t)(integer_) & 0xFFFUL)                                                                 \
+     | ((((((uint32_t)(fraction_num_) << (32-(fraction_num_width_))) >> (32-20-1)) + 1) >> 1) << 12))
+
 
 /** Lane Config Variable Structure in Microcode */
 struct merlin16_uc_lane_config_field_st {
@@ -2246,7 +2276,37 @@ typedef enum {
     QMOD16_TX_LANE_TYPE_COUNT
 }tx_lane_disable_type_t;
 
+typedef enum {
+    QMOD16_PMA_OS_MODE_1        = 0   ,  /*!< Over sampling Mode 1         */
+    QMOD16_PMA_OS_MODE_2        = 1   ,  /*!< Over sampling Mode 2         */
+    QMOD16_PMA_OS_MODE_3        = 2   ,  /*!< Over sampling Mode 3         */
+    QMOD16_PMA_OS_MODE_3_3      = 3   ,  /*!< Over sampling Mode 3.3       */
+    QMOD16_PMA_OS_MODE_4        = 4   ,  /*!< Over sampling Mode 4         */
+    QMOD16_PMA_OS_MODE_5        = 5   ,  /*!< Over sampling Mode 5         */
+    QMOD16_PMA_OS_MODE_7_25     = 6   ,  /*!< Over sampling Mode 7.25      */
+    QMOD16_PMA_OS_MODE_8        = 7   ,  /*!< Over sampling Mode 8         */
+    QMOD16_PMA_OS_MODE_8_25     = 8   ,  /*!< Over sampling Mode 8.25      */
+    QMOD16_PMA_OS_MODE_10       = 9   ,  /*!< Over sampling Mode 10        */
+    QMOD16_PMA_OS_MODE_ILLEGAL  = 15    /*!< Over sampling Mode Illegal   */
+  } qmod16_os_mode_type;
 
+
+  typedef enum {
+    QMOD16_PLL_MODE_DIV_ZERO    = 0   ,  /*!< Illegal PLL Divider Number      */
+    QMOD16_PLL_MODE_DIV_40      = 2   ,  /*!< Multiply ref. clk by 40         */
+    QMOD16_PLL_MODE_DIV_42      = 3   ,  /*!< Multiply ref. clk by 42         */
+    QMOD16_PLL_MODE_DIV_48      = 4   ,  /*!< Multiply ref. clk by 48         */
+    QMOD16_PLL_MODE_DIV_52      = 6   ,  /*!< Multiply ref. clk by 52         */
+    QMOD16_PLL_MODE_DIV_54      = 7   ,  /*!< Multiply ref. clk by 54         */
+    QMOD16_PLL_MODE_DIV_60      = 8   ,  /*!< Multiply ref. clk by 60         */
+    QMOD16_PLL_MODE_DIV_64      = 9   ,  /*!< Multiply ref. clk by 64         */
+    QMOD16_PLL_MODE_DIV_66      = 10  ,  /*!< Multiply ref. clk by 66         */
+    QMOD16_PLL_MODE_DIV_70      = 12  ,  /*!< Multiply ref. clk by 70         */
+    QMOD16_PLL_MODE_DIV_80      = 13  ,  /*!< Multiply ref. clk by 80         */
+    QMOD16_PLL_MODE_DIV_92      = 14  ,  /*!< Multiply ref. clk by 92         */
+    QMOD16_PLL_MODE_DIV_ILLEGAL         /*!< Illegal (programmatic boundary) */
+  } qmod16_pll_mode_type;
+  
 enum merlin16_pll_refclk_enum {
     MERLIN16_PLL_REFCLK_UNKNOWN = 0, /* Refclk value to be determined by API. */
     MERLIN16_PLL_REFCLK_50MHZ          = 0x00100032UL, /* 50 MHz          */
