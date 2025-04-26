@@ -13965,6 +13965,83 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     _reg32_read(_bcmsw->dev, blk_no, GRMTUEr + index, &val);
     seq_printf(m, "    [GRMTUE]            MTU Check Error Frame: %d\n", val);    
 
+    //Ingress PIPE counters
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RUC_64r + index, &val);
+    seq_printf(m, "    [RUC_64]          Receive Unicast Counter: %d\n", val);    
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPC4_64r + index, &val);
+    seq_printf(m, "    [RIPC4_64] IPv4 L3 Unicast Packet Counter: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPC6_64r + index, &val);
+    seq_printf(m, "    [RIPC6_64] IPv6 L3 Unicast Packet Counter: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RPORTD_64r + index, &val);
+    seq_printf(m, "    [RPORTD_64]         PortInDiscard Counter: %d\n", val);   
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RPARITYDr + index, &val);
+    seq_printf(m, "    [RPARITYD]          PortInDiscard Counter: %d\n", val);      
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPD4_64r + index, &val);
+    seq_printf(m, "    [RIPD4_64] IPv4 L3 Discard Packet Counter: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPD6_64r + index, &val);
+    seq_printf(m, "    [RIPD6_64] IPv6 L3 Discard Packet Counter: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPHE4_64r + index, &val);
+    seq_printf(m, "    [RIPHE4_64]IPv4 L3 IP Header Error Packet: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, IMRP4_64r + index, &val);
+    seq_printf(m, "    [IMRP4_64]IPv4 L3 Routed Multicast Packet: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RIPHE6_64r + index, &val);
+    seq_printf(m, "    [RIPHE6_64]IPv6 L3 IP Header Error Packet: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, IMRP6_64r + index, &val);
+    seq_printf(m, "    [IMRP6_64]IPv6 L3 Routed Multicast Packet: %d\n", val);  
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, RTUNr + index, &val);
+    seq_printf(m, "    [RTUN]      Good Tunnel terminated Packet: %d\n", val);      
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ICTRL_64r + index, &val);
+    seq_printf(m, "    [ICTRL_64]    Receive HiGig (Control Op.): %d\n", val);      
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, IBCAST_64r + index, &val);
+    seq_printf(m, "    [IBCAST_64] Receive HiGig (Broadcast Op.): %d\n", val);      
+    
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, IIPMC_64r + index, &val);
+    seq_printf(m, "    [IIPMC_64]      Receive HiGig (IPMC Op.): %d\n", val);      
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_NIV_RX_FRAMES_ERROR_DROP_64r + index, &val);
+    seq_printf(m, "    [ING_NIV_RX_FRAMES_ERROR_DROP_64]       VNTAG/ETAG format errors: %d\n", val);    
+    
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_NIV_RX_FRAMES_FORWARDING_DROP_64r + index, &val);
+    seq_printf(m, "    [ING_NIV_RX_FRAMES_FORWARDING_DROP_64]  NIV/PE forwarding errors: %d\n", val);    
+    
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_NIV_RX_FRAMES_VLAN_TAGGED_64r + index, &val);
+    seq_printf(m, "    [ING_NIV_RX_FRAMES_VLAN_TAGGED_64]  VLAN tagged packets received: %d\n", val);    
+    
+    val = 0;
+    _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_ECN_COUNTER_64r + index, &val);
+    seq_printf(m, "    [ING_ECN_COUNTER_64]           ECN field matched on tunnel decap: %d\n", val);    
+    
     val = 0;
     seq_printf(m, "\nTX counters\n"); 
     _reg32_read(_bcmsw->dev, blk_no, GTPKTr + index, &val);
