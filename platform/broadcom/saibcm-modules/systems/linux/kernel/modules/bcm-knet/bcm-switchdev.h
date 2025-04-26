@@ -1647,7 +1647,7 @@ typedef struct phymod_polarity_s {
 #define MISCr_RSTB_TX_LANEf_GET(r) (((r) >> 1) & 0x1)
 #define MISCr_RSTB_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
 #define MISCr_ENABLE_TX_LANEf_GET(r) ((r) & 0x1)
-#define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
+#define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | ((SPDr_SPEED_SP0f_SET(uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*******************************************************************************
@@ -1670,6 +1670,42 @@ typedef struct phymod_polarity_s {
 #define SC_X4_CTLr_SW_SPEED_CHANGEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 8)) | ((((uint32_t)f) & 0x1) << 8)) | (1 << (16 + 8))
 #define SC_X4_CTLr_SW_SPEEDf_GET(r) ((r) & 0xff)
 #define SC_X4_CTLr_SW_SPEEDf_SET(r,f) r=((r & ~((uint32_t)0xff)) | (((uint32_t)f) & 0xff)) | (0xff << 16)
+
+
+/*******************************************************************************
+ * CHIP:  BCMI_QTC_XGXS
+ * REGISTER:  SC_X4_QSGMII_SPD
+ * BLOCKS:   SC_X4_CONTROL
+ * REGADDR:  0xc021
+ * DESC:     SW subport speed control
+ * RESETVAL: 0x0 (0)
+ * ACCESS:   R/W
+ * FIELDS:
+ *     SPEED_SP0        QSGMII or USXGMII Subport speed0   : 1G speed1   : 100M speed2   : 10M speed3   : QSGMII-Reserved , USXGMII - 2.5G speed
+ *     SPEED_SP1        QSGMII or USXGMII Subport speed0   : 1G speed1   : 100M speed2   : 10M speed3   : QSGMII-Reserved , USXGMII - 2.5G speed
+ *     SPEED_SP2        QSGMII or USXGMII Subport speed0   : 1G speed1   : 100M speed2   : 10M speed3   : QSGMII-Reserved , USXGMII - 2.5G speed
+ *     SPEED_SP3        QSGMII or USXGMII Subport speed0   : 1G speed1   : 100M speed2   : 10M speed3   : QSGMII-Reserved , USXGMII - 2.5G speed
+ */
+#define SC_X4_QSGMII_SPDr (0x0000c021 | PHYMOD_REG_ACC_TSC_IBLK)
+
+#define SC_X4_QSGMII_SPDr_SIZE 4
+
+
+#define SC_X4_QSGMII_SPDr_CLR(r) r = 0
+#define SC_X4_QSGMII_SPDr_SET(r,d) r = d
+#define SC_X4_QSGMII_SPDr_GET(r) r
+
+/*
+ * These macros can be used to access individual fields.
+ */
+#define SC_X4_QSGMII_SPDr_SPEED_SP3f_GET(r) (((r) >> 6) & 0x3)
+#define SC_X4_QSGMII_SPDr_SPEED_SP3f_SET(r,f) r=((r & ~((uint32_t)0x3 << 6)) | ((((uint32_t)f) & 0x3) << 6)) | (3 << (16 + 6))
+#define SC_X4_QSGMII_SPDr_SPEED_SP2f_GET(r) (((r) >> 4) & 0x3)
+#define SC_X4_QSGMII_SPDr_SPEED_SP2f_SET(r,f) r=((r & ~((uint32_t)0x3 << 4)) | ((((uint32_t)f) & 0x3) << 4)) | (3 << (16 + 4))
+#define SC_X4_QSGMII_SPDr_SPEED_SP1f_GET(r) (((r) >> 2) & 0x3)
+#define SC_X4_QSGMII_SPDr_SPEED_SP1f_SET(r,f) r=((r & ~((uint32_t)0x3 << 2)) | ((((uint32_t)f) & 0x3) << 2)) | (3 << (16 + 2))
+#define SC_X4_QSGMII_SPDr_SPEED_SP0f_GET(r) ((r) & 0x3)
+#define SC_X4_QSGMII_SPDr_SPEED_SP0f_SET(r,f) r=((r & ~((uint32_t)0x3)) | (((uint32_t)f) & 0x3)) | (0x3 << 16)
 
 
 typedef enum {

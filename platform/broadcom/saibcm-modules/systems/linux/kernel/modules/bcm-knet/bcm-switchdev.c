@@ -9598,9 +9598,78 @@ int qmod16_pmd_osmode_set(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, q
     return SOC_E_NONE;
 }
 
+
+int qmod16_set_qport_spd(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, int sub_port, qmod16_spd_intfc_type spd_intf)
+{
+    uint32_t reg_qsgmii_spd;
+    int speed_id = 0;
+
+    bcmsw, port, lane_mask, = 0;
+
+    if ((spd_intf == QMOD16_SPD_10_SGMII) || (spd_intf == QMOD16_SPD_10_X1_SGMII)) { speed_id = 2; }
+    if ((spd_intf == QMOD16_SPD_100_SGMII) || (spd_intf == QMOD16_SPD_100_X1_SGMII)) { speed_id = 1; }
+    if ((spd_intf == QMOD16_SPD_1000_SGMII) || (spd_intf == QMOD16_SPD_1000_X1_SGMII)) { speed_id = 0; }
+    if (spd_intf == QMOD16_SPD_2500_USXGMII) { speed_id = 3; }
+
+    switch(sub_port) {
+    case 0: SC_X4_QSGMII_SPDr_SPEED_SP0f_SET(reg_qsgmii_spd, speed_id);  break ;
+    case 1: SC_X4_QSGMII_SPDr_SPEED_SP1f_SET(reg_qsgmii_spd, speed_id);  break ;
+    case 2: SC_X4_QSGMII_SPDr_SPEED_SP2f_SET(reg_qsgmii_spd, speed_id);  break ;
+    case 3: SC_X4_QSGMII_SPDr_SPEED_SP3f_SET(reg_qsgmii_spd, speed_id);  break ;
+    default: break ;
+    }
+    //PHYMOD_IF_ERR_RETURN (MODIFY_SC_X4_QSGMII_SPDr( pc, reg_qsgmii_spd));
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask, SC_X4_QSGMII_SPDr,reg_qsgmii_spd);
+
+    return SOC_E_NONE;
+}
+
+
 int _qtce16_qsgmii_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_phy_inf_config_t* config)
 {
-    return 0;
+    qmod16_spd_intfc_type spd_intf = QMOD16_SPD_ILLEGAL;
+    qmod16_spd_intfc_type qmod16_spd_intf = QMOD16_SPD_ILLEGAL, base_spd_intf;
+    int      start_lane, lane_id, sub_port, num_lane;
+    uint32_t lane_mask;
+
+    lane_id = ((port -1)%16)/4;     
+    sub_port = (port -1)%4;
+    start_lane = lane_id;  
+    lane_mask  = (1 << start_lane);
+    num_lane = 1;
+
+    spd_intf = QMOD16_SPD_1000_SGMII; /* to prevent undefinded QMOD16_SPD_ILLEGAL accessing tables */
+
+    switch(config->data_rate) {
+    case 10:
+        spd_intf = QMOD16_SPD_10_SGMII;
+        break;
+    case 100:
+        spd_intf = QMOD16_SPD_100_SGMII;
+        break;
+    case 1000:
+        spd_intf = QMOD16_SPD_1000_SGMII;
+        break;
+    case 2500:
+        spd_intf = QMOD16_SPD_2500_USXGMII;
+        break;
+    default:
+        spd_intf = QMOD16_SPD_ILLEGAL;
+        break;
+    }
+    
+    qmod16_spd_intf = spd_intf;
+    base_spd_intf   = QMOD16_SPD_1000_SGMII;
+
+    /* All sub-port speed changes have to go through the base, not replicated speed */
+    qmod16_set_qport_spd(bcmsw, port, lane_mask, sub_port, base_spd_intf);
+    
+    if (qmod16_spd_intf != base_spd_intf) {
+        msleep(1);
+        qmod16_set_qport_spd(bcmsw, port, lane_mask, sub_port, qmod16_spd_intf);
+    }
+
+    return SOC_E_NONE;
 }
 
 int qtce16_phy_interface_config_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_phy_inf_config_t* config)
