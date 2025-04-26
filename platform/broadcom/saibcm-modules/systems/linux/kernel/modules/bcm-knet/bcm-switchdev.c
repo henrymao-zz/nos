@@ -9246,7 +9246,7 @@ int qmod16_trigger_speed_change(bcmsw_switch_t *bcmsw, int port, uint32_t lane_m
     SC_X4_CTLr_SW_SPEED_CHANGEf_SET(reg, 1);
     phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_SC_X4_CTLr, reg);
 
-    return PHYMOD_E_NONE;
+    return SOC_E_NONE;
 }
 
 int qmod16_set_spd_intf(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmod16_spd_intfc_type spd_intf, int no_trig)
@@ -9264,8 +9264,7 @@ int qmod16_set_spd_intf(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmo
     if (no_trig) {
         
     } else {
-        //TODO
-        //PHYMOD_IF_ERR_RETURN (qmod16_trigger_speed_change(pc));
+        qmod16_trigger_speed_change(bcmsw, port, lane_mask);
         /* removed check for the speed_change_done init*/
     }
     return SOC_E_NONE;
