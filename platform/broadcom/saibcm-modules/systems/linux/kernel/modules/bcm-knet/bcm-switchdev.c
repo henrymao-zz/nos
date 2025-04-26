@@ -9604,8 +9604,6 @@ int qmod16_set_qport_spd(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, in
     uint32_t reg_qsgmii_spd;
     int speed_id = 0;
 
-    bcmsw, port, lane_mask, = 0;
-
     if ((spd_intf == QMOD16_SPD_10_SGMII) || (spd_intf == QMOD16_SPD_10_X1_SGMII)) { speed_id = 2; }
     if ((spd_intf == QMOD16_SPD_100_SGMII) || (spd_intf == QMOD16_SPD_100_X1_SGMII)) { speed_id = 1; }
     if ((spd_intf == QMOD16_SPD_1000_SGMII) || (spd_intf == QMOD16_SPD_1000_X1_SGMII)) { speed_id = 0; }

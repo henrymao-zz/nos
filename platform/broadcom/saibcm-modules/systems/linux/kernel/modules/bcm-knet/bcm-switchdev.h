@@ -1647,7 +1647,7 @@ typedef struct phymod_polarity_s {
 #define MISCr_RSTB_TX_LANEf_GET(r) (((r) >> 1) & 0x1)
 #define MISCr_RSTB_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1 << 1)) | ((((uint32_t)f) & 0x1) << 1)) | (1 << (16 + 1))
 #define MISCr_ENABLE_TX_LANEf_GET(r) ((r) & 0x1)
-#define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | ((SPDr_SPEED_SP0f_SET(uint32_t)f) & 0x1)) | (0x1 << 16)
+#define MISCr_ENABLE_TX_LANEf_SET(r,f) r=((r & ~((uint32_t)0x1)) | (((uint32_t)f) & 0x1)) | (0x1 << 16)
 
 
 /*******************************************************************************
