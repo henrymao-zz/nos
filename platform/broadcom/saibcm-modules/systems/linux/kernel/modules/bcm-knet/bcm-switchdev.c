@@ -9232,6 +9232,22 @@ int qmod16_get_mapped_speed(qmod16_spd_intfc_type spd_intf, int *speed)
   return SOC_E_NONE;
 }
 
+int qmod16_trigger_speed_change(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask)
+{
+    uint32_t reg; 
+  
+    /* write 0 to the speed change */
+    reg = 0;
+    phymod_tsc_iblk_read(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_SC_X4_CTLr, &reg);
+    SC_X4_CTLr_SW_SPEED_CHANGEf_SET(reg, 0);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_SC_X4_CTLr, reg);
+
+    /* write 1 to the speed change. No need to read again before write*/
+    SC_X4_CTLr_SW_SPEED_CHANGEf_SET(reg, 1);
+    phymod_tsc_iblk_write(bcmsw, port, lane_mask,  BCMI_QTC_XGXS_SC_X4_CTLr, reg);
+
+    return PHYMOD_E_NONE;
+}
 
 int qmod16_set_spd_intf(bcmsw_switch_t *bcmsw, int port, uint32_t lane_mask, qmod16_spd_intfc_type spd_intf, int no_trig)
 {
