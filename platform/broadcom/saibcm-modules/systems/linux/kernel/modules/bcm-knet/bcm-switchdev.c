@@ -4580,17 +4580,103 @@ static int phy_bcm542xx_dev_init(bcmsw_switch_t *bcmsw, int port)
     phy_id =  p_port->dev_desc.phy_id_orig;
 
     /* system side QSGMII AutoNeg mode */
-    //if ( soc_property_port_get(unit, port, spn_PHY_SGMII_AUTONEG, TRUE) ) {
-    //    PHY_BCM542XX_SYS_SIDE_AUTONEG_SET(pc);
-    //} else {
-    //    PHY_BCM542XX_SYS_SIDE_AUTONEG_CLR(pc);
-    //}
-    p_port->dev_desc.flags &= ~PHY_BCM542XX_SYS_SIDE_AUTONEG;
+    p_port->dev_desc.flags |= PHY_BCM542XX_SYS_SIDE_AUTONEG;
 
     /* Configure LED mode and turn on jumbo frame support */
-    //TODO
     //_phy_bcm54280_init(unit, port);
+    /*
+     * PHY Extended Control Reg., RDB.0x000, Legacy Reg.0x10
+     * bit[0] GMII_FIFO_JUMBO_LSB
+     * bit[5] LED_TRAFFIC_EN, Enable LED traffic mode
+     */
+    //PHY_BCM542XX_RDB_MO(_unit, _pc, 0x000, _val, _mask)
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                                0x000,
+                                PHY_BCM542XX_MII_ECR_FIFO_ELAST_0
+                                | PHY_BCM542XX_MII_ECR_EN_LEDT,
+                                PHY_BCM542XX_MII_ECR_FIFO_ELAST_0
+                                | PHY_BCM542XX_MII_ECR_EN_LEDT);
 
+    /*
+     * Pattern Generator Status Reg., RDB.0x006, Legacy EXP_Reg.0x46
+     * bit[14] GMII_FIFO_JUMBO_MSB
+     * bit[15] GMII_FIFO_JUMBO_MSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                                0x006,
+                                PHY_BCM542XX_PATT_GEN_STAT_FIFO_ELAST_1
+                                | PHY_BCM542XX_PATT_GEN_STAT_GMII_FIFO_JUMBO_MSB,
+                                PHY_BCM542XX_PATT_GEN_STAT_FIFO_ELAST_1
+                                | PHY_BCM542XX_PATT_GEN_STAT_GMII_FIFO_JUMBO_MSB);
+
+    /* Disable USGMII mode. Clear RDB.0x0810 Bit[6]  */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                               PHY_BCM542XX_DISABLE_USGMII,
+                               0, PHY_BCM542XX_DISABLE_USGMII_6U_BIT_SEL);
+    /*
+     * Misc 1000-X Control 2 Reg., RDB.0x236, Legacy Reg.0x1C shadow 0x16
+     * bit[0] PRIMARY_SERDES_JUMBO_MSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                                0x236,
+                               PHY_BCM542XX_SERDES_CTRL_JUMBO_MSB,
+                               PHY_BCM542XX_SERDES_CTRL_JUMBO_MSB);
+
+    /*
+     * Auto Detect SGMII MC Reg., RDB.0x238
+     * bit[2] GMII_FIFO_JUMBO_LSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                                PHY_BCM542XX_AUTO_DETECT_SGMII_MC_REG_OFFSET,
+                                PHY_BCM542XX_AUTO_DETECT_GMII_FIFO_JUMBO_LSB,
+                                PHY_BCM542XX_AUTO_DETECT_GMII_FIFO_JUMBO_LSB);
+
+    /*
+     * Auxiliary 1000-X Contro Reg., RDB.0x23B, Legacy Reg.0x1C shadow 0x1B
+     * bit[1] PRIMARY_SERDES_JUMBO_LSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                                0x23B,
+                                PHY_BCM542XX_SERDES_CTRL_JUMBO_LSB,
+                                PHY_BCM542XX_SERDES_CTRL_JUMBO_LSB);
+
+    /*
+     * Secondary Serdes MISC 1000-X Control 2 Reg. RDB.0xB16
+     * bit[0] SECONDARY_SERDES_JUMBO_MSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            PHY_BCM542XX_2ND_SERDES_MISC_1000x_CTL_2_REG_OFFSET,
+                            PHY_BCM542XX_2ND_SERDES_MISC_1000x_CTL_2_2ND_SERDES_MSB,
+                            PHY_BCM542XX_2ND_SERDES_MISC_1000x_CTL_2_2ND_SERDES_MSB);
+
+    /*
+     * Secondary Serdes Auxiliary 1000-X Control Reg. RDB.0xB1B
+     * bit[1] SECONDARY_SERDES_JUMBO_LSB
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            PHY_BCM542XX_2ND_SERDES_AUX_1000x_CTL_REG_OFFSET,
+                            PHY_BCM542XX_2ND_SERDES_AUX_1000x_CTL_2ND_SERDES_LSB,
+                            PHY_BCM542XX_2ND_SERDES_AUX_1000x_CTL_2ND_SERDES_LSB);
+
+    /*
+     * Copper Auxiliary Control Reg., RDB.0x028, Legacy Reg.0x18 shadow 0
+     * bit[14] EXT_PKT_LEN(100BT_JUMBO), 100BASE-Tx jumbo frames support
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            0x028,
+                            PHY_BCM542XX_MII_AUX_CTRL_REG_EXT_PKT_LEN,
+                            PHY_BCM542XX_MII_AUX_CTRL_REG_EXT_PKT_LEN);
+
+    /*
+     * Secondary Serdes 1000-X Error Counter Setting Reg. RDB.0xB10
+     * bit[0] EXT_PKT_LEN
+     */
+    phy_bcm542xx_rdb_reg_modify(phy_id,
+                            PHY_BCM542XX_2ND_SERDES_1000x_ERR_CNT_SET_REG_OFFSET,
+                            PHY_BCM542XX_2ND_SERDES_1000x_ERR_CNT_SET_EXT_PKT_LEN,
+                            PHY_BCM542XX_2ND_SERDES_1000x_ERR_CNT_SET_EXT_PKT_LEN);
+
+    // end of _phy_bcm54280_init()
     /* In case of QSGMII devices, there is a LPI pass through mode
        which has to be enabled for native EEE to work. In case of VNG,
        it is already set by default. To enable it:
