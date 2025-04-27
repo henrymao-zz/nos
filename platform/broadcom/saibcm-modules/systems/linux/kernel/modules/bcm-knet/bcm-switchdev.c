@@ -12539,6 +12539,9 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     val = 1;
     _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 0, 1, &val, SOCF_LE);
 
+    //EN_IFILTERf start 68, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 68, 1, &val, 0);
 
     tpid = 0; //_bcm_fb2_outer_tpid_default_get(unit);
 
@@ -12557,7 +12560,7 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //VLAN_ATTRS_1m 9 bytes, 3 words
     _soc_mem_read(bcmsw->dev, VLAN_ATTRS_1m+vd->vlan_tag, 
-          SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLANm_BYTES), (uint32_t *)&vlan_attrs); 
+          SCHAN_BLK_IPIPE, BYTES2WORDS(VLAN_ATTRS_1m_BYTES), (uint32_t *)&vlan_attrs); 
 
     //STGf start 2, len 9
     val = 1; //default STG
