@@ -13414,6 +13414,14 @@ _proc_mem_show(struct seq_file *m, void *v)
                    egr_port_entry->port_type, entry[0], entry[1]);
             }   
             break;
+        case EGR_ENABLEm:
+            for (index =0; index < 72; index ++) {
+                _soc_mem_read(_bcmsw->dev, EGR_PORTm+index, 
+                           SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), 
+                           entry);
+                seq_printf(m, "%2d  0x%08x\n", index, entry[0]);
+            }   
+            break;        
         case EGR_LPORT_PROFILEm:
             for (index =0; index < 12; index ++) {
                 _soc_mem_read(_bcmsw->dev, EGR_LPORT_PROFILEm+index, 
@@ -14665,6 +14673,16 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
+    // /proc/switchdev/mem/EGR_ENABLE
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_ENABLEm;
+    entry = proc_create_data("EGR_ENABLE", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
     // /proc/switchdev/mem/EGR_LPORT_PROFILE
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
@@ -14880,6 +14898,7 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("EGR_VLAN_VFI_UNTAG", proc_mem_base);
     remove_proc_entry("L2_USER_ENTRY", proc_mem_base);
     remove_proc_entry("EGR_PORT", proc_mem_base);
+    remove_proc_entry("EGR_ENABLE", proc_mem_base);
     remove_proc_entry("EGR_GPP_ATTRIBUTES", proc_mem_base);
     remove_proc_entry("EGR_LPORT_PROFILE", proc_mem_base);    
     remove_proc_entry("LPORT_TAB", proc_mem_base);
