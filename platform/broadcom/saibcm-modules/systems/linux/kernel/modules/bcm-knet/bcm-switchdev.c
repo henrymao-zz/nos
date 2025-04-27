@@ -2177,7 +2177,7 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 }
 
 int
-_bcm_egr_lport_profile_entry_add(ibcmsw_switch_t *bcmsw, int port,  uint32 *index)
+_bcm_egr_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port,  uint32 *index)
 {
     int lport_profile_id = 3;
     uint32_t val;
@@ -2203,6 +2203,7 @@ _bcm_egr_lport_profile_entry_add(ibcmsw_switch_t *bcmsw, int port,  uint32 *inde
     val = 1;
     _mem_field_set((uint32_t *)&entry, EGR_LPORT_PROFILEm_BYTES, 35, 1, &val, 0);
 
+    _soc_mem_write(bcmsw->dev, EGR_LPORT_PROFILEm+lport_profile_id, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_LPORT_PROFILEm_BYTES), (uint32_t *)&entry); 
 
     return 0;
 }
@@ -2210,7 +2211,7 @@ _bcm_egr_lport_profile_entry_add(ibcmsw_switch_t *bcmsw, int port,  uint32 *inde
 
 
 int
-_bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32 *index)
+_bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32_t *index, int vid)
 {
     int lport_profile_id = 3;
     uint32_t val;
@@ -2310,9 +2311,20 @@ _bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32 *index)
     //V6IPMC_ENABLEf start 394, len 1
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 394, 1, &val, 0);
+
     //V4IPMC_ENABLEf start 395, len 1
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 395, 1, &val, 0);
+
+    //V6L3_ENABLEf start 396, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 396, 1, &val, 0);
+
+    //V4L3_ENABLEf start 397, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 397, 1, &val, 0);
+
+
     //MPLS_ENABLEf start 400, len 1
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 400, 1, &val, 0);
@@ -2417,9 +2429,13 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
     _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
 
     //LPORT_PROFILE_IDXf start 3, len 10
-    _bcm_lport_profile_entry_add(bcmsw, &lport_profile_id);
+    _bcm_lport_profile_entry_add(bcmsw,port, &lport_profile_id, vid);
     val = lport_profile_id;
     _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 3, 10, &val, SOCF_LE);     
+
+    //PARSE_CONTEXT_ID_0f start 59, len 16 enable  = 6
+    val = 6;
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 59, 16, &val, SOCF_LE);
 
     _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)entry); 
 
@@ -10912,141 +10928,6 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
 /*****************************************************************************************/
 /*                             port info                                                 */
 /*****************************************************************************************/
-STATIC int
-_bcm_td3_port_table_read(bcmsw_switch_t *bcmsw, bcm_port_t port,
-                         bcm_port_cfg_t *port_cfg)
-{
-#define LPORT_FIELDS    22
-    int discard_tag = 0;            /* Discard tagged packets bit.   */
-    int discard_untag = 0;          /* Discard untagged packets bit. */
-    uint32 values[LPORT_FIELDS];
-    int i, value = 0;
-
-    soc_field_t fields[LPORT_FIELDS] = {
-        PORT_DIS_TAGf,
-        PORT_DIS_UNTAGf,
-        DROP_BPDUf,
-        MIRRORf,
-        PORT_VIDf,
-        IVIDf,
-        TAG_ACTION_PROFILE_PTRf,
-        V4L3_ENABLEf,
-        V6L3_ENABLEf,
-        OPRIf,
-        OCFIf,
-        IPRIf,
-        ICFIf,
-        TRUST_DSCP_V4f,
-        TRUST_DSCP_V6f,
-        EN_IFILTERf,
-        PORT_BRIDGEf,
-        URPF_MODEf,
-        URPF_DEFAULTROUTECHECKf,
-        PVLAN_ENABLEf,
-        CML_FLAGS_NEWf,
-        CML_FLAGS_MOVEf
-    };
-
-#define _GET_FIELD_VALUE(_f, _v)                \
-    do {                                        \
-        for (i = 0; i < LPORT_FIELDS; i++) {    \
-            if (fields[i] == (_f)) {            \
-                (_v) = values[i];               \
-                break;                          \
-            }                                   \
-        }                                       \
-    } while (0)
-
-    BCM_IF_ERROR_RETURN(
-        bcm_esw_port_lport_fields_get(
-            unit, port, LPORT_PROFILE_LPORT_TAB, LPORT_FIELDS,
-            fields, values));
-
-    /* Get drop all tagged packets flag. */
-    _GET_FIELD_VALUE(PORT_DIS_TAGf, discard_tag);
-
-    /* Get drop all untagged packets flag. */
-    _GET_FIELD_VALUE(PORT_DIS_UNTAGf, discard_untag);
-
-    if (discard_tag && discard_untag) {
-        port_cfg->pc_disc = BCM_PORT_DISCARD_ALL;
-    } else if (discard_tag) {
-        port_cfg->pc_disc = BCM_PORT_DISCARD_TAG;
-    } else if (discard_untag) {
-        port_cfg->pc_disc = BCM_PORT_DISCARD_UNTAG;
-    } else {
-        port_cfg->pc_disc = BCM_PORT_DISCARD_NONE;
-    }
-
-    /* Get drop bpdu's on ingress flag. */
-    _GET_FIELD_VALUE(DROP_BPDUf, port_cfg->pc_bpdu_disable);
-
-    /* Get enable mirroring flag. */
-    _GET_FIELD_VALUE(MIRRORf, value);
-    if (soc_feature(unit, soc_feature_mirror_flexible)) {
-        /* Multi-bit field */
-        port_cfg->pc_mirror_ing = value;
-    } else if (!soc_feature(unit, soc_feature_no_mirror) && value) {
-        port_cfg->pc_mirror_ing |= BCM_MIRROR_MTP_ONE;
-    }
-
-    /* Get port default vlan id (pvid). */
-    _GET_FIELD_VALUE(PORT_VIDf, port_cfg->pc_vlan);
-
-    _GET_FIELD_VALUE(IVIDf, port_cfg->pc_ivlan);
-    _GET_FIELD_VALUE(TAG_ACTION_PROFILE_PTRf, port_cfg->pc_vlan_action);
-
-    /* Get L3 IPv4 forwarding enable bit. */
-    _GET_FIELD_VALUE(V4L3_ENABLEf, value);
-    if (value) {
-        port_cfg->pc_l3_flags |= BCM_PORT_L3_V4_ENABLE;
-    }
-
-    /* Get L3 IPv6 forwarding enable bit. */
-    _GET_FIELD_VALUE(V6L3_ENABLEf, value);
-    if (value) {
-        port_cfg->pc_l3_flags |= BCM_PORT_L3_V6_ENABLE;
-    }
-
-    /* Get port default priority.*/
-    _GET_FIELD_VALUE(OPRIf, port_cfg->pc_new_opri);
-    _GET_FIELD_VALUE(OCFIf, port_cfg->pc_new_ocfi);
-    _GET_FIELD_VALUE(IPRIf, port_cfg->pc_new_ipri);
-    _GET_FIELD_VALUE(ICFIf, port_cfg->pc_new_icfi);
-
-    /* Get ingress port is trusted port, trust incoming IPv4 DSCP bit. */
-    _GET_FIELD_VALUE(TRUST_DSCP_V4f, port_cfg->pc_dse_mode);
-
-    /* Get ingress port is trusted port, trust incoming IPv6 DSCP bit. */
-    _GET_FIELD_VALUE(TRUST_DSCP_V6f, port_cfg->pc_dse_mode_ipv6);
-    port_cfg->pc_dscp_prio = port_cfg->pc_dse_mode;
-    port_cfg->pc_dscp = -1;
-
-    /* Get enable ingress filtering bit. */
-    _GET_FIELD_VALUE(EN_IFILTERf, port_cfg->pc_en_ifilter);
-
-    /* Get enable L2 bridging on the incoming port. */
-    _GET_FIELD_VALUE(PORT_BRIDGEf, port_cfg->pc_bridge_port);
-
-    /* Unicast rpf mode. */
-    _GET_FIELD_VALUE(URPF_MODEf, port_cfg->pc_urpf_mode);
-
-    /* Unicast rpf default gateway check. */
-    _GET_FIELD_VALUE(URPF_DEFAULTROUTECHECKf, port_cfg->pc_urpf_def_gw_check);
-
-    /* private VALN enable */
-    _GET_FIELD_VALUE(PVLAN_ENABLEf, port_cfg->pc_pvlan_enable);
-
-    /* If port cpu managed learning is not frozen read it from port. */
-    if (!soc_feature(unit, soc_feature_no_learning) &&
-        soc_l2x_frozen_cml_get(unit, port, &port_cfg->pc_cml,
-                               &port_cfg->pc_cml_move) < 0) {
-        _GET_FIELD_VALUE(CML_FLAGS_NEWf, port_cfg->pc_cml);
-        _GET_FIELD_VALUE(CML_FLAGS_MOVEf, port_cfg->pc_cml_move);
-    }
-
-    return (BCM_E_NONE);
-}
 
 int
 bcm_td3_port_cfg_get(bcmsw_switch_t *bcmsw, int port, bcm_port_cfg_t *port_cfg)
@@ -11056,10 +10937,10 @@ bcm_td3_port_cfg_get(bcmsw_switch_t *bcmsw, int port, bcm_port_cfg_t *port_cfg)
         return (SOC_E_PARAM);
     }
 
-    sal_memset(port_cfg, 0, sizeof(bcm_port_cfg_t));
+    memset(port_cfg, 0, sizeof(bcm_port_cfg_t));
 
     /* Read port table entry. */
-    _bcm_td3_port_table_read(bcmsw, port, port_cfg);
+    //_bcm_td3_port_table_read(bcmsw, port, port_cfg);
 
     return(SOC_E_NONE);
 }
@@ -11102,7 +10983,7 @@ bcm_esw_port_learn_get(bcmsw_switch_t *bcmsw, int port, uint32 *flags)
             *flags = BCM_PORT_LEARN_CPU | BCM_PORT_LEARN_FWD;
             break;
         default:
-            return BCM_E_INTERNAL;
+            return SOC_E_INTERNAL;
     }
     return SOC_E_NONE;
 }

@@ -5880,9 +5880,68 @@ typedef struct bcm_port_info_s {
     uint32_t fault; 
 } bcm_port_info_t;
 
+
+
+typedef struct bcm_port_cfg_s {
+    int		pc_frame_type;
+    int		pc_ether_type;
+
+    int		pc_stp_state;	  /* spanning tree state of port */
+    int		pc_cpu;		  /* CPU learning */
+    int		pc_disc;	  /* discard state */
+    int		pc_bpdu_disable;  /* Where is this in Draco? */
+    int		pc_trunk;	  /* trunking on for this port */
+    int		pc_tgid;	  /* trunk group id */
+    int		pc_mirror_ing;	  /* mirror on ingress */
+    int		pc_ptype;	  /* port type */
+    int		pc_jumbo;
+    int		pc_cml;		  /* CML bits */
+    int     pc_cml_move;  /* CML move bits on supporting devices */
+
+    bcm_pbmp_t	pc_pbm;		  /* port bitmaps for port based vlan */
+    bcm_pbmp_t	pc_ut_pbm;
+    bcm_vlan_t	pc_vlan;	  /* port based vlan tag */
+    bcm_vlan_t	pc_ivlan;	  /* port based inner-tag vlan tag */
+    int         pc_vlan_action;   /* port based vlan action profile pointer */
+
+    int		pc_l3_flags;	  /* L3 flags. */
+
+    int	        pc_new_opri;      /* new outer packet priority */
+    int	        pc_new_ocfi;      /* new outer cfi */
+    int	        pc_new_ipri;      /* new inner packet priority */
+    int	        pc_new_icfi;      /* new inner cfi */
+
+    int		pc_dse_mode;	  /* DSCP mapping (off, or on/mode) */
+    int		pc_dse_mode_ipv6;	  /* DSCP mapping for IPv6 (off, or on/mode) */
+    int		pc_dscp;	  /* Resultant diffserv code point */
+
+    int         pc_en_ifilter;    /* Enable Ingress Filtering */
+    int         pc_pfm;           /* In the port table for Draco */
+    int         pc_dscp_prio;     /* For Draco15 & Tucana */
+    int         pc_bridge_port;   /* FB/ER, allows egress=ingress */
+    int         pc_nni_port;      /* FB, indicates non-customer port */
+
+    int     pc_urpf_mode;         /* Unicast rpf lookup mode.      */
+    int     pc_urpf_def_gw_check; /* Unicast rpf check default gw. */
+    int     pc_pvlan_enable;      /* Private (force) vlan enable */
+
+} bcm_port_cfg_t;
+
 /*****************************************************************************************/
 /*                              L2                                                       */
 /*****************************************************************************************/
+/*
+ * Values for CML (control what happens on Source Lookup Failure packet).
+ * The last two are for Draco only; on StrataSwitch CML is only 2 bits.
+ */
+
+#define	PVP_CML_SWITCH		0	/*   Learn ARL, !CPU,  Forward */
+#define	PVP_CML_CPU		1	/*  !Learn ARL,  CPU, !Forward */
+#define	PVP_CML_FORWARD		2	/*  !Learn ARL, !CPU,  Forward */
+#define	PVP_CML_DROP		3	/*  !Learn ARL, !CPU, !Forward */
+#define PVP_CML_CPU_SWITCH	4	/*   Learn ARL,  CPU,  Forward */
+#define PVP_CML_CPU_FORWARD 	5	/*  !Learn ARL,  CPU,  Forward */
+
 /*
 soc_field_info_t soc_L2X_BCM56370_A0m_fields[] = {
     { ACTION_PROFILE_PTRf, 5, 103, SOCF_LE | SOCF_GLOBAL },
