@@ -2176,54 +2176,55 @@ static void bcmsw_soc_info_init(soc_info_t *si)
 #endif                
 }
 
-
-
-
-#define BCMSW_VLAN_DEFAULT    1
-
-//bcm_esw_port_init bcm_td3_port_cfg_init
-static int 
-_port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
+int
+_bcm_egr_lport_profile_entry_add(ibcmsw_switch_t *bcmsw, int port,  uint32 *index)
 {
-    soc_info_t *si = bcmsw->si;
-    uint32 port_type;
-    int cpu_hg_index = -1;    
+    int lport_profile_id = 3;
     uint32_t val;
+    egr_lport_entry_t  entry;
 
-    egr_port_entry_t   egr_port_entry;  
-    lport_tab_entry_t  lport_entry;
-    ing_device_port_entry_t ing_device_port_entry;
-
-    if (si->port_type[port] == BCMSW_PORT_TYPE_CMIC) {
-        cpu_hg_index = si->cpu_hg_index;
-        port_type = 0; /* Same as Ethernet port */
-        //egr_port_type = 1; /* CPU port needs to be HG port in EGR_PORT table */
-    } else if (si->port_type[port] == BCMSW_PORT_TYPE_LBPORT) {
-        port_type = 2;
-        //egr_port_type = 2;
-    } else {
-        port_type = 0;
+    if (port != 0) {
+        *index = lport_profile_id;
+        return 0;
     }
 
-    /* EGR_LPORT_TABLE config init */
-    //read EGR_PORTm
-    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t *)&egr_port_entry); 
+    printk("_bcm_egr_lport_profile_entry_add. \n");
+    _soc_mem_read(bcmsw->dev, EGR_LPORT_PROFILEm+lport_profile_id, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_LPORT_PROFILEm_BYTES), (uint32_t *)&entry); 
 
-    egr_port_entry.port_type = port_type;
+    //EN_EFILTERf start 8, len 2
+    val = 1;
+    _mem_field_set((uint32_t *)&entry, EGR_LPORT_PROFILEm_BYTES, 8, 2, &val, SOCF_LE);
 
-    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t*)&egr_port_entry); 
+    //EM_SRCMOD_CHANGEf start 10, len 1 
+    val = 1;
+    _mem_field_set((uint32_t *)&entry, EGR_LPORT_PROFILEm_BYTES, 10, 1, &val, 0);
+    
+    //EFP_FILTER_ENABLEf start 35, len 1
+    val = 1;
+    _mem_field_set((uint32_t *)&entry, EGR_LPORT_PROFILEm_BYTES, 35, 1, &val, 0);
 
-    /* initialize the Cancun tag profile entry setup
-     * for VT_MISS_UNTAG action. Should be done in Cancun
-     */
-    //soc_cancun_cmh_mem_set(unit, 
 
-    /* Copy EGR port information to CPU Higig port if applied */
-    //Not applicable for BCM56370
+    return 0;
+}
 
+
+
+int
+_bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32 *index)
+{
+    int lport_profile_id = 3;
+    uint32_t val;
+    lport_tab_entry_t  lport_entry;
+
+    if (port != 0) {
+        *index = lport_profile_id;
+        return 0;
+    }
+
+    printk("_bcm_lport_profile_entry_add. \n");
     /* PORT_TABLE config init */
     //read LPORT_TABm , check _bcm_td3_port_tab_conv for memory
-    _soc_mem_read(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
+    _soc_mem_read(bcmsw->dev, LPORT_TABm+lport_profile_id, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
 
     //PORT_VIDf start 3, len 12
     val = vid;
@@ -2299,75 +2300,157 @@ _port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
 
 
     //IPMC_DO_VLANf start 234, len 1 
-    //TODO
-    //val =1;
-    //_mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 234, 1, &val, 0);
+    val =1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 234, 1, &val, 0);
     
     //FILTER_ENABLEf start 251, len 1
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 251, 1, &val, 0);
 
     //V6IPMC_ENABLEf start 394, len 1
-    //TODO
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 394, 1, &val, 0);
     //V4IPMC_ENABLEf start 395, len 1
-    //TODO
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 395, 1, &val, 0);
     //MPLS_ENABLEf start 400, len 1
-
+    val = 1;
+    _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 400, 1, &val, 0);
 
     //TAG_ACTION_PROFILE_PTRf start 113, len 7
     val = 1;
     _mem_field_set((uint32_t *)&lport_entry, LPORT_TABm_BYTES, 113, 7, &val, SOCF_LE); 
 
-    _soc_mem_write(bcmsw->dev, LPORT_TABm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
+    _soc_mem_write(bcmsw->dev, LPORT_TABm+lport_profile_id, SCHAN_BLK_IPIPE, BYTES2WORDS(LPORT_TABm_BYTES), (uint32_t *)&lport_entry); 
+    
+    *index = lport_profile_id;
+    return 0;
+}
 
+#define BCMSW_VLAN_DEFAULT    1
+
+//bcm_esw_port_init bcm_td3_port_cfg_init
+static int 
+_port_cfg_init(bcmsw_switch_t *bcmsw, int port, int vid)
+{
+    soc_info_t *si = bcmsw->si;
+    uint32_t port_type;
+    uint32_t egr_port_type = 0;
+    int cpu_hg_index = -1;    
+    uint32_t val;
+    int lport_profile_id, egr_profile_id;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
+
+    if (si->port_type[port] == BCMSW_PORT_TYPE_CMIC) {
+        cpu_hg_index = si->cpu_hg_index;
+        port_type = 0; /* Same as Ethernet port */
+        egr_port_type = 1; /* CPU port needs to be HG port in EGR_PORT table */
+    } else if (si->port_type[port] == BCMSW_PORT_TYPE_LBPORT) {
+        port_type = 2;
+        egr_port_type = 2;
+    } else {
+        port_type = 0;
+    }
+
+    /* EGR_LPORT_TABLE init */
+    //create EGR_LPORT_PROFILE entry
+    _bcm_egr_lport_profile_entry_add(bcmsw, port, &egr_profile_id);
+
+    //read EGR_PORTm
+    memset(entry, 0, sizeof(entry));
+    _soc_mem_read(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t *)entry); 
+
+    //PORT_TYPEf start 26, len 3
+    val = egr_port_type;
+    _mem_field_set((uint32_t *)entry, EGR_PORTm_BYTES, 26, 3, &val, SOCF_LE); 
+
+    //EGR_LPORT_PROFILE_IDXf start 0, len 10
+    val = egr_profile_id;
+    _mem_field_set((uint32_t *)entry, EGR_PORTm_BYTES, 0, 10, &val, SOCF_LE); 
+
+    //EGR_PORT_CTRL_IDf start 10, len 8 - disable loopback
+    val = 1;
+    _mem_field_set((uint32_t *)entry, EGR_PORTm_BYTES, 10, 8, &val, SOCF_LE); 
+
+    //QOS_CTRL_IDf start 29, len 4 - BCM_PORT_QOS_LAYERED_RESOLUTION
+    val = 3;
+    _mem_field_set((uint32_t *)entry, EGR_PORTm_BYTES, 29, 4, &val, SOCF_LE); 
+
+    _soc_mem_write(bcmsw->dev, EGR_PORTm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_PORTm_BYTES), (uint32_t*)entry); 
+
+
+    //VT_PORT_GROUP_IDf -> EGR_GPP_ATTRIBUTESm
+    memset(entry, 0, sizeof(entry));
+
+    _soc_mem_read(bcmsw->dev, EGR_GPP_ATTRIBUTESm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_GPP_ATTRIBUTESm_BYTES), (uint32_t *)entry); 
+    //VT_PORT_GROUP_IDf start 75, len 8
+    val = port;
+    _mem_field_set((uint32_t *)entry, EGR_GPP_ATTRIBUTESm_BYTES, 75, 8, &val, SOCF_LE); 
+    _soc_mem_write(bcmsw->dev, EGR_GPP_ATTRIBUTESm+port, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_GPP_ATTRIBUTESm_BYTES), (uint32_t*)entry); 
+
+
+    /* initialize the Cancun tag profile entry setup
+     * for VT_MISS_UNTAG action. Should be done in Cancun
+     */
+    //soc_cancun_cmh_mem_set(unit, 
+
+    /* Copy EGR port information to CPU Higig port if applied */
+    //Not applicable for BCM56370
+
+ 
 
     //Update ING_DEVICE_PORTm
-    memset(&ing_device_port_entry, 0, sizeof(ing_device_port_entry));
+    memset(entry, 0, sizeof(entry));
 
     //SRC_SYS_PORT_ID start 117, len 7
     val = port;
-    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE); 
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE); 
 
     //SYS_PORT_IDf start 13, len 7
-    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE); 
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE); 
 
     //PP_PORT_NUM start 20, len 7
-    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE); 
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE); 
 
     //PORT_TYPE start 0, len 3
     val = port_type;
-    _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE); 
 
-    _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
+    //LPORT_PROFILE_IDXf start 3, len 10
+    _bcm_lport_profile_entry_add(bcmsw, &lport_profile_id);
+    val = lport_profile_id;
+    _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 3, 10, &val, SOCF_LE);     
+
+    _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+port, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)entry); 
 
 
     if (cpu_hg_index != -1) {
         //soc_cancun_cmh_mem_set(unit, PORT_TABm, cpu_hg_index, PORT_TYPEf, 1);
         /* TD3TBD should be covered by CMH, will remove it after CMH
          * is ready. */
-         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
+         _soc_mem_read(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)entry); 
 
         //PORT_TYPEf start 0, len 3
         val = 1;
-        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE);  
+        _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 0, 3, &val, SOCF_LE);  
 
         //SRC_SYS_PORT_IDf start 117, len 7
         val = port;
-        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE);
+        _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 117, 7, &val, SOCF_LE);
         
         //SYS_PORT_IDf start 13, len 7
         val = port;
-        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE);
+        _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 13, 7, &val, SOCF_LE);
 
         //PP_PORT_NUMf start 20, len 7
         val = port;
-        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE);
+        _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 20, 7, &val, SOCF_LE);
 
         //DUAL_MODID_ENABLEf start 114, len 1
         val = 0;
-        _mem_field_set((uint32_t *)&ing_device_port_entry, ING_DEVICE_PORTm_BYTES, 114, 1, &val, 0);
+        _mem_field_set((uint32_t *)entry, ING_DEVICE_PORTm_BYTES, 114, 1, &val, 0);
 
-        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)&ing_device_port_entry); 
+        _soc_mem_write(bcmsw->dev, ING_DEVICE_PORTm+cpu_hg_index, SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEVICE_PORTm_BYTES), (uint32_t *)entry); 
     }    
 
     return 0;
@@ -10829,6 +10912,202 @@ bcm_esw_stg_init(bcmsw_switch_t *bcmsw)
 /*****************************************************************************************/
 /*                             port info                                                 */
 /*****************************************************************************************/
+STATIC int
+_bcm_td3_port_table_read(bcmsw_switch_t *bcmsw, bcm_port_t port,
+                         bcm_port_cfg_t *port_cfg)
+{
+#define LPORT_FIELDS    22
+    int discard_tag = 0;            /* Discard tagged packets bit.   */
+    int discard_untag = 0;          /* Discard untagged packets bit. */
+    uint32 values[LPORT_FIELDS];
+    int i, value = 0;
+
+    soc_field_t fields[LPORT_FIELDS] = {
+        PORT_DIS_TAGf,
+        PORT_DIS_UNTAGf,
+        DROP_BPDUf,
+        MIRRORf,
+        PORT_VIDf,
+        IVIDf,
+        TAG_ACTION_PROFILE_PTRf,
+        V4L3_ENABLEf,
+        V6L3_ENABLEf,
+        OPRIf,
+        OCFIf,
+        IPRIf,
+        ICFIf,
+        TRUST_DSCP_V4f,
+        TRUST_DSCP_V6f,
+        EN_IFILTERf,
+        PORT_BRIDGEf,
+        URPF_MODEf,
+        URPF_DEFAULTROUTECHECKf,
+        PVLAN_ENABLEf,
+        CML_FLAGS_NEWf,
+        CML_FLAGS_MOVEf
+    };
+
+#define _GET_FIELD_VALUE(_f, _v)                \
+    do {                                        \
+        for (i = 0; i < LPORT_FIELDS; i++) {    \
+            if (fields[i] == (_f)) {            \
+                (_v) = values[i];               \
+                break;                          \
+            }                                   \
+        }                                       \
+    } while (0)
+
+    BCM_IF_ERROR_RETURN(
+        bcm_esw_port_lport_fields_get(
+            unit, port, LPORT_PROFILE_LPORT_TAB, LPORT_FIELDS,
+            fields, values));
+
+    /* Get drop all tagged packets flag. */
+    _GET_FIELD_VALUE(PORT_DIS_TAGf, discard_tag);
+
+    /* Get drop all untagged packets flag. */
+    _GET_FIELD_VALUE(PORT_DIS_UNTAGf, discard_untag);
+
+    if (discard_tag && discard_untag) {
+        port_cfg->pc_disc = BCM_PORT_DISCARD_ALL;
+    } else if (discard_tag) {
+        port_cfg->pc_disc = BCM_PORT_DISCARD_TAG;
+    } else if (discard_untag) {
+        port_cfg->pc_disc = BCM_PORT_DISCARD_UNTAG;
+    } else {
+        port_cfg->pc_disc = BCM_PORT_DISCARD_NONE;
+    }
+
+    /* Get drop bpdu's on ingress flag. */
+    _GET_FIELD_VALUE(DROP_BPDUf, port_cfg->pc_bpdu_disable);
+
+    /* Get enable mirroring flag. */
+    _GET_FIELD_VALUE(MIRRORf, value);
+    if (soc_feature(unit, soc_feature_mirror_flexible)) {
+        /* Multi-bit field */
+        port_cfg->pc_mirror_ing = value;
+    } else if (!soc_feature(unit, soc_feature_no_mirror) && value) {
+        port_cfg->pc_mirror_ing |= BCM_MIRROR_MTP_ONE;
+    }
+
+    /* Get port default vlan id (pvid). */
+    _GET_FIELD_VALUE(PORT_VIDf, port_cfg->pc_vlan);
+
+    _GET_FIELD_VALUE(IVIDf, port_cfg->pc_ivlan);
+    _GET_FIELD_VALUE(TAG_ACTION_PROFILE_PTRf, port_cfg->pc_vlan_action);
+
+    /* Get L3 IPv4 forwarding enable bit. */
+    _GET_FIELD_VALUE(V4L3_ENABLEf, value);
+    if (value) {
+        port_cfg->pc_l3_flags |= BCM_PORT_L3_V4_ENABLE;
+    }
+
+    /* Get L3 IPv6 forwarding enable bit. */
+    _GET_FIELD_VALUE(V6L3_ENABLEf, value);
+    if (value) {
+        port_cfg->pc_l3_flags |= BCM_PORT_L3_V6_ENABLE;
+    }
+
+    /* Get port default priority.*/
+    _GET_FIELD_VALUE(OPRIf, port_cfg->pc_new_opri);
+    _GET_FIELD_VALUE(OCFIf, port_cfg->pc_new_ocfi);
+    _GET_FIELD_VALUE(IPRIf, port_cfg->pc_new_ipri);
+    _GET_FIELD_VALUE(ICFIf, port_cfg->pc_new_icfi);
+
+    /* Get ingress port is trusted port, trust incoming IPv4 DSCP bit. */
+    _GET_FIELD_VALUE(TRUST_DSCP_V4f, port_cfg->pc_dse_mode);
+
+    /* Get ingress port is trusted port, trust incoming IPv6 DSCP bit. */
+    _GET_FIELD_VALUE(TRUST_DSCP_V6f, port_cfg->pc_dse_mode_ipv6);
+    port_cfg->pc_dscp_prio = port_cfg->pc_dse_mode;
+    port_cfg->pc_dscp = -1;
+
+    /* Get enable ingress filtering bit. */
+    _GET_FIELD_VALUE(EN_IFILTERf, port_cfg->pc_en_ifilter);
+
+    /* Get enable L2 bridging on the incoming port. */
+    _GET_FIELD_VALUE(PORT_BRIDGEf, port_cfg->pc_bridge_port);
+
+    /* Unicast rpf mode. */
+    _GET_FIELD_VALUE(URPF_MODEf, port_cfg->pc_urpf_mode);
+
+    /* Unicast rpf default gateway check. */
+    _GET_FIELD_VALUE(URPF_DEFAULTROUTECHECKf, port_cfg->pc_urpf_def_gw_check);
+
+    /* private VALN enable */
+    _GET_FIELD_VALUE(PVLAN_ENABLEf, port_cfg->pc_pvlan_enable);
+
+    /* If port cpu managed learning is not frozen read it from port. */
+    if (!soc_feature(unit, soc_feature_no_learning) &&
+        soc_l2x_frozen_cml_get(unit, port, &port_cfg->pc_cml,
+                               &port_cfg->pc_cml_move) < 0) {
+        _GET_FIELD_VALUE(CML_FLAGS_NEWf, port_cfg->pc_cml);
+        _GET_FIELD_VALUE(CML_FLAGS_MOVEf, port_cfg->pc_cml_move);
+    }
+
+    return (BCM_E_NONE);
+}
+
+int
+bcm_td3_port_cfg_get(bcmsw_switch_t *bcmsw, int port, bcm_port_cfg_t *port_cfg)
+{
+    /* Input parameters check.*/
+    if (NULL == port_cfg) {
+        return (SOC_E_PARAM);
+    }
+
+    sal_memset(port_cfg, 0, sizeof(bcm_port_cfg_t));
+
+    /* Read port table entry. */
+    _bcm_td3_port_table_read(bcmsw, port, port_cfg);
+
+    return(SOC_E_NONE);
+}
+
+int
+bcm_esw_port_learn_get(bcmsw_switch_t *bcmsw, int port, uint32 *flags)
+{
+    bcm_port_cfg_t      pcfg;
+    int                 rv;
+
+    if (flags == NULL) {
+        return SOC_E_PARAM;
+    }
+
+
+    //rv = mbcm_driver[unit]->mbcm_port_cfg_get(unit, port, &pcfg); 
+    // -> bcm_td3_port_cfg_get
+
+    switch (pcfg.pc_cml) {
+        case PVP_CML_SWITCH:
+            *flags = (BCM_PORT_LEARN_ARL |
+                      BCM_PORT_LEARN_FWD |
+                      (pcfg.pc_cpu ? BCM_PORT_LEARN_CPU : 0));
+            break;
+        case PVP_CML_CPU:
+            *flags = BCM_PORT_LEARN_CPU;
+            break;
+        case PVP_CML_FORWARD:
+            *flags = BCM_PORT_LEARN_FWD;
+            break;
+        case PVP_CML_DROP:
+            *flags = 0;
+            break;
+        case PVP_CML_CPU_SWITCH:
+            *flags = (BCM_PORT_LEARN_ARL |
+                      BCM_PORT_LEARN_CPU |
+                      BCM_PORT_LEARN_FWD);
+            break;
+        case PVP_CML_CPU_FORWARD:
+            *flags = BCM_PORT_LEARN_CPU | BCM_PORT_LEARN_FWD;
+            break;
+        default:
+            return BCM_E_INTERNAL;
+    }
+    return SOC_E_NONE;
+}
+
+
 /*
  * Function:
  *      bcm_port_selective_get
@@ -13248,7 +13527,24 @@ _proc_mem_show(struct seq_file *m, void *v)
                    egr_port_entry->port_type, entry[0], entry[1]);
             }   
             break;
-
+        case EGR_LPORT_PROFILEm:
+            for (index =0; index < 12; index ++) {
+                _soc_mem_read(_bcmsw->dev, EGR_LPORT_PROFILEm+index, 
+                               SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_LPORT_PROFILEm_BYTES), 
+                               entry);
+                seq_printf(m, "[%2d]  0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
+                               entry[0], entry[1], entry[2], entry[3], entry[4]);
+            }   
+            break;
+        case EGR_GPP_ATTRIBUTESm:
+            for (index =0; index < 72; index ++) {
+                _soc_mem_read(_bcmsw->dev, EGR_GPP_ATTRIBUTESm+index, 
+                               SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_GPP_ATTRIBUTESm_BYTES), 
+                               entry);
+                seq_printf(m, "[%2d]  0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", index, 
+                               entry[0], entry[1], entry[2], entry[3], entry[4]);
+            }   
+            break;            
         case LPORT_TABm:
             for (index =0; index < 72; index ++) {
                 _soc_mem_read(_bcmsw->dev, LPORT_TABm+index, 
@@ -14024,7 +14320,7 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     
     val = 0;
     _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, IIPMC_64r + index, &val);
-    seq_printf(m, "    [IIPMC_64]      Receive HiGig (IPMC Op.): %d\n", val);      
+    seq_printf(m, "    [IIPMC_64]       Receive HiGig (IPMC Op.): %d\n", val);      
 
     val = 0;
     _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_NIV_RX_FRAMES_ERROR_DROP_64r + index, &val);
@@ -14041,7 +14337,7 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     val = 0;
     _reg32_read(_bcmsw->dev, SCHAN_BLK_IPIPE, ING_ECN_COUNTER_64r + index, &val);
     seq_printf(m, "    [ING_ECN_COUNTER_64]           ECN field matched on tunnel decap: %d\n", val);    
-    
+
     val = 0;
     seq_printf(m, "\nTX counters\n"); 
     _reg32_read(_bcmsw->dev, blk_no, GTPKTr + index, &val);
@@ -14162,6 +14458,8 @@ _proc_port_counters_show(struct seq_file *m, void *v)
      val = 0;
     _reg32_read(_bcmsw->dev, blk_no, GTNCLr + index, &val);
     seq_printf(m, "    [GTNCL]             Total Collision Frame: %d\n", val);  
+
+
 
     seq_printf(m, "\n");
     return 0;
@@ -14480,6 +14778,26 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
 
+    // /proc/switchdev/mem/EGR_LPORT_PROFILE
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_LPORT_PROFILEm;
+    entry = proc_create_data("EGR_LPORT_PROFILE", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
+    // /proc/switchdev/mem/EGR_GPP_ATTRIBUTES
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_GPP_ATTRIBUTESm;
+    entry = proc_create_data("EGR_GPP_ATTRIBUTES", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
     // /proc/switchdev/mem/LPORT_TAB
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
@@ -14675,6 +14993,8 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("EGR_VLAN_VFI_UNTAG", proc_mem_base);
     remove_proc_entry("L2_USER_ENTRY", proc_mem_base);
     remove_proc_entry("EGR_PORT", proc_mem_base);
+    remove_proc_entry("EGR_GPP_ATTRIBUTES", proc_mem_base);
+    remove_proc_entry("EGR_LPORT_PROFILE", proc_mem_base);    
     remove_proc_entry("LPORT_TAB", proc_mem_base);
     remove_proc_entry("ING_DEVICE_PORT", proc_mem_base);
     remove_proc_entry("MAC_BLOCK", proc_mem_base);

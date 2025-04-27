@@ -1152,21 +1152,21 @@ soc_field_info_t soc_EGR_PORT_BCM56870_A0m_fields[] = {
 //MEM_ENTRY(egr_port_entry_t, 5); 
 typedef struct egr_port_entry_s {
 #if defined(LE_HOST)
-    uint64 r0:27,            /* Reserved               */
-           edit_ctrl_id:4,   /* EDIT_CTRL_IDf          */
-           qos_ctrl_id:4,    /* QOS_CTRL_IDf           */
-           port_type:3,      /* PORT_TYPEf             */
-           my_modid:8,       /* MY_MODIDf              */
-           ctrl_id:8,        /* EGR_PORT_CTRL_IDf      */
-           profile_idx:10;   /* EGR_LPORT_PROFILE_IDXf */
+    uint64 r0:27,              /* Reserved               */
+           edit_ctrl_id:4,     /* EDIT_CTRL_IDf          */
+           qos_ctrl_id:4,      /* QOS_CTRL_IDf           */
+           port_type:3,        /* PORT_TYPEf             */
+           my_modid:8,         /* MY_MODIDf              */
+           egr_port_ctrl_id:8, /* EGR_PORT_CTRL_IDf      */
+           profile_idx:10;     /* EGR_LPORT_PROFILE_IDXf */
 #else
-    uint64 profile_idx:10,   /* EGR_LPORT_PROFILE_IDXf */
-           ctrl_id:8,        /* EGR_PORT_CTRL_IDf      */
-           my_modid:8,       /* MY_MODIDf              */
-           port_type:3,      /* PORT_TYPEf             */
-           qos_ctrl_id:4,    /* QOS_CTRL_IDf           */
-           edit_ctrl_id:4,   /* EDIT_CTRL_IDf          */
-           r0:27;            /* Reserved               */
+    uint64 profile_idx:10,     /* EGR_LPORT_PROFILE_IDXf */
+           egr_port_ctrl_id:8, /* EGR_PORT_CTRL_IDf      */
+           my_modid:8,         /* MY_MODIDf              */
+           port_type:3,        /* PORT_TYPEf             */
+           qos_ctrl_id:4,      /* QOS_CTRL_IDf           */
+           edit_ctrl_id:4,     /* EDIT_CTRL_IDf          */
+           r0:27;              /* Reserved               */
 #endif
 }egr_port_entry_t;
 
@@ -1179,6 +1179,106 @@ typedef struct egr_port_entry_s {
 
 #define EGR_PORTm              0x06100000
 #define EGR_PORTm_BYTES        5
+
+/*
+#if defined(BCM_56370_A0)
+soc_field_info_t soc_EGR_LPORT_PROFILE_BCM56370_A0m_fields[] = {
+    { CLASS_IDf, 12, 125, SOCF_LE | SOCF_GLOBAL },
+    { CNTAG_DELETE_PRI_BITMAPf, 8, 45, SOCF_LE | SOCF_GLOBAL },
+    { DROPf, 1, 7, 0 | SOCF_GLOBAL },
+    { DUAL_MODID_ENABLEf, 1, 34, 0 | SOCF_GLOBAL },
+    { ECCf, 8, 146, SOCF_LE | SOCF_GLOBAL },
+    { ECCPf, 9, 146, SOCF_LE | SOCF_GLOBAL },
+    { EDIT_CTRL_IDf, 4, 19, SOCF_LE | SOCF_GLOBAL },
+    { EFP_FILTER_ENABLEf, 1, 35, 0 | SOCF_GLOBAL },
+    { EGR_DOT1P_PROFILE_INDEXf, 4, 3, SOCF_LE | SOCF_GLOBAL },
+    { EGR_PORT_GROUP_IDf, 8, 11, SOCF_LE | SOCF_GLOBAL },
+    { EGR_QOS_PROFILE_INDEXf, 7, 36, SOCF_LE | SOCF_GLOBAL },
+    { EH_EXT_HDR_ENABLEf, 1, 19, 0 | SOCF_GLOBAL },
+    { EH_EXT_HDR_LEARN_OVERRIDEf, 1, 54, 0 | SOCF_GLOBAL },
+    { EM_SRCMOD_CHANGEf, 1, 10, 0 | SOCF_GLOBAL },
+    { EN_EFILTERf, 2, 8, SOCF_LE | SOCF_GLOBAL },
+    { FCOE_FC_CRC_RECOMPUTEf, 1, 116, 0 | SOCF_GLOBAL },
+    { FCOE_VFT_PRI_MAP_PROFILEf, 2, 117, SOCF_LE | SOCF_GLOBAL },
+    { FCOE_VT_LOOKUP_1f, 3, 119, SOCF_LE | SOCF_GLOBAL },
+    { FCOE_VT_LOOKUP_2f, 3, 122, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_BASE_COUNTER_IDXf, 11, 97, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_OFFSET_MODEf, 2, 114, SOCF_LE | SOCF_GLOBAL },
+    { FLEX_CTR_POOL_NUMBERf, 2, 111, SOCF_LE | SOCF_GLOBAL },
+    { IFG_PROFILE_INDEXf, 3, 31, SOCF_LE | SOCF_GLOBAL },
+    { MIRROR_ENCAP_ENABLEf, 1, 92, 0 | SOCF_GLOBAL },
+    { MIRROR_ENCAP_INDEXf, 4, 93, SOCF_LE | SOCF_GLOBAL },
+    { NIV_PRUNE_ENABLEf, 1, 57, 0 | SOCF_GLOBAL },
+    { NIV_UPLINK_PORTf, 1, 70, 0 | SOCF_GLOBAL },
+    { NIV_VIF_IDf, 12, 58, SOCF_LE | SOCF_GLOBAL },
+    { PARITYf, 1, 154, 0 | SOCF_GLOBAL },
+    { RESERVED_1f, 3, 0, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_43f, 1, 43, SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_53_53f, 1, 53, SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_91_71f, 21, 71, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RESERVED_ECOf, 9, 137, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_BASE_COUNTER_IDXf, 3, 108, SOCF_LE | SOCF_GLOBAL },
+    { RSVD_FLEX_CTR_POOL_NUMBERf, 1, 113, 0 | SOCF_GLOBAL },
+    { VNTAG_ACTIONS_IF_PRESENTf, 2, 55, SOCF_LE | SOCF_GLOBAL },
+    { VT_SYS_PORT_OVERRIDEf, 1, 44, 0 | SOCF_GLOBAL },
+    { VXLT_CTRL_IDf, 8, 23, SOCF_LE | SOCF_GLOBAL }
+};
+#endif
+ */
+
+// Memory: EGR_LPORT_PROFILE.epipe0 address 0x0e440000
+// Flags: valid cachable(on)
+// Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+// Entries: 1024 with indices 0-1023 (0x0-0x3ff), each 20 bytes 5 words
+// Entry mask: 0xfffffff8 0xffdff7ff 0xf000007f -1 0x07fc01ff
+// Description: LPORT Profile table for packets destined to subtending ports
+#define EGR_LPORT_PROFILEm         0x0e440000
+#define EGR_LPORT_PROFILEm_BYTES   20
+
+typedef struct {
+    uint32_t entry_data[5];
+}egr_lport_entry_t;
+
+/*
+  #if defined(BCM_56370_A0)
+soc_field_info_t soc_EGR_GPP_ATTRIBUTES_BCM56370_A0m_fields[] = {
+    { DOT1P_SRC_REMARK_MODEf, 2, 85, SOCF_LE | SOCF_GLOBAL },
+    { DSCP_SRC_REMARK_MODEf, 2, 83, SOCF_LE | SOCF_GLOBAL },
+    { ECCf, 8, 121, SOCF_LE | SOCF_GLOBAL },
+    { ECCPf, 9, 121, SOCF_LE | SOCF_GLOBAL },
+    { EDIT_CTRL_IDf, 4, 103, SOCF_LE | SOCF_GLOBAL },
+    { EGR_LPORT_PROFILE_IDXf, 10, 26, SOCF_LE | SOCF_GLOBAL },
+    { ETAG_DOT1P_MAPPING_PTRf, 4, 62, SOCF_LE | SOCF_GLOBAL },
+    { ETAG_PCP_DE_SOURCEf, 2, 60, SOCF_LE | SOCF_GLOBAL },
+    { FCOE_FC_CRC_ACTIONf, 2, 66, SOCF_LE | SOCF_GLOBAL },
+    { FCOE_FC_EOF_IGNOREf, 1, 68, 0 | SOCF_GLOBAL },
+    { FLOW_SELECT_CTRL_IDf, 8, 95, SOCF_LE | SOCF_GLOBAL },
+    { IPMC_SRC_PRUNE_DISABLEf, 1, 25, 0 | SOCF_GLOBAL },
+    { ISTRUNKf, 1, 24, 0 | SOCF_GLOBAL },
+    { NIV_NAMESPACEf, 12, 48, SOCF_LE | SOCF_GLOBAL },
+    { PARITYf, 1, 129, 0 | SOCF_GLOBAL },
+    { PKT_ECN_TO_EXP_MAPPING_ENABLEf, 1, 111, 0 | SOCF_GLOBAL },
+    { PKT_ECN_TO_EXP_MAPPING_PTRf, 2, 109, SOCF_LE | SOCF_GLOBAL },
+    { QOS_CTRL_IDf, 2, 107, SOCF_LE | SOCF_GLOBAL },
+    { RESERVED_1f, 9, 112, SOCF_LE|SOCF_RES | SOCF_GLOBAL },
+    { SRC_IS_NIV_UPLINK_PORTf, 1, 12, 0 | SOCF_GLOBAL },
+    { SRC_NIV_VIF_IDf, 12, 0, SOCF_LE | SOCF_GLOBAL },
+    { SUBPORT_TAGf, 12, 36, SOCF_LE | SOCF_GLOBAL },
+    { TGIDf, 11, 13, SOCF_LE | SOCF_GLOBAL },
+    { VLAN_MEMBERSHIP_PROFILEf, 6, 69, SOCF_LE | SOCF_GLOBAL },
+    { VT_PORT_GROUP_IDf, 8, 75, SOCF_LE | SOCF_GLOBAL },
+    { VXLT_CTRL_IDf, 8, 87, SOCF_LE | SOCF_GLOBAL }
+};
+#endif
+ */
+//Memory: EGR_GPP_ATTRIBUTES.epipe0 address 0x0e3c0000
+//Flags: valid cachable(on)
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 8192 with indices 0-8191 (0x0-0x1fff), each 17 bytes 5 words
+//Entry mask: -1 -1 -1 0xfe00ffff 0x00000003
+//Description: Per-GPP attributes table, PORT view.
+#define EGR_GPP_ATTRIBUTESm          0x0e3c0000
+#define EGR_GPP_ATTRIBUTESm_BYTES    17
 
 /*
 
@@ -5946,6 +6046,7 @@ soc_field_info_t soc_L2X_BCM56370_A0m_fields[] = {
 #define RUC_64r                               0x84000e00   // Receive Unicast Counter
 #define RPORTD_64r                            0x84000f00   // PortInDiscard Counter.
 #define RPARITYDr                             0x84001000   // PortInDiscard Counter.
+#define RDBGC0r                               0x84001100   // Ingress drop
 
 #define ICTRL_64r                             0x84001700   // Receive HiGig Packet with Control Opcode Counter.
 #define IBCAST_64r                            0x84001800   // Receive HiGig Packet with Broadcast Opcode Counter.
