@@ -13130,9 +13130,13 @@ _l2_show(struct seq_file *m, void *v)
     //bcm_l2_traverse(unit, _l2addr_dump, NULL);-> bcm_esw_l2_traverse() -> _bcm_esw_l2_traverse()
     //->_bcm_esw_l2_traverse_mem(unit, L2Xm, trav_st);
     //TODO, how to traverse the entire table
-    for (index = 0; index < 1024; index++) {
+    for (index = 0; index < 0x7fff; index++) {
         //seq_printf(m, "base 0x%x\n", p_data->reg_addr);
         //BASE_VALIDf start 0, len 3
+        if(index%1024 == 1023) {
+           msleep(1);
+        }
+
         _soc_mem_read(_bcmsw->dev, L2Xm+index, 
             SCHAN_BLK_IPIPE, BYTES2WORDS(L2Xm_BYTES), 
             entry);      
@@ -13147,7 +13151,8 @@ _l2_show(struct seq_file *m, void *v)
         _bcm_esw_l2_from_l2x(&l2addr, entry);
 
         //_l2addr_dump()
-        seq_printf(m, "mac=%02x:%02x:%02x:%02x:%02x:%02x vlan=%d GPORT=0x%x",
+        seq_printf(m, "[%d] mac=%02x:%02x:%02x:%02x:%02x:%02x vlan=%d GPORT=0x%x",
+                   index,
                    l2addr.mac[0], l2addr.mac[1], l2addr.mac[2],
                    l2addr.mac[3], l2addr.mac[4], l2addr.mac[5],
                    l2addr.vid, l2addr.port);
@@ -13222,6 +13227,7 @@ _l2_show(struct seq_file *m, void *v)
         }
    
         seq_printf(m, "\n");
+
     }
     return 0;
 }
