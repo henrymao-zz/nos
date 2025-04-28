@@ -3380,12 +3380,12 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
  
     _reg32_read(bcmsw->dev, blk_no, TAG_0r+index, &reg_val);
     //soc_reg_field_set(unit, TAG_0r, &reg_val, CONFIG_OUTER_TPID_ENABLEf, 0);
-    reg_val &= 0x1FFFF;
+    reg_val &= 0x18100;
     _reg32_write(bcmsw->dev, blk_no, TAG_0r+index, reg_val);
  
     _reg32_read(bcmsw->dev, blk_no, TAG_1r+index, &reg_val);
-    reg_val &= 0x1FFFF;
-    _reg32_write(bcmsw->dev, blk_no, TAG_0r+index, reg_val);
+    reg_val &= 0x8100;
+    _reg32_write(bcmsw->dev, blk_no, TAG_1r+index, reg_val);
  
     _reg32_read(bcmsw->dev, blk_no, UMAC_TIMESTAMP_ADJUSTr+index, &reg_val);
     reg_val &= ~(1<<10); //AUTO_ADJUSTf bit 10
@@ -3409,7 +3409,8 @@ int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags)
     reg_val |= 0xc0000001;
     _reg32_write(bcmsw->dev, blk_no, MAC_PFC_REFRESH_CTRLr+index, reg_val);
  
-    _reg32_write(bcmsw->dev, blk_no, TX_IPG_LENGTHr+index, 23);
+    reg_val = 0xc;
+    _reg32_write(bcmsw->dev, blk_no, TX_IPG_LENGTHr+index, reg_val);
  
     /* Set egress enable */
     
