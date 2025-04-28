@@ -2340,16 +2340,11 @@ _bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32_t *index, i
 }
 
 //_bcm_vlan_vfi_membership_profile_entry_op
-int _bcm_ing_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, int vid, vlan_data_t *vd)
+int _bcm_ing_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, vlan_data_t *vd)
 {
     int ing_vfi_profile_id = 2;
     uint32_t val;
     uint32_t entry[SOC_MAX_MEM_WORDS];
-
-    if (port != 0) {
-        *index = ing_vfi_profile_id;
-        return 0;
-    }
 
     printk("_bcm_ing_vlan_vfi_membership_profile_entry_add. \n");
 
@@ -2370,28 +2365,23 @@ int _bcm_ing_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32
 }
 
 //_bcm_vlan_vfi_membership_profile_entry_op
-int _bcm_egr_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, int vid,  vlan_data_t *vd)
+int _bcm_egr_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, vlan_data_t *vd)
 {
     int egr_vfi_profile_id = 2;
     uint32_t val;
     uint32_t entry[SOC_MAX_MEM_WORDS];
 
-    if (port != 0) {
-        *index = egr_vfi_profile_id;
-        return 0;
-    }
-
     printk("_bcm_egr_vlan_vfi_membership_profile_entry_add. \n");
 
     memset(&entry, 0, sizeof(entry));
-    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+egr_vfi_profile_id, 
                   SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
                   (uint32_t *)&entry); 
 
     //ING_PORT_BITMAPf start 0, len 72
     _mem_field_set((uint32_t *)&entry, EGR_VLAN_VFI_MEMBERSHIPm_BYTES, 0, 72, &(vd->port_bitmap), SOCF_LE);              
 
-    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+egr_vfi_profile_id, 
         SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
         (uint32_t *)&entry);         
 
@@ -13543,15 +13533,13 @@ _proc_mem_show(struct seq_file *m, void *v)
                 _soc_mem_read(_bcmsw->dev, ING_VLAN_VFI_MEMBERSHIPm+index, 
                           SCHAN_BLK_IPIPE, BYTES2WORDS(ING_VLAN_VFI_MEMBERSHIPm_BYTES), 
                           entry);
-                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
                       index,
                       entry[0],
                       entry[1],
                       entry[2],
                       entry[3],
-                      entry[4],
-                      entry[5],
-                      entry[6]);
+                      entry[4]);
            }   
             break;
 
@@ -13560,15 +13548,13 @@ _proc_mem_show(struct seq_file *m, void *v)
                 _soc_mem_read(_bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+index, 
                           SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
                           entry);
-                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
                       index,
                       entry[0],
                       entry[1],
                       entry[2],
                       entry[3],
-                      entry[4],
-                      entry[5],
-                      entry[6]);
+                      entry[4]);
             }           
             break;
 
@@ -14005,7 +13991,7 @@ _vlan_tab_show(struct seq_file *m, void *v)
             seq_printf(m, "                    EN_IFILTER %d\n", val);
 
             //L3_IIFf start 318, len 13
-            _mem_field_get((uint32_t *)&vt, VLAN_ATTRS_1m_BYTES, 318, 13, &val, 0);
+            _mem_field_get((uint32_t *)&vt, VLAN_ATTRS_1m_BYTES, 318, 13, &val, SOCF_LE);
             seq_printf(m, "                        L3_IIF %d\n", val);
             
         }

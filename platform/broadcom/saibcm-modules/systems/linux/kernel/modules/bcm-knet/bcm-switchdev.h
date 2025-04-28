@@ -1346,9 +1346,25 @@ typedef struct {
         } while (0);    \
 
 
-#define ING_DEST_PORT_ENABLEm     0x84500000
+//Memory: ING_DEST_PORT_ENABLE.ipipe0 address 0x84500000
+//Flags: valid cachable(off)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 1 with indices 0-0 (0x0-0x0), each 9 bytes 3 words
+//Entry mask: -1 -1 0x000000ff
+//Description: A last-stage master switch which can block packets from any traffic source including SOBMH. Works for all egress ports (including CPU port)
+//  PORT_BITMAP<71:0>
+#define ING_DEST_PORT_ENABLEm            0x84500000
+#define ING_DEST_PORT_ENABLEm_BYTES      9
 
-#define EPC_LINK_BMAPm            0x84240000
+//Memory: EPC_LINK_BMAP.ipipe0 address 0x84240000
+//Flags: valid cachable(off)
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 1 with indices 0-0 (0x0-0x0), each 9 bytes 3 words
+//Entry mask: -1 -1 0x000000ff
+//Description: Link status register under software control.
+//  PORT_BITMAP<71:0>
+#define EPC_LINK_BMAPm                  0x84240000
+#define EPC_LINK_BMAPm_BYTES            9
 
 //Memory: EGR_ENABLE.epipe0 alias EDB_ENABLE address 0x28200000
 //Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
