@@ -227,7 +227,7 @@ typedef int soc_mem_t;
 	((_SHR_PBMP_WIDTH + _SHR_PBMP_WORD_WIDTH-1) / _SHR_PBMP_WORD_WIDTH)
 
 typedef struct _shr_pbmp {
-        uint32	pbits[_SHR_PBMP_WORD_MAX];
+    uint32_t	pbits[_SHR_PBMP_WORD_MAX];
 } bcm_pbmp_t;
     
 typedef int bcm_port_t;
@@ -4563,6 +4563,39 @@ typedef struct {
     uint32_t entry_data[14];
 }vlan_tab_entry_t;
  
+
+//Memory: EGR_VLAN_VFI_MEMBERSHIP.epipe0 address 0x092c0000
+//Flags: valid cachable(on)
+//Blocks:  epipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 19 bytes 5 words
+//Entry mask: -1 0x023fffff 0xfffffec0 -1 0x003fe1ff
+//Description: Egress VLAN VFI member table
+//  VP_GROUP_BITMAP<136:73>
+//  RESERVED_1<72>
+//  RESERVED_0<140:137>
+//  PORT_BITMAP<71:0>
+//  PARITY0<149>
+//  ECCP0<149:141>
+//  ECC0<148:141>
+#define EGR_VLAN_VFI_MEMBERSHIPm         0x092c0000
+#define EGR_VLAN_VFI_MEMBERSHIPm_BYTES   19
+  
+
+//Memory: ING_VLAN_VFI_MEMBERSHIP.ipipe0 address 0x64100000
+//Flags: valid cachable(on) bist-epic
+//Blocks:  ipipe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 4096 with indices 0-4095 (0x0-0xfff), each 26 bytes 7 words
+//Entry mask: -1 -1 -1 -1 -1 -1 0x00001fff
+//Description: Ingress VLAN VFI member table.
+//  VP_GROUP_BITMAP<195:132>
+//  RESERVED<131:72>
+//  PARITY<204>
+//  ING_PORT_BITMAP<71:0>
+//  ECC_DATA<195:0>
+//  ECCP<204:196>
+//  ECC<203:196>
+#define ING_VLAN_VFI_MEMBERSHIPm         0x64100000
+#define ING_VLAN_VFI_MEMBERSHIPm_BYTES   26
 
 /*****************************************************************************************/
 /*                            Spanning Tree (STG)                                        */

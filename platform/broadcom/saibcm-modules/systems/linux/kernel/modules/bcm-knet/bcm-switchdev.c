@@ -2339,6 +2339,67 @@ _bcm_lport_profile_entry_add(bcmsw_switch_t *bcmsw, int port, uint32_t *index, i
     return 0;
 }
 
+//_bcm_vlan_vfi_membership_profile_entry_op
+int _bcm_ing_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, int vid, vlan_data_t *vd)
+{
+    int ing_vfi_profile_id = 2;
+    uint32_t val;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
+
+    if (port != 0) {
+        *index = ing_vfi_profile_id;
+        return 0;
+    }
+
+    printk("_bcm_ing_vlan_vfi_membership_profile_entry_add. \n");
+
+    memset(&entry, 0, sizeof(entry));
+    _soc_mem_read(bcmsw->dev, ING_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+                  SCHAN_BLK_IPIPE, BYTES2WORDS(ING_VLAN_VFI_MEMBERSHIPm_BYTES), 
+                  (uint32_t *)&entry); 
+
+    //ING_PORT_BITMAPf start 0, len 72
+    _mem_field_set((uint32_t *)&entry, ING_VLAN_VFI_MEMBERSHIPm_BYTES, 0, 72, &(vd->port_bitmap), SOCF_LE);              
+
+    _soc_mem_write(bcmsw->dev, ING_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+        SCHAN_BLK_IPIPE, BYTES2WORDS(ING_VLAN_VFI_MEMBERSHIPm_BYTES), 
+        (uint32_t *)&entry);     
+
+    *index = ing_vfi_profile_id;
+    return 0;
+}
+
+//_bcm_vlan_vfi_membership_profile_entry_op
+int _bcm_egr_vlan_vfi_membership_profile_entry_add(bcmsw_switch_t *bcmsw, uint32_t *index, int vid,  vlan_data_t *vd)
+{
+    int egr_vfi_profile_id = 2;
+    uint32_t val;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
+
+    if (port != 0) {
+        *index = egr_vfi_profile_id;
+        return 0;
+    }
+
+    printk("_bcm_egr_vlan_vfi_membership_profile_entry_add. \n");
+
+    memset(&entry, 0, sizeof(entry));
+    _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+                  SCHAN_BLK_IPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
+                  (uint32_t *)&entry); 
+
+    //ING_PORT_BITMAPf start 0, len 72
+    _mem_field_set((uint32_t *)&entry, EGR_VLAN_VFI_MEMBERSHIPm_BYTES, 0, 72, &(vd->port_bitmap), SOCF_LE);              
+
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+ing_vfi_profile_id, 
+        SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
+        (uint32_t *)&entry);         
+
+    *index = egr_vfi_profile_id;
+    return 0;
+}
+
+
 #define BCMSW_VLAN_DEFAULT    1
 
 //bcm_esw_port_init bcm_td3_port_cfg_init
@@ -12545,6 +12606,10 @@ _vlan_table_init_egr_vlan(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     tpid = 0; //_bcm_fb2_outer_tpid_default_get(unit);
 
+    //MEMBERSHIP_PROFILE_PTRf start 56, len 12
+    _bcm_egr_vlan_vfi_membership_profile_entry_add(bcmsw, &val, vd);
+    _mem_field_set((uint32_t *)&ve, EGR_VLANm_BYTES, 56, 12, &val, SOCF_LE);
+
     /* Add the default outer TPID entry twice during init so that
      * the default entry does not get removed even when no table 
      * entry is referencing to the default TPID entry.
@@ -12629,15 +12694,8 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
     //VLAN_TABm entry is 47 bytes, 12 word
     memcpy(&ve, empty_entry, 12);
 
-#if 0 
-    TBD    
-    pbm = vd->ut_port_bitmap);
-    pbm |= PBMP_E_ALL(unit)
-
     //PORT_BITMAPf start 0 len 72
-    val = vd->port_bitmap;
-    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 0, 72, &val, SOCF_LE);
-#endif    
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 0, 72, &(vd->port_bitmap), SOCF_LE);
 
     //STGf start 141 len 9
     val = 1;  //default STG
@@ -12653,7 +12711,11 @@ _vlan_table_init_vlan_tab(bcmsw_switch_t *bcmsw, vlan_data_t *vd)
 
     //L3_IIFf start 318, len 13
     val = vd->vlan_tag;
-    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 318, 13, &val, 0);
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 318, 13, &val, SOCF_LE);
+
+    //MEMBERSHIP_PROFILE_PTRf start 297, len 12
+    _bcm_ing_vlan_vfi_membership_profile_entry_add(bcmsw, &val, vd);
+    _mem_field_set((uint32_t *)&ve, VLAN_TABm_BYTES, 297, 12, &val, SOCF_LE);
 
     _soc_mem_write(bcmsw->dev, VLAN_TABm+vd->vlan_tag, SCHAN_BLK_IPIPE, 12, (uint32_t *)&ve); 
 
@@ -13472,6 +13534,62 @@ _proc_mem_show(struct seq_file *m, void *v)
                           entry[4]);
             }   
             break;
+
+        case ING_VLAN_VFI_MEMBERSHIPm:
+            for (index =0; index < 16; index ++) {  //TODO , dump 16 only
+                _soc_mem_read(_bcmsw->dev, ING_VLAN_VFI_MEMBERSHIPm+index, 
+                          SCHAN_BLK_IPIPE, BYTES2WORDS(ING_VLAN_VFI_MEMBERSHIPm_BYTES), 
+                          entry);
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+                      index,
+                      entry[0],
+                      entry[1],
+                      entry[2],
+                      entry[3],
+                      entry[4],
+                      entry[5],
+                      entry[6]);
+           }   
+            break;
+
+        case EGR_VLAN_VFI_MEMBERSHIPm:
+            for (index =0; index < 16; index ++) {  //TODO , dump 16 only
+                _soc_mem_read(_bcmsw->dev, EGR_VLAN_VFI_MEMBERSHIPm+index, 
+                          SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_MEMBERSHIPm_BYTES), 
+                          entry);
+                seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n", 
+                      index,
+                      entry[0],
+                      entry[1],
+                      entry[2],
+                      entry[3],
+                      entry[4],
+                      entry[5],
+                      entry[6]);
+            }           
+            break;
+
+        case ING_DEST_PORT_ENABLEm:
+            _soc_mem_read(_bcmsw->dev, ING_DEST_PORT_ENABLEm, 
+                          SCHAN_BLK_IPIPE, BYTES2WORDS(ING_DEST_PORT_ENABLEm_BYTES), 
+                          entry);
+            seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
+                      index,
+                      entry[0],
+                      entry[1],
+                      entry[2]);       
+            break;
+
+        case EPC_LINK_BMAPm:
+            _soc_mem_read(_bcmsw->dev, EPC_LINK_BMAPm, 
+                          SCHAN_BLK_IPIPE, BYTES2WORDS(EPC_LINK_BMAPm_BYTES), 
+                          entry);
+            seq_printf(m, "%2d   0x%08x 0x%08x 0x%08x\n", 
+                      index,
+                      entry[0],
+                      entry[1],
+                      entry[2]);    
+            break;            
 
         case MAC_BLOCKm:
             for (index =0; index < 32; index ++) {
@@ -14776,6 +14894,26 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }
     
+    // /proc/switchdev/mem/EGR_VLAN_VFI_MEMBERSHIP
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EGR_VLAN_VFI_MEMBERSHIPm;
+    entry = proc_create_data("EGR_VLAN_VFI_MEMBERSHIP", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+    
+    // /proc/switchdev/mem/ING_VLAN_VFI_MEMBERSHIP
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = ING_VLAN_VFI_MEMBERSHIPm;
+    entry = proc_create_data("ING_VLAN_VFI_MEMBERSHIP", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }
+
     // /proc/switchdev/mem/STG_TAB
     p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
     memset(p_data, 0, sizeof(_proc_reg_data_t));
@@ -14804,6 +14942,26 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         printk("proc_create failed!\n");
         goto create_fail;
     }        
+
+    // /proc/switchdev/mem/EPC_LINK_BMAP
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = EPC_LINK_BMAPm;
+    entry = proc_create_data("EPC_LINK_BMAP", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }            
+
+    // /proc/switchdev/mem/ING_DEST_PORT_ENABLE
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = ING_DEST_PORT_ENABLEm;
+    entry = proc_create_data("ING_DEST_PORT_ENABLE", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }            
 
     return 0;
 
@@ -14899,6 +15057,8 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("VLAN_ATTRS_1", proc_mem_base);
     remove_proc_entry("VLAN_TAB", proc_mem_base);
     remove_proc_entry("EGR_VLAN_VFI_UNTAG", proc_mem_base);
+    remove_proc_entry("EGR_VLAN_VFI_MEMBERSHIP", proc_mem_base);
+    remove_proc_entry("ING_VLAN_VFI_MEMBERSHIP", proc_mem_base);
     remove_proc_entry("L2_USER_ENTRY", proc_mem_base);
     remove_proc_entry("EGR_PORT", proc_mem_base);
     remove_proc_entry("EGR_ENABLE", proc_mem_base);
@@ -14914,6 +15074,8 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("STG_TAB", proc_mem_base);
     remove_proc_entry("L2X", proc_mem_base);
     remove_proc_entry("PMQPORT_WC_UCMEM_DATA", proc_mem_base);
+    remove_proc_entry("EPC_LINK_BMAP", proc_mem_base);
+    remove_proc_entry("ING_DEST_PORT_ENABLE", proc_mem_base);    
     
     remove_proc_entry("mem", proc_switchdev_base);
 
