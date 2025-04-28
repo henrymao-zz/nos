@@ -12553,17 +12553,20 @@ _td3_vlan_vfi_untag_init(bcmsw_switch_t *bcmsw, uint16_t vid, bcm_pbmp_t pbmp)
 
     //read EGR_VLAN_VFI_UNTAGm  19 bytes 5 words
     _soc_mem_read(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
-                  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), (uint32_t *)&egr_vlan_vfi); 
+                  SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
+                  (uint32_t *)&egr_vlan_vfi); 
 
     //UT_PORT_BITMAPf start 0 len 72                
     _mem_field_set((uint32_t *)&egr_vlan_vfi, EGR_VLAN_VFI_UNTAGm_BYTES, 0, 72, &pbmp, SOCF_LE);                           
 
-    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, SCHAN_BLK_EPIPE, 5, (uint32_t *)&egr_vlan_vfi); 
+    _soc_mem_write(bcmsw->dev, EGR_VLAN_VFI_UNTAGm+profile_ptr, 
+                   SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLAN_VFI_UNTAGm_BYTES), 
+                   (uint32_t *)&egr_vlan_vfi); 
 
     //UNTAG_PROFILE_PTRf start 22 len 12
     _mem_field_set((uint32_t *)&egr_vtab, EGR_VLANm_BYTES, 22, 12, &profile_ptr, SOCF_LE);
 
-    _soc_mem_write(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, 3, (uint32_t *)&egr_vtab); 
+    _soc_mem_write(bcmsw->dev, EGR_VLANm+vid, SCHAN_BLK_EPIPE, BYTES2WORDS(EGR_VLANm_BYTES), (uint32_t *)&egr_vtab); 
 
     return SOC_E_NONE;
 }

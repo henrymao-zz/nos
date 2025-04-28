@@ -1358,6 +1358,8 @@ soc_field_info_t soc_EGR_ENABLE_BCM53400_A0m_fields[] = {
 };
 */
 #define EGR_ENABLEm                     0x28200000
+#define EGR_ENABLEm_BYTES               1
+
 
 //Memory: EGR_PER_PORT_BUFFER_SFT_RESET.epipe0 alias EDB_PER_PORT_BUFFER_SFT_RESET address 0x28300000
 //Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
