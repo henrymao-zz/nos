@@ -12512,6 +12512,13 @@ _esw_l2_init(bcmsw_switch_t *bcmsw)
     int rv; 
 
     /*
+     * Call chip-dependent initialization
+     */
+    //BCM_IF_ERROR_RETURN
+    //    (mbcm_driver[unit]->mbcm_l2_init(unit));    
+    //        ->bcm_tr_l2_init
+    
+    /*
      * Init L2 cache
      */
     rv = _bcm_esw_l2_cache_init(bcmsw);
@@ -14169,6 +14176,10 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     val = 0;
     _mem_field_get(entry, MMU_CTR_ING_DROP_MEMm_BYTES, 69, 32, &val, SOCF_LE);
     seq_printf(m, "    [DROP_BYTE_ING]            MMU drop bytes: %d\n", val);     
+
+    val = 0;
+    _reg32_read(_bcmsw->dev, blk_no, RDBGC0_64r + index, &val);
+    seq_printf(m, "    [RDBGC0_64] Dropped packets(incl aborted): %d\n", val);     
 
     val = 0;
     _reg32_read(_bcmsw->dev, blk_no, GRUCr + index, &val);

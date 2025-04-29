@@ -6204,6 +6204,7 @@ soc_field_info_t soc_L2X_BCM56370_A0m_fields[] = {
 #define GRUCr                                 0x00001d00   // Receive Unicast Frame Counter
 #define GRPOKr                                0x00001e00   // Receive Good Frame Counter
 #define GRPFCr                                0x00001f00   // Received Packets PFC Counter
+#define RDBGC0_64r                            0x84001100   // Receive Debug Counter #0
 
 #define GTXPFr                                0x00002000   // Transmit Pause Control Frame Counter
 #define GTJBRr                                0x00002100   // Transmit Jabber Counter
