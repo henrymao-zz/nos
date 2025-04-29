@@ -339,9 +339,9 @@ _soc_mem_read(struct net_device *dev, uint32 address, int dst_blk,  int size, ui
     schan_msg.header.v4.dma = 0;
     schan_msg.header.v4.bank_ignore_mask = 0;
 
-   // if (address == PMQPORT_WC_UCMEM_DATAm ) {
-   // printk("_soc_mem_read addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
-   // }
+    //if (address == (MMU_CTR_ING_DROP_MEMm+16) ) {
+    //   printk("_soc_mem_read addr 0x%08x dst_blk %d 0x%08x \n", address, dst_blk, schan_msg.header.word);
+    //}
 
     rv = _cmicx_schan_op(dev, &schan_msg, 2, 1 + size, allow_intr);
     if (rv) {
@@ -11815,6 +11815,19 @@ _soc_helix5_port_mapping_init(bcmsw_switch_t *bcmsw)
     return SOC_E_NONE;
 }
 
+static int
+soc_helix5_mmu_ctr_clr(bcmsw_switch_t *bcmsw, int port)
+{
+    uint32_t data_ing_drop[SOC_MAX_MEM_WORDS];
+
+    memset(data_ing_drop, 0, sizeof(data_ing_drop));
+
+    _soc_mem_write(bcmsw->dev,
+                   MMU_CTR_ING_DROP_MEMm+port, 
+                   SCHAN_BLK_MMU_XPE,
+                   BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), data_ing_drop);
+}
+
 
 // soc_helix5_flex_mmu_reconfigure_phase2
 int
@@ -14164,19 +14177,21 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     _reg32_read(_bcmsw->dev, blk_no, GRPOKr + index, &val);
     seq_printf(m, "    [GRPOK]                       Good Frames: %d\n", val);     
 
-    _soc_mem_read(_bcmsw->dev, SCHAN_BLK_MMU_XPE, 
+    memset(entry, 0, sizeof(entry));
+    _soc_mem_read(_bcmsw->dev,
                   MMU_CTR_ING_DROP_MEMm + mmu_port, 
+                  SCHAN_BLK_MMU_XPE,
                   BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), entry);
 
     //PKTCNT start 0, len 31
     val = 0;
     _mem_field_get(entry, MMU_CTR_ING_DROP_MEMm_BYTES, 0, 31, &val, SOCF_LE);
-    seq_printf(m, "    [DROP_PKT_ING]           MMU drop packets: %d\n", val);         
+    seq_printf(m, "    [DROP_PKT_ING %2d]        MMU drop packets: %d\n", mmu_port, val);         
 
     //BYTECNT start 69, len 32
     val = 0;
     _mem_field_get(entry, MMU_CTR_ING_DROP_MEMm_BYTES, 69, 32, &val, SOCF_LE);
-    seq_printf(m, "    [DROP_BYTE_ING]            MMU drop bytes: %d\n", val);     
+    seq_printf(m, "    [DROP_BYTE_ING %2d]         MMU drop bytes: %d\n", mmu_port, val);     
 
     val = 0;
     _reg32_read(_bcmsw->dev, blk_no, RDBGC0_64r + index, &val);
@@ -15114,17 +15129,6 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 /*****************************************************************************************/
 /*                            stats/counter                                              */
 /*****************************************************************************************/
-
-static int
-soc_helix5_mmu_ctr_clr(bcmsw_switch_t *bcmsw, int port)
-{
-    uint32_t data_ing_drop[SOC_MAX_MEM_WORDS];
-
-    memset(data_ing_drop, 0, sizeof(data_ing_drop));
-
-    _soc_mem_write(bcmsw->dev,SCHAN_BLK_MMU_XPE, MMU_CTR_ING_DROP_MEMm+port, 
-                   BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), data_ing_drop);
-}
 
 
 static int
