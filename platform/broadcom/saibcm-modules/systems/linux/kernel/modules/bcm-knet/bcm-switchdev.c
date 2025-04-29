@@ -10685,7 +10685,7 @@ _esw_port_encap_get(bcmsw_switch_t *bcmsw, int port, int *encap)
 static int
 _bcm_xgs3_stg_stp_init_stg(bcmsw_switch_t *bcmsw, bcm_stg_t stg)
 {
-    uint32 entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
+    uint32_t entry[SOC_MAX_MEM_WORDS];    /* Spanning tree port state map. */
  
     //int stp_state;              /* STP port state.               */
     //bcm_pbmp_t stacked;         /* Bitmap of stacked ports.      */
@@ -13385,13 +13385,13 @@ _proc_reg32_show(struct seq_file *m, void *v)
             break;
         
         case GPORT_MODE_REGr:
-	//case PMQ_XGXS0_CTRL_REGr:
-	    for (index =0; index < p_data->num_blk; index ++) {
+	        //case PMQ_XGXS0_CTRL_REGr:
+	        for (index =0; index < p_data->num_blk; index ++) {
                 val = 0;
-		_reg32_read(_bcmsw->dev, p_data->block[index], p_data->reg_addr, &val);
-		seq_printf(m, "blk %d 0x%08x\n",p_data->block[index], val);
+		        _reg32_read(_bcmsw->dev, p_data->block[index], p_data->reg_addr, &val);
+		        seq_printf(m, "blk %d 0x%08x\n",p_data->block[index], val);
             }
-	    break;
+	        break;
 
         case GPORT_CONFIGr:
         case GPORT_RSV_MASKr:
@@ -14129,6 +14129,7 @@ _proc_port_counters_show(struct seq_file *m, void *v)
 {
     int port, phy_port, index, blk_no;
     uint32_t val;
+    uint32_t entry[SOC_MAX_MEM_WORDS];
     _proc_stats_data_t *p_data = (_proc_stats_data_t *)pde_data(file_inode(m->file));
 
     if (!_bcmsw) {
@@ -14154,6 +14155,20 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     val = 0;
     _reg32_read(_bcmsw->dev, blk_no, GRPOKr + index, &val);
     seq_printf(m, "    [GRPOK]                       Good Frames: %d\n", val);     
+
+    _soc_mem_read(_bcmsw->dev, SCHAN_BLK_MMU_XPE, 
+                  MMU_CTR_ING_DROP_MEMm + index, 
+                  BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), entry);
+
+    //PKTCNT start 0, len 31
+    val = 0;
+    _mem_field_get(entry, MMU_CTR_ING_DROP_MEMm_BYTES, 0, 31, &val, SOCF_LE);
+    seq_printf(m, "    [DROP_PKT_ING]           MMU drop packets: %d\n", val);         
+
+    //BYTECNT start 69, len 32
+    val = 0;
+    _mem_field_get(entry, MMU_CTR_ING_DROP_MEMm_BYTES, 69, 32, &val, SOCF_LE);
+    seq_printf(m, "    [DROP_BYTE_ING]            MMU drop bytes: %d\n", val);     
 
     val = 0;
     _reg32_read(_bcmsw->dev, blk_no, GRUCr + index, &val);

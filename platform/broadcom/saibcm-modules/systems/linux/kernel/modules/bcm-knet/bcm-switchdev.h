@@ -6236,6 +6236,24 @@ soc_field_info_t soc_L2X_BCM56370_A0m_fields[] = {
 #define GTPOKr                                0x00003c00   // Transmit Good Frame Counter
 #define GTPFCr                                0x00003d00   // Transmitted PFC packet Counter
 
+
+//Memory: MMU_CTR_ING_DROP_MEM.mmu_xpe0 aka CTR_ING_DROP address 0x290c0000
+//Flags: valid
+//Blocks:  mmu_xpe0/dma/slam (1 copy, 1 dmaable, 1 slamable)
+//Entries: 0 with indices 0--1 (0x0-0xffffffff), each 10 bytes 3 words
+//Entry mask: -1 -1 0x00003fff
+//Description: Per ingress port drop counter, due to THDI  drop.
+//entries 0 - 52    :   PIPEx Ingress port 0  - 52
+//entries 64 - 116  :   PIPEy Ingress port 64 - 116
+//  PKTCNT<31:0>
+//  PARITY<77>
+//  ECCP<77:70>
+//  ECC<76:70>
+//  DATA_RANGE<69:0>
+//  BYTECNT<69:32>
+#define MMU_CTR_ING_DROP_MEMm                  0x290c0000
+#define MMU_CTR_ING_DROP_MEMm_BYTES            10
+
 /*****************************************************************************************/
 /*                              switchdev                                                */
 /*****************************************************************************************/
