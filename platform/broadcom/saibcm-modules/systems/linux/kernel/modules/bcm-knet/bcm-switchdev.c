@@ -13746,6 +13746,21 @@ _proc_mem_show(struct seq_file *m, void *v)
             seq_printf(m, "[PMQPORT2]  0x%08x 0x%08x 0x%08x 0x%08x \n", entry[0], entry[1], entry[2], entry[3]);        
             break;
 
+        case MMU_CTR_ING_DROP_MEMm:
+            for (index =0; index < 72; index ++) {
+                val = 0;
+                _soc_mem_read(_bcmsw->dev, MMU_CTR_ING_DROP_MEMm+index, 
+                          SCHAN_BLK_MMU_XPE, BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), 
+                          entry);      
+              
+                seq_printf(m, "[%2d]   0x%08x 0x%08x 0x%08x\n", 
+                    index,
+                    entry[0],
+                    entry[1],
+                    entry[2]);
+            }          
+            break;
+
         default:
             seq_printf(m," Not implemented\n");
             break;
@@ -14995,6 +15010,15 @@ static int _procfs_mem_init(bcmsw_switch_t *bcmsw)
         goto create_fail;
     }            
 
+    // /proc/switchdev/mem/MMU_CTR_ING_DROP_MEM
+    p_data = kmalloc(sizeof(_proc_reg_data_t), GFP_KERNEL);
+    memset(p_data, 0, sizeof(_proc_reg_data_t));
+    p_data->reg_addr = MMU_CTR_ING_DROP_MEMm;
+    entry = proc_create_data("MMU_CTR_ING_DROP_MEM", 0666, proc_mem_base, &_proc_mem_ops, p_data);
+    if (entry == NULL) {
+        printk("proc_create failed!\n");
+        goto create_fail;
+    }     
     return 0;
 
 create_fail:
@@ -15108,6 +15132,7 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
     remove_proc_entry("PMQPORT_WC_UCMEM_DATA", proc_mem_base);
     remove_proc_entry("EPC_LINK_BMAP", proc_mem_base);
     remove_proc_entry("ING_DEST_PORT_ENABLE", proc_mem_base);    
+    remove_proc_entry("MMU_CTR_ING_DROP_MEM", proc_mem_base);    
     
     remove_proc_entry("mem", proc_switchdev_base);
 
