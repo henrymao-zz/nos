@@ -10631,7 +10631,6 @@ static int bcmsw_port_create(bcmsw_switch_t *bcmsw, int port_index, const char *
 
 
 
-//TODO - this part might need to be moved to userspace 
 static int bcmsw_ports_init(bcmsw_switch_t *bcmsw)
 {
     //FIX: hardcode for N3248TE  BCM56371
@@ -11848,7 +11847,8 @@ _soc_helix5_flex_mmu_reconfigure_phase2(bcmsw_switch_t *bcmsw)
         val = index;
         _schan_reg32_write(bcmsw->dev, SCHAN_BLK_MMU_GLB, MMU_PORT_TO_DEVICE_PORT_MAPPINGr+mmu_port, val, 20);
 
-        //TODO
+        /* Clear Drop Counters in CTR block*/
+        soc_helix5_mmu_ctr_clr(bcmsw, mmu_port);
 #if 0                
         /* Clear MTRO bucket memories */
         soc_helix5_mmu_clear_mtro_bucket_mems(
@@ -11864,7 +11864,7 @@ _soc_helix5_flex_mmu_reconfigure_phase2(bcmsw_switch_t *bcmsw)
                                          lossy);
         soc_helix5_mmu_thdu_qgrp_min_limit_config(
                 unit, &port_schedule_state_t->resource[port], lossy);
-        /* Clear Drop Counters in CTR block*/
+        
         soc_helix5_mmu_ctr_clr(unit,
                                       &port_schedule_state_t->resource[port]);
 
@@ -14134,7 +14134,7 @@ static struct proc_ops l2_user_entry_ops =
 static int
 _proc_port_counters_show(struct seq_file *m, void *v)
 {
-    int port, phy_port, index, blk_no;
+    int port, phy_port, index, blk_no, mmu_port;
     uint32_t val;
     uint32_t entry[SOC_MAX_MEM_WORDS];
     _proc_stats_data_t *p_data = (_proc_stats_data_t *)pde_data(file_inode(m->file));
@@ -14146,6 +14146,7 @@ _proc_port_counters_show(struct seq_file *m, void *v)
   
     port = p_data->port; //logical port number
     phy_port = _bcmsw->si->port_l2p_mapping[port];
+    mmu_port = _bcmsw->si->port_l2i_mapping[port];
 
     blk_no = gxblk[(phy_port-1)/8];
     index = (phy_port -1)%8;
@@ -14164,7 +14165,7 @@ _proc_port_counters_show(struct seq_file *m, void *v)
     seq_printf(m, "    [GRPOK]                       Good Frames: %d\n", val);     
 
     _soc_mem_read(_bcmsw->dev, SCHAN_BLK_MMU_XPE, 
-                  MMU_CTR_ING_DROP_MEMm + index, 
+                  MMU_CTR_ING_DROP_MEMm + mmu_port, 
                   BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), entry);
 
     //PKTCNT start 0, len 31
@@ -15113,6 +15114,19 @@ static int _procfs_uninit(bcmsw_switch_t *bcmsw)
 /*****************************************************************************************/
 /*                            stats/counter                                              */
 /*****************************************************************************************/
+
+static int
+soc_helix5_mmu_ctr_clr(bcmsw_switch_t *bcmsw, int port)
+{
+    uint32_t data_ing_drop[SOC_MAX_MEM_WORDS];
+
+    memset(data_ing_drop, 0, sizeof(data_ing_drop));
+
+    _soc_mem_write(bcmsw->dev,SCHAN_BLK_MMU_XPE, MMU_CTR_ING_DROP_MEMm+port, 
+                   BYTES2WORDS(MMU_CTR_ING_DROP_MEMm_BYTES), data_ing_drop);
+}
+
+
 static int
 soc_counter_set32_by_port(bcmsw_switch_t *bcmsw, int port)
 {
