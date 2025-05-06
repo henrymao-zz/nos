@@ -1,77 +1,77 @@
 #ifndef _BCM_SWITCHDEV_CANCUN_H_
 #define _BCM_SWITCHDEV_CANCUN_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-#include "bcm-switchdev.h"
 
+/*****************************************************************************************/
+/*                              CANCUN                                                   */
+/*****************************************************************************************/
+#define CANCUN_FILENAME_SIZE        (256)
+#define CANCUN_VERSION_LEN_MAX      (32)
+#define CANCUN_LIST_BUF_LEN         (512)
+#define CANCUN_DEST_MEM_NUM_MAX     (16)
+#define CANCUN_DEST_FIELD_NUM_MAX   (16)
 
-CANCUN_SOC_FILE_TYPE_CIH,
-CANCUN_SOC_FILE_TYPE_CMH,
-CANCUN_SOC_FILE_TYPE_CCH,
-CANCUN_SOC_FILE_TYPE_CFH,
-CANCUN_SOC_FILE_TYPE_CEH,
-
-/*Note: keep CANCUN_SOC_FILE_TYPE_NUM as the latest element of this enum
- * and update CANCUN_FILE_TYPE_NAMES_INITIALIZER accordingly*/
-CANCUN_SOC_FILE_TYPE_NUM
+/*
+ * CANCUN file type enumeration
+*/
+typedef enum {
+    CANCUN_SOC_FILE_TYPE_UNKNOWN,
+    CANCUN_SOC_FILE_TYPE_CIH,
+    CANCUN_SOC_FILE_TYPE_CMH,
+    CANCUN_SOC_FILE_TYPE_CCH,
+    CANCUN_SOC_FILE_TYPE_CFH,
+    CANCUN_SOC_FILE_TYPE_CEH,
+    
+    /*Note: keep CANCUN_SOC_FILE_TYPE_NUM as the latest element of this enum
+     * and update CANCUN_FILE_TYPE_NAMES_INITIALIZER accordingly*/
+    CANCUN_SOC_FILE_TYPE_NUM
 } soc_cancun_file_type_e;
 
 #define CANCUN_FILE_TYPE_NAMES_INITIALIZER { \
-"UNKNOWN",  \
-"CIH",      \
-"CMH",      \
-"CCH",      \
-"CFH",      \
-"CEH",      \
+    "UNKNOWN",  \
+    "CIH",      \
+    "CMH",      \
+    "CCH",      \
+    "CFH",      \
+    "CEH",      \
 }
 
 /*
 * CANCUN file format enumeration
 */
 typedef enum {
-CANCUN_SOC_FILE_FORMAT_UNKNOWN,
-CANCUN_SOC_FILE_FORMAT_PIO,
-CANCUN_SOC_FILE_FORMAT_DMA,
-CANCUN_SOC_FILE_FORMAT_FIFO,
-CANCUN_SOC_FILE_FORMAT_YAML,
-CANCUN_SOC_FILE_FORMAT_PACK,
-
-/*Note: keep CANCUN_SOC_FILE_FORMAT_NUM as the latest element of this enum
- * and update CANCUN_FILE_FORMAT_NAMES_INITIALIZER accordingly*/
-CANCUN_SOC_FILE_FORMAT_NUM
+    CANCUN_SOC_FILE_FORMAT_UNKNOWN,
+    CANCUN_SOC_FILE_FORMAT_PIO,
+    CANCUN_SOC_FILE_FORMAT_DMA,
+    CANCUN_SOC_FILE_FORMAT_FIFO,
+    CANCUN_SOC_FILE_FORMAT_YAML,
+    CANCUN_SOC_FILE_FORMAT_PACK,
+    
+    /*Note: keep CANCUN_SOC_FILE_FORMAT_NUM as the latest element of this enum
+     * and update CANCUN_FILE_FORMAT_NAMES_INITIALIZER accordingly*/
+    CANCUN_SOC_FILE_FORMAT_NUM
 } soc_cancun_file_format_e;
 
 #define CANCUN_FILE_FORMAT_NAMES_INITIALIZER { \
-"UNKNOWN",  \
-"PIO",      \
-"DMA",      \
-"FIFO",     \
-"YMAL",     \
-"PACK",     \
+    "UNKNOWN",  \
+    "PIO",      \
+    "DMA",      \
+    "FIFO",     \
+    "YMAL",     \
+    "PACK",     \
 }
 
 /*
 * CANCUN file load status enumeration
 */
 typedef enum {
-CANCUN_SOC_FILE_LOAD_NONE,
-CANCUN_SOC_FILE_LOAD_COMPLETE,
-CANCUN_SOC_FILE_LOAD_IN_PROGRESS,
-CANCUN_SOC_FILE_LOAD_FAILED,
-
-/*Note: keep CANCUN_SOC_FILE_LOAD_STATUS_NUM as the latest element of this enum
- * and update CANCUN_FILE_LOAD_STATUS_INITIALIZER accordingly*/
-CANCUN_SOC_FILE_LOAD_STATUS_NUM
+    CANCUN_SOC_FILE_LOAD_NONE,
+    CANCUN_SOC_FILE_LOAD_COMPLETE,
+    CANCUN_SOC_FILE_LOAD_IN_PROGRESS,
+    CANCUN_SOC_FILE_LOAD_FAILED,
+    
+    /*Note: keep CANCUN_SOC_FILE_LOAD_STATUS_NUM as the latest element of this enum
+     * and update CANCUN_FILE_LOAD_STATUS_INITIALIZER accordingly*/
+    CANCUN_SOC_FILE_LOAD_STATUS_NUM
 } soc_cancun_file_load_status_e;
 
 #define CANCUN_FILE_LOAD_STATUS_INITIALIZER { \
@@ -360,15 +360,15 @@ uint32_t flags;
 * Contains information of currently loaded CANCUN files.
 */
 typedef struct soc_cancun_s {
-uint32_t unit;                /* Unit ID*/
-uint32_t flags;               /* Control flags */
-uint32_t version;             /* Packge release version */
-char default_path[CANCUN_FILENAME_SIZE]; /* default path */
-soc_cancun_cih_t* cih;      /* CIH control structure*/
-soc_cancun_cmh_t* cmh;      /* CMH control structure*/
-soc_cancun_cch_t* cch;      /* CCH control structure*/
-soc_flow_db_t*  flow_db;    /* FLOW DB control structure*/
-soc_cancun_ceh_t* ceh;      /* CEH control structure*/
+    uint32_t unit;                /* Unit ID*/
+    uint32_t flags;               /* Control flags */
+    uint32_t version;             /* Packge release version */
+    char default_path[CANCUN_FILENAME_SIZE]; /* default path */
+    soc_cancun_cih_t* cih;      /* CIH control structure*/
+    soc_cancun_cmh_t* cmh;      /* CMH control structure*/
+    soc_cancun_cch_t* cch;      /* CCH control structure*/
+    soc_flow_db_t*  flow_db;    /* FLOW DB control structure*/
+    soc_cancun_ceh_t* ceh;      /* CEH control structure*/
 } soc_cancun_t;
 
 /*
@@ -513,7 +513,5 @@ uint32_t *hfe_profile_ptr;
 } soc_cancun_udf_stage_info_t;
 
 
-
-int soc_cancun_init (bcmsw_switch_t *swdev);
 
 #endif

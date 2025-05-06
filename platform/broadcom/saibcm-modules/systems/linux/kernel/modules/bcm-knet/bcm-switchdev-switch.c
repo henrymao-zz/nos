@@ -19,8 +19,26 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
 #include "bcm-switchdev-switch.h"
+#include "bcm-switchdev-schan.h"
+#include "bcm-switchdev-cancun.h"
+#include "bcm-switchdev-extphy.h"
+#include "bcm-switchdev-merlin16.h"
+#include "bcm-switchdev-stats.h"
+#include "bcm-switchdev.h"
+
+
+const bcm_mac_t _mac_spanning_tree =
+	{0x01, 0x80, 0xc2, 0x00, 0x00, 0x00};
+
+const bcm_mac_t _mac_all_routers =
+	{0x01, 0x00, 0x5e, 0x00, 0x00, 0x02};
+
+const bcm_mac_t _mac_all_zeroes =
+	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+const bcm_mac_t _mac_all_ones =
+	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 
 /*****************************************************************************************/
@@ -1818,6 +1836,7 @@ _helix5_mmu_vbs_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
         mmu_port = bcmsw->si->port_p2m_mapping[physical_port];
     } else {
         printk("_helix5_mmu_vbs_port_flush invalid phy_port - port %d\n",port);
+        return 0;
     }
 
     lcl_mmu_port = mmu_port % HX5_MMU_PORT_PIPE_OFFSET;
@@ -1918,6 +1937,7 @@ _helix5_mmu_mtro_port_flush(bcmsw_switch_t *bcmsw, int port, uint64 set_val)
         mmu_port = bcmsw->si->port_p2m_mapping[physical_port];
     } else {
         printk("_helix5_mmu_mtro_port_flush invalid phy_port - port %d\n",port);
+        return 0;
     }
 
     lcl_mmu_port = mmu_port % HX5_MMU_PORT_PIPE_OFFSET;
@@ -2154,149 +2174,6 @@ _bcm_esw_portctrl_enable_set(bcmsw_switch_t *bcmsw, int port, int enable)
     return 0;
 }
 
-static int
- _pm4x10_qtc_port_ecc_init(bcmsw_switch_t *bcmsw, int pmq_blk)
-{
-    uint32_t reg_val;
-
-    /* Init port ecc */
-    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
-    //GMIB0_MEM_INITf = 1
-    //GMIB1_MEM_INITf = 1
-    //GP0_MEM_INITf = 1
-    //GP1_MEM_INITf = 1
-    reg_val |= (0xf << 16);
-    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
-
-    /* Wait for GP/GMIB mem to finish init */
-    msleep(1);
-
-    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
-    if ((reg_val & GP_GMIB_MEM_INIT_DONE_MASK) == GP_GMIB_MEM_INIT_DONE_MASK) {
-        printk("_pm4x10_qtc_port_ecc_init mem init done %d\n", pmq_blk);
-    } else {
-        printk("_pm4x10_qtc_port_ecc_init mem init fail %d reg 0x%08x\n", pmq_blk, reg_val);
-    }
-
-    /*Mask the ECC status for each of the UNIMACs*/
-    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECCr, &reg_val);
-    reg_val |= 0xffff0000;
-    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECCr, reg_val);
-    
-    return SOC_E_NONE;
-}
-
-int pm4x10_qtc_port_tsc_reset_set(bcmsw_switch_t *bcmsw, int pmq_blk, int in_reset)
-{
-    xgxs0_ctrl_reg_t xgxs_reg;
-
-    /* Bring Internal Phy OOR */
-    _reg32_read(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, &xgxs_reg.word);
-   
-    xgxs_reg.reg.RSTB_HWf = in_reset ? 0 : 1;
-    xgxs_reg.reg.PWRDWNf  = in_reset ? 1 : 0;
-    xgxs_reg.reg.IDDQf    = in_reset ? 1 : 0;
-
-    _reg32_write(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, xgxs_reg.word);
-
-    /* Based on the feedback from SJ pmd support team, ~10-15usecs would be sufficient
-     * for the PLL/AFE to settle down out of IDDQ reset.
-     */
-    msleep(1);
-
-    return SOC_E_NONE;
-}
-
-
-static
-int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
-{
-    int  phy_port, index, blk_no;
-    int  pmq_blk, pmq_index;
-    uint32_t val;
-    chip_config_t chip_reg;
-    chip_swrst_reg_t swrst_reg;
-
-    if(port < 1|| port >48) {
-       printk("_pm4x10_qtc_pmq_gport_init invalid port %d\n", port);
-       return -1;
-    }
-    phy_port = _bcmsw->si->port_l2p_mapping[port];
-    if (phy_port == -1 ) {
-      printk("_pm4x10_qtc_pmq_gport_init invalid phy port %d\n", phy_port);
-      return -1;
-    }
-
-    blk_no = gxblk[(phy_port-1)/8];
-    index = (phy_port -1)%8;
-
-    pmq_blk = g_pmqblk[(phy_port-1)/16];
-    pmq_index = (phy_port -1)%16;
-
-    if (pmq_index == 0) {
-        /* special init process for PMQ(PM4x10Q in QSGMII mode) - to release PMQ's QSGMII reset state after QSGMII-PCS and UniMAC init. */
-        _reg32_read(bcmsw->dev, pmq_blk, CHIP_CONFIGr, &chip_reg.word);
-        
-        chip_reg.reg.QMODEf = 1;
-        /* According to PORTMACRO-210, when clk=300M or less, ip_tdm should be 2 or less */
-        chip_reg.reg.IP_TDMf = 1;
-        chip_reg.reg.PCS_USXGMII_MODE_ENf = 0;
-        chip_reg.reg.PAUSE_PFC_SELf = 0;
-
-        _reg32_write(bcmsw->dev, pmq_blk, CHIP_CONFIGr, chip_reg.word);
-
-        /* Get Serdes OOR */
-        pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 1);
-        pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 0);
-
-        _reg32_read(bcmsw->dev, pmq_blk, CHIP_SWRSTr, &swrst_reg.word);
-        swrst_reg.reg.SOFT_RESET_QSGMII_PCSf = 0x1;
-        swrst_reg.reg.SOFT_RESET_GPORT1f     = 0x1;
-        swrst_reg.reg.SOFT_RESET_GPORT0f     = 0x1;
-        _reg32_write(bcmsw->dev, pmq_blk, CHIP_SWRSTr, swrst_reg.word);
-
-        _reg32_read(bcmsw->dev, pmq_blk, CHIP_SWRSTr, &swrst_reg.word);
-        swrst_reg.reg.SOFT_RESET_QSGMII_PCSf = 0x0;
-        swrst_reg.reg.SOFT_RESET_GPORT1f     = 0x0;
-        swrst_reg.reg.SOFT_RESET_GPORT0f     = 0x0;
-        _reg32_write(bcmsw->dev, pmq_blk, CHIP_SWRSTr, swrst_reg.word);
-
-        /* Init port ecc */
-        _pm4x10_qtc_port_ecc_init(bcmsw, pmq_blk);
-
-        //_SOC_IF_ERR_EXIT(PM4x10_QTC_IS_ACTIVE_SET(unit, pm_info, pm_is_active));
-    }
-
-    /* Initialize mask for purging packet data received from the MAC */
-    val = 0x78;
-    _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, val);
-    _reg32_write(bcmsw->dev, blk_no, GPORT_STAT_UPDATE_MASKr+index, val);
-
-    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);
-     // CLR_CNTf start 1, len 1
-    val |= (1<<1);
-    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
-
-    /* Reset the clear-count bit after 64 clocks */
-    val &= ~(1<<1);
-    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
-
-    //GPORT_ENf start 0, len 1
-    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);    
-    val |= 1;
-    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
-
-    _reg32_read(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, &val); 
-    //EP_TO_GP_CRC_MODES_SELf start 5, len 1
-    val &= ~(1<<5);
-    //EP_TO_GP_CRC_FWDf start 4, len 1
-    val &= ~(1<<4);
-    //EP_TO_GP_CRC_OWRTf start 3, len 1
-    val &= ~(1<<3);
-    _reg32_write(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, val); 
-
-    return 0;
-}
 
 //bcmi_esw_portctrl_probe(PORTMOD_PORT_ADD_F_INIT_CORE_PROBE)
 static int 
@@ -3020,6 +2897,7 @@ bcm_esw_port_learn_get(bcmsw_switch_t *bcmsw, int port, uint32 *flags)
 
     //rv = mbcm_driver[unit]->mbcm_port_cfg_get(unit, port, &pcfg); 
     // -> bcm_td3_port_cfg_get
+    pcfg.pc_cpu = 0;
 
     switch (pcfg.pc_cml) {
         case PVP_CML_SWITCH:
@@ -3667,31 +3545,6 @@ static int _cmicx_pci_test(struct net_device *dev)
 /*****************************************************************************************/
 /*                             init misc                                                 */
 /*****************************************************************************************/
-
-static int _trident3_mdio_rate_divisor_set(void)
-{
-    int int_divisor, ext_divisor;
-    int ring_idx = 0;
-    int ring_idx_end = 0;
-    miim_ring_control_t ring_control;
-
-    ext_divisor = RATE_EXT_MDIO_DIVISOR_DEF;
-    int_divisor = TD3X_RATE_INT_MDIO_DIVISOR_DEF;
-    //delay = -1;
-
-    /*  mdio ring end based on iProc15 device */
-    ring_idx_end = CMICX_MIIM_12R_RING_INDEX_END;
-
-    for (ring_idx = CMICX_MIIM_RING_INDEX_START; ring_idx <= ring_idx_end; ring_idx++) {
-        //soc_cmicx_miim_divider_set_ring(unit, ring_idx, int_divider, ext_divisor, delay);
-        ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + (ring_idx<<2));
-        ring_control.reg.CLOCK_DIVIDER_EXTf = ext_divisor;
-    ring_control.reg.CLOCK_DIVIDER_INTf = int_divisor;
-        _iproc_setreg(MIIM_RING0_CONTROLr + (ring_idx<<2), ring_control.word);
-    }
-
-    return SOC_E_NONE;
-}
 
 static int
 _soc_trident3_init_mmu_memory(bcmsw_switch_t *bcmsw)

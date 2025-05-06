@@ -1,18 +1,13 @@
 #ifndef _BCM_SWITCHDEV_SWITCH_H_
 #define _BCM_SWITCHDEV_SWITCH_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-#include "bcm-switchdev.h"
+
+/* Environment switch */
+#define _PCID_TEST 0
+
+/* Local defines */
+#define BYTES_PER_UINT32    (sizeof(uint32))
+
+extern char *_shr_errmsg[];
 
 
 /*****************************************************************************************/
@@ -210,7 +205,7 @@ typedef int bcm_multicast_t;
 typedef uint16_t bcm_vlan_t;
 
 /* bcm_mac_t */
-typedef uint8 bcm_mac_t[6];
+typedef uint8_t bcm_mac_t[6];
 
 typedef struct bcm_flow_logical_field_s {
     uint32_t id;      /* logical field id. */
@@ -858,8 +853,52 @@ soc_field_info_t soc_EGR_ENABLE_BCM53400_A0m_fields[] = {
 //Entries: 79 with indices 0-78 (0x0-0x4e), each 1 bytes 1 words
 #define EGR_PER_PORT_BUFFER_SFT_RESETm  0x28300000
 
+/*****************************************************************************************/
+/*                              FLOWDB                                                   */
+/*****************************************************************************************/
+/* Format of Table for indexed table
+ * | START_OF TABLE_CHUNK |
+ * | tbl header |
+ * | tbl entry records |
+ * | END OF Table CHUNK |
+ */
+typedef struct soc_flow_db_tbl_map_s {
+   uint32 tbl_start;
+   uint32 block_size; /* block size */
+   uint32 crc;  /* block crc */
+   uint32 pa;   /* hash parameters */
+   uint32 pb;   /* hash parameters */
+   uint32 pc;   /* hash parameters */
+   uint32 pd;   /* hash parameters */
+   uint32 pe;   /* hash parameters */
+   uint32 num_entries;
+   uint32 hash_tbl_size;
+   uint32 tbl_entry;
+} soc_flow_db_tbl_map_t;
+
+typedef struct soc_flow_db_view_ffo_tuple_s {
+    uint32 view_id;
+    uint32 nffos;
+    uint32 *ffo_tuple;
+} soc_flow_db_view_ffo_tuple_t;
+
+typedef struct soc_flow_db_flow_map_s {
+    /* pointer to the flow table chunk */
+    soc_flow_db_tbl_map_t *flow_tbl_lyt;
+    /* pointer to the flow option table chunk */
+    soc_flow_db_tbl_map_t *flow_option_tbl_lyt;
+    /* pointer to the ffo tuple to view id map table chunk */
+    soc_flow_db_tbl_map_t *ffo_tuple_tbl_lyt;
+    /* pointer to the view table chunk */
+    soc_flow_db_tbl_map_t *view_tbl_lyt;
+    /* pointer to the logical field map table chunk*/
+    soc_flow_db_tbl_map_t *lg_field_tbl_lyt;
+    /* view to ffo tuple list*/
+    soc_flow_db_view_ffo_tuple_t *view_ffo_list;
+    /* string table */
+    char *str_tbl;
+} soc_flow_db_flow_map_t;
 
 
-int bcm_switch_hw_init(bcmsw_switch_t *bcmsw);
 
 #endif

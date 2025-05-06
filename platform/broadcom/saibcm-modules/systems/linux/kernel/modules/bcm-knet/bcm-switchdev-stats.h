@@ -1,19 +1,5 @@
 #ifndef _BCM_SWITCHDEV_STATS_H_
 #define _BCM_SWITCHDEV_STATS_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-#include "bcm-switchdev.h"
-
 
 /*****************************************************************************************/
 /*                             /proc                                                     */
@@ -166,8 +152,5 @@ typedef struct _proc_stats_data_s {
 #define MMU_CTR_ING_DROP_MEMm                  0x290c0000
 #define MMU_CTR_ING_DROP_MEMm_BYTES            10
 
-
-int bcm_esw_stat_init(bcmsw_switch_t *bcmsw);
-int _procfs_init(bcmsw_switch_t *bcmsw);
 
 #endif

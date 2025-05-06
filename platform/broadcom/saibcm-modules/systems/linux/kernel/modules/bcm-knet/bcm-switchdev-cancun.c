@@ -19,12 +19,10 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
+#include "bcm-switchdev-switch.h"
+#include "bcm-switchdev-schan.h"
 #include "bcm-switchdev-cancun.h"
-
-
-
-
+#include "bcm-switchdev.h"
 
 /*****************************************************************************************/
 /*                            BCM56371 CANCUN                                            */

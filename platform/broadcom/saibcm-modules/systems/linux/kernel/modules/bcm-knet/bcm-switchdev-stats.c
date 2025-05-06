@@ -1,3 +1,31 @@
+#include <gmodule.h>
+#include <linux-bde.h>
+#include <linux/kernel.h>
+#include <linux/types.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/slab.h>
+#include <linux/device.h>
+#include <linux/skbuff.h>
+#include <linux/if_vlan.h>
+#include <linux/if_bridge.h>
+#include <linux/workqueue.h>
+#include <linux/jiffies.h>
+#include <linux/rtnetlink.h>
+#include <linux/netlink.h>
+#include <net/switchdev.h>
+#include <net/vxlan.h>
+#include <linux/proc_fs.h>
+#include <asm/uaccess.h>
+#include <kcom.h>
+#include <bcm-knet.h>
+#include "bcm-switchdev-switch.h"
+#include "bcm-switchdev-schan.h"
+#include "bcm-switchdev-cancun.h"
+#include "bcm-switchdev-merlin16.h"
+#include "bcm-switchdev-stats.h"
+#include "bcm-switchdev.h"
+
 
 
 
@@ -104,6 +132,8 @@ if_fmt_speed(char *b, int speed)
     return (b);
 }
 
+extern  int
+ bcm_esw_port_selective_get(bcmsw_switch_t *bcmsw, int port, bcm_port_info_t *info);
 
 //if_esw_port_stat()
 static int
@@ -532,6 +562,40 @@ static struct proc_ops l2_ops =
     proc_release:    single_release,
 };
 
+static const uint32_t obm_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
+     IDB_OBM0_Q_CONTROLr,
+     IDB_OBM1_Q_CONTROLr,
+     IDB_OBM2_Q_CONTROLr,
+     IDB_OBM0_CONTROLr,
+     IDB_OBM1_CONTROLr,
+     IDB_OBM2_CONTROLr,
+     IDB_OBM3_CONTROLr,
+     IDB_OBM0_48_CONTROLr,
+     IDB_OBM1_48_CONTROLr,
+     IDB_OBM2_48_CONTROLr
+};
+
+static const uint32_t gxblk[6] = {
+    SCHAN_BLK_GXPORT0,
+    SCHAN_BLK_GXPORT1,
+    SCHAN_BLK_GXPORT2,
+    SCHAN_BLK_GXPORT3,
+    SCHAN_BLK_GXPORT4,
+    SCHAN_BLK_GXPORT5,
+};
+
+static const uint32_t soc_helix5_obm_ca_ctrl_regs[HELIX5_PBLKS_PER_PIPE] = {
+    IDB_OBM0_Q_CA_CONTROLr,
+    IDB_OBM1_Q_CA_CONTROLr,
+    IDB_OBM2_Q_CA_CONTROLr,
+    IDB_OBM0_CA_CONTROLr,
+    IDB_OBM1_CA_CONTROLr,
+    IDB_OBM2_CA_CONTROLr,
+    IDB_OBM3_CA_CONTROLr,
+    IDB_OBM0_48_CA_CONTROLr,
+    IDB_OBM1_48_CA_CONTROLr,
+    IDB_OBM2_48_CA_CONTROLr
+};
 // /proc/switchdev/reg/*
 static int
 _proc_reg32_show(struct seq_file *m, void *v)
@@ -2283,7 +2347,7 @@ create_fail:
     return -EINVAL;
 }
 
-static int _procfs_uninit(bcmsw_switch_t *bcmsw)
+int _procfs_uninit(bcmsw_switch_t *bcmsw)
 {
     // /proc/switchdev/reg
     remove_proc_entry("COMMAND_CONFIG", proc_reg_base);

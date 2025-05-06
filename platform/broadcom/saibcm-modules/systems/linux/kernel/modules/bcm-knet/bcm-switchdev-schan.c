@@ -19,9 +19,10 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
 #include "bcm-switchdev-switch.h"
 #include "bcm-switchdev-schan.h"
+#include "bcm-switchdev-cancun.h"
+#include "bcm-switchdev.h"
 
 
 /*****************************************************************************************/
@@ -132,7 +133,7 @@ _cmicx_schan_dump(struct net_device *dev, schan_msg_t *msg, int dwc)
 
 
 //CMICX SCHAN OP
-static int
+int
 _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags)
 {
     int i, rv, val, ch;

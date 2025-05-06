@@ -19,10 +19,11 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
+#include "bcm-switchdev-switch.h"
+#include "bcm-switchdev-schan.h"
 #include "bcm-switchdev-extphy.h"
-
-
+#include "bcm-switchdev-cancun.h"
+#include "bcm-switchdev.h"
 
 /*****************************************************************************************/
 /*                              UTILS                                                    */
@@ -42,14 +43,40 @@ _bit_rev_by_byte_word32(uint32 n)
 /*                            CMICX MIIM read/write                                      */
 /*****************************************************************************************/
 
+extern ibde_t *_kernel_bde;
 static int _iproc_setreg(uint32_t addr, uint32_t data)
 {
-    return kernel_bde->iproc_write(0, addr, data);
+    return _kernel_bde->iproc_write(0, addr, data);
 }
 
 static uint32_t _iproc_getreg(uint32 addr)
 {
-    return kernel_bde->iproc_read(0, addr);
+    return _kernel_bde->iproc_read(0, addr);
+}
+
+int _trident3_mdio_rate_divisor_set(void)
+{
+    int int_divisor, ext_divisor;
+    int ring_idx = 0;
+    int ring_idx_end = 0;
+    miim_ring_control_t ring_control;
+
+    ext_divisor = RATE_EXT_MDIO_DIVISOR_DEF;
+    int_divisor = TD3X_RATE_INT_MDIO_DIVISOR_DEF;
+    //delay = -1;
+
+    /*  mdio ring end based on iProc15 device */
+    ring_idx_end = CMICX_MIIM_12R_RING_INDEX_END;
+
+    for (ring_idx = CMICX_MIIM_RING_INDEX_START; ring_idx <= ring_idx_end; ring_idx++) {
+        //soc_cmicx_miim_divider_set_ring(unit, ring_idx, int_divider, ext_divisor, delay);
+        ring_control.word = _iproc_getreg(MIIM_RING0_CONTROLr + (ring_idx<<2));
+        ring_control.reg.CLOCK_DIVIDER_EXTf = ext_divisor;
+    ring_control.reg.CLOCK_DIVIDER_INTf = int_divisor;
+        _iproc_setreg(MIIM_RING0_CONTROLr + (ring_idx<<2), ring_control.word);
+    }
+
+    return SOC_E_NONE;
 }
 
 static
@@ -792,7 +819,7 @@ _bcm_port_ability_local_get(bcmsw_switch_t *bcmsw, int port,
 #endif
 
 //Enable or disable the physical interface.
-static int
+int
 phy_bcm542xx_enable_set(port_info_t *pport, int port, uint16_t phy_addr, int enable)
 {
     uint16    power = (enable) ? 0 : PHY_BCM542XX_MII_CTRL_PWR_DOWN;
@@ -805,7 +832,7 @@ phy_bcm542xx_enable_set(port_info_t *pport, int port, uint16_t phy_addr, int ena
     return 0;
 }
 
-static int 
+int 
 phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *enable)
 {
     uint16_t    power;
@@ -820,7 +847,7 @@ phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *en
     return 0;
 }
 
-static int
+int
 phy_bcm542xx_autoneg_get(port_info_t *pport, int port, uint16_t phy_addr,
                          int *autoneg, int *autoneg_done)
 {
@@ -840,7 +867,7 @@ phy_bcm542xx_autoneg_get(port_info_t *pport, int port, uint16_t phy_addr,
 }
 
 //Determine the current link up/down status for a 542xx device.
-static int
+int
 phy_bcm542xx_link_get(port_info_t *pport, int port, uint16_t phy_addr, int *link)
 {
     int      count = 0;
@@ -1273,7 +1300,7 @@ phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
 }
 
 
-static int phy_bcm542xx_init(bcmsw_switch_t *bcmsw, int port)
+int phy_bcm542xx_init(bcmsw_switch_t *bcmsw, int port)
 {
     //int  fiber_capable = 0;
     int  automedium = 0;

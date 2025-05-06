@@ -1,18 +1,5 @@
 #ifndef _BCM_SWITCHDEV_EXTPHY_H_
 #define _BCM_SWITCHDEV_EXTPHY_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-#include "bcm-switchdev.h"
 
 /*****************************************************************************************/
 /*                            PHY related                                                */
@@ -263,17 +250,5 @@
 #define PHY_BCM542XX_REG_15_RDB_EN              (0x0000)
 #define PHY_BCM542XX_REG_15_RDB_DIS             (0x8000)
 #define PHY_BCM542XX_REG_1E_SELECT_RDB          (0x0087)
-
-int _ext_phy_probe(bcmsw_switch_t *bcmsw, int port);
-int phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
-                         int port,
-                         int reset,
-                         int automedium,
-                         int fiber_preferred,
-                         int fiber_detect,
-                         int fiber_enable,
-                         int copper_enable,
-                         int ext_phy_autodetect_en,
-                         int ext_phy_fiber_iface);
 
 #endif

@@ -1,18 +1,5 @@
 #ifndef _BCM_SWITCHDEV_H_
 #define _BCM_SWITCHDEV_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-
 
 
 /*****************************************************************************************/
@@ -1203,19 +1190,6 @@ typedef struct bcm_l2_cache_addr_s {
 } bcm_l2_cache_addr_t;
 
 
-const bcm_mac_t _mac_spanning_tree =
-	{0x01, 0x80, 0xc2, 0x00, 0x00, 0x00};
-
-const bcm_mac_t _mac_all_routers =
-	{0x01, 0x00, 0x5e, 0x00, 0x00, 0x02};
-
-const bcm_mac_t _mac_all_zeroes =
-	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-const bcm_mac_t _mac_all_ones =
-	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-
-
 
 /* VPN types */
 #define BCM_VPN_TYPE_MPLS_L3    1          
@@ -2228,77 +2202,10 @@ typedef struct {
 
 #define COUNTOF(ary)        ((int) (sizeof (ary) / sizeof ((ary)[0])))
 
-/*****************************************************************************************/
-/*                              FLOWDB                                                   */
-/*****************************************************************************************/
-/* Format of Table for indexed table
- * | START_OF TABLE_CHUNK |
- * | tbl header |
- * | tbl entry records |
- * | END OF Table CHUNK |
- */
-typedef struct soc_flow_db_tbl_map_s {
-   uint32 tbl_start;
-   uint32 block_size; /* block size */
-   uint32 crc;  /* block crc */
-   uint32 pa;   /* hash parameters */
-   uint32 pb;   /* hash parameters */
-   uint32 pc;   /* hash parameters */
-   uint32 pd;   /* hash parameters */
-   uint32 pe;   /* hash parameters */
-   uint32 num_entries;
-   uint32 hash_tbl_size;
-   uint32 tbl_entry;
-} soc_flow_db_tbl_map_t;
-
-typedef struct soc_flow_db_view_ffo_tuple_s {
-    uint32 view_id;
-    uint32 nffos;
-    uint32 *ffo_tuple;
-} soc_flow_db_view_ffo_tuple_t;
-
-typedef struct soc_flow_db_flow_map_s {
-    /* pointer to the flow table chunk */
-    soc_flow_db_tbl_map_t *flow_tbl_lyt;
-    /* pointer to the flow option table chunk */
-    soc_flow_db_tbl_map_t *flow_option_tbl_lyt;
-    /* pointer to the ffo tuple to view id map table chunk */
-    soc_flow_db_tbl_map_t *ffo_tuple_tbl_lyt;
-    /* pointer to the view table chunk */
-    soc_flow_db_tbl_map_t *view_tbl_lyt;
-    /* pointer to the logical field map table chunk*/
-    soc_flow_db_tbl_map_t *lg_field_tbl_lyt;
-    /* view to ffo tuple list*/
-    soc_flow_db_view_ffo_tuple_t *view_ffo_list;
-    /* string table */
-    char *str_tbl;
-} soc_flow_db_flow_map_t;
-
-
-/*****************************************************************************************/
-/*                              CANCUN                                                   */
-/*****************************************************************************************/
-#define CANCUN_FILENAME_SIZE        (256)
-#define CANCUN_VERSION_LEN_MAX      (32)
-#define CANCUN_LIST_BUF_LEN         (512)
-#define CANCUN_DEST_MEM_NUM_MAX     (16)
-#define CANCUN_DEST_FIELD_NUM_MAX   (16)
-
-/*
- * CANCUN file type enumeration
-*/
-typedef enum {
-    CANCUN_SOC_FILE_TYPE_UNKNOWN,
-
-/*****************************************************************************************/
-/*                              profile mem                                              */
-/*****************************************************************************************/
-
 
 /*****************************************************************************************/
 /*                              port info                                                */
 /*****************************************************************************************/
-
 typedef enum _shr_port_if_e {
     _SHR_PORT_IF_NOCXN, /* No physical connection */
     _SHR_PORT_IF_NULL,  /* Pass-through connection without PHY */
@@ -2782,6 +2689,7 @@ typedef struct _bcmsw_switch_s {
 
     //soc cancun info
     soc_cancun_t *soc_cancun_info;
+    ibde_t       *kernel_bde;
 
     //ING/EGR_VLAN_VFI_MEMBERSHIP
     //soc_profile_mem_t *egr_vlan_vfi_untag_profile;
@@ -2821,5 +2729,34 @@ struct bcmsw_switchdev {
 
 
 int bcmsw_switch_init(void);
+extern int bcm_switch_hw_init(bcmsw_switch_t *bcmsw);
+extern int soc_cancun_init (bcmsw_switch_t *swdev);
+extern int _ext_phy_probe(bcmsw_switch_t *bcmsw, int port);
+extern int phy_bcm542xx_init_setup( bcmsw_switch_t *bcmsw,
+                         int port,
+                         int reset,
+                         int automedium,
+                         int fiber_preferred,
+                         int fiber_detect,
+                         int fiber_enable,
+                         int copper_enable,
+                         int ext_phy_autodetect_en,
+                         int ext_phy_fiber_iface);
 
+extern int bcm_esw_stat_init(bcmsw_switch_t *bcmsw);
+extern int phy_bcm542xx_init(bcmsw_switch_t *bcmsw, int port);
+extern int phy_bcm542xx_enable_set(port_info_t *pport, int port, uint16_t phy_addr, int enable);
+extern int phy_bcm542xx_enable_get(port_info_t *pport, int port, uint16_t phy_addr, int *enable);
+extern int phy_bcm542xx_link_get(port_info_t *pport, int port, uint16_t phy_addr, int *link);
+extern int phy_bcm542xx_autoneg_get(port_info_t *pport, int port, uint16_t phy_addr, int *autoneg, int *autoneg_done);
+extern int _trident3_mdio_rate_divisor_set(void);
+
+extern int  _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port);
+extern int  _pm4x10_qtc_pm_core_init (bcmsw_switch_t *bcmsw, int port);
+extern int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port);
+
+extern int _procfs_init(bcmsw_switch_t *bcmsw);
+extern int _procfs_uninit(bcmsw_switch_t *bcmsw);
+
+extern bcmsw_switch_t *_bcmsw;
 #endif

@@ -19,9 +19,12 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
+#include "bcm-switchdev-switch.h"
+#include "bcm-switchdev-schan.h"
+#include "bcm-switchdev-extphy.h"
+#include "bcm-switchdev-cancun.h"
 #include "bcm-switchdev-merlin16.h"
-
+#include "bcm-switchdev.h"
 
 /** 
  *  @brief generic function for register write for PM4X25,
@@ -4714,7 +4717,165 @@ int _pm4x10_qtc_pm_serdes_core_init(bcmsw_switch_t *bcmsw, int port)
     return 0;
 }
 
-static int 
+static int
+ _pm4x10_qtc_port_ecc_init(bcmsw_switch_t *bcmsw, int pmq_blk)
+{
+    uint32_t reg_val;
+
+    /* Init port ecc */
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, &reg_val);
+    //GMIB0_MEM_INITf = 1
+    //GMIB1_MEM_INITf = 1
+    //GP0_MEM_INITf = 1
+    //GP1_MEM_INITf = 1
+    reg_val |= (0xf << 16);
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_CTRLr, reg_val);
+
+    /* Wait for GP/GMIB mem to finish init */
+    msleep(1);
+
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECC_INIT_STSr, &reg_val);
+    if ((reg_val & GP_GMIB_MEM_INIT_DONE_MASK) == GP_GMIB_MEM_INIT_DONE_MASK) {
+        printk("_pm4x10_qtc_port_ecc_init mem init done %d\n", pmq_blk);
+    } else {
+        printk("_pm4x10_qtc_port_ecc_init mem init fail %d reg 0x%08x\n", pmq_blk, reg_val);
+    }
+
+    /*Mask the ECC status for each of the UNIMACs*/
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_ECCr, &reg_val);
+    reg_val |= 0xffff0000;
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_ECCr, reg_val);
+    
+    return SOC_E_NONE;
+}
+
+int pm4x10_qtc_port_tsc_reset_set(bcmsw_switch_t *bcmsw, int pmq_blk, int in_reset)
+{
+    xgxs0_ctrl_reg_t xgxs_reg;
+
+    /* Bring Internal Phy OOR */
+    _reg32_read(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, &xgxs_reg.word);
+   
+    xgxs_reg.reg.RSTB_HWf = in_reset ? 0 : 1;
+    xgxs_reg.reg.PWRDWNf  = in_reset ? 1 : 0;
+    xgxs_reg.reg.IDDQf    = in_reset ? 1 : 0;
+
+    _reg32_write(bcmsw->dev, pmq_blk, PMQ_XGXS0_CTRL_REGr, xgxs_reg.word);
+
+    /* Based on the feedback from SJ pmd support team, ~10-15usecs would be sufficient
+     * for the PLL/AFE to settle down out of IDDQ reset.
+     */
+    msleep(1);
+
+    return SOC_E_NONE;
+}
+
+static const uint32_t gxblk[6] = {
+    SCHAN_BLK_GXPORT0,
+    SCHAN_BLK_GXPORT1,
+    SCHAN_BLK_GXPORT2,
+    SCHAN_BLK_GXPORT3,
+    SCHAN_BLK_GXPORT4,
+    SCHAN_BLK_GXPORT5,
+};
+
+static const uint32_t g_pmqblk[3] = {
+    SCHAN_BLK_PMQPORT0,
+    SCHAN_BLK_PMQPORT1,
+    SCHAN_BLK_PMQPORT2,
+};
+
+static
+int _pm4x10_qtc_pmq_gport_init(bcmsw_switch_t *bcmsw, int port)
+{
+    int  phy_port, index, blk_no;
+    int  pmq_blk, pmq_index;
+    uint32_t val;
+    chip_config_t chip_reg;
+    chip_swrst_reg_t swrst_reg;
+
+    if(port < 1|| port >48) {
+       printk("_pm4x10_qtc_pmq_gport_init invalid port %d\n", port);
+       return -1;
+    }
+    phy_port = bcmsw->si->port_l2p_mapping[port];
+    if (phy_port == -1 ) {
+      printk("_pm4x10_qtc_pmq_gport_init invalid phy port %d\n", phy_port);
+      return -1;
+    }
+
+    blk_no = gxblk[(phy_port-1)/8];
+    index = (phy_port -1)%8;
+
+    pmq_blk = g_pmqblk[(phy_port-1)/16];
+    pmq_index = (phy_port -1)%16;
+
+    if (pmq_index == 0) {
+        /* special init process for PMQ(PM4x10Q in QSGMII mode) - to release PMQ's QSGMII reset state after QSGMII-PCS and UniMAC init. */
+        _reg32_read(bcmsw->dev, pmq_blk, CHIP_CONFIGr, &chip_reg.word);
+        
+        chip_reg.reg.QMODEf = 1;
+        /* According to PORTMACRO-210, when clk=300M or less, ip_tdm should be 2 or less */
+        chip_reg.reg.IP_TDMf = 1;
+        chip_reg.reg.PCS_USXGMII_MODE_ENf = 0;
+        chip_reg.reg.PAUSE_PFC_SELf = 0;
+
+        _reg32_write(bcmsw->dev, pmq_blk, CHIP_CONFIGr, chip_reg.word);
+
+        /* Get Serdes OOR */
+        pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 1);
+        pm4x10_qtc_port_tsc_reset_set(bcmsw, pmq_blk, 0);
+
+        _reg32_read(bcmsw->dev, pmq_blk, CHIP_SWRSTr, &swrst_reg.word);
+        swrst_reg.reg.SOFT_RESET_QSGMII_PCSf = 0x1;
+        swrst_reg.reg.SOFT_RESET_GPORT1f     = 0x1;
+        swrst_reg.reg.SOFT_RESET_GPORT0f     = 0x1;
+        _reg32_write(bcmsw->dev, pmq_blk, CHIP_SWRSTr, swrst_reg.word);
+
+        _reg32_read(bcmsw->dev, pmq_blk, CHIP_SWRSTr, &swrst_reg.word);
+        swrst_reg.reg.SOFT_RESET_QSGMII_PCSf = 0x0;
+        swrst_reg.reg.SOFT_RESET_GPORT1f     = 0x0;
+        swrst_reg.reg.SOFT_RESET_GPORT0f     = 0x0;
+        _reg32_write(bcmsw->dev, pmq_blk, CHIP_SWRSTr, swrst_reg.word);
+
+        /* Init port ecc */
+        _pm4x10_qtc_port_ecc_init(bcmsw, pmq_blk);
+
+        //_SOC_IF_ERR_EXIT(PM4x10_QTC_IS_ACTIVE_SET(unit, pm_info, pm_is_active));
+    }
+
+    /* Initialize mask for purging packet data received from the MAC */
+    val = 0x78;
+    _reg32_write(bcmsw->dev, blk_no, GPORT_RSV_MASKr+index, val);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_STAT_UPDATE_MASKr+index, val);
+
+    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);
+     // CLR_CNTf start 1, len 1
+    val |= (1<<1);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    /* Reset the clear-count bit after 64 clocks */
+    val &= ~(1<<1);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    //GPORT_ENf start 0, len 1
+    _reg32_read(bcmsw->dev, blk_no, GPORT_CONFIGr+index, &val);    
+    val |= 1;
+    _reg32_write(bcmsw->dev, blk_no, GPORT_CONFIGr+index, val);
+
+    _reg32_read(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, &val); 
+    //EP_TO_GP_CRC_MODES_SELf start 5, len 1
+    val &= ~(1<<5);
+    //EP_TO_GP_CRC_FWDf start 4, len 1
+    val &= ~(1<<4);
+    //EP_TO_GP_CRC_OWRTf start 3, len 1
+    val &= ~(1<<3);
+    _reg32_write(bcmsw->dev, blk_no, GPORT_MODE_REGr+index, val); 
+
+    return 0;
+}
+
+int 
 _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
 {
     _pm4x10_qtc_pmq_gport_init(bcmsw, port);
@@ -4722,6 +4883,8 @@ _pm4x10_qtc_port_attach_core_probe (bcmsw_switch_t *bcmsw, int port)
     return 0;
 }
 
+
+extern int unimac_init(bcmsw_switch_t *bcmsw, int port, int init_flags);
 
 static int 
 _pm4x10_qtc_pm_port_init(bcmsw_switch_t *bcmsw, int port)
@@ -4792,7 +4955,6 @@ int _pm4x10_qtc_port_autoneg_set_serdes(bcmsw_switch_t *bcmsw, int port, phymod_
     return rv;
 }
 
-static
 int _pm4x10_qtc_port_attach_resume_fw_load (bcmsw_switch_t *bcmsw, int port)
 {
     // lane mapping

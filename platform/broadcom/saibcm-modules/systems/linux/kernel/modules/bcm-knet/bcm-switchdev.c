@@ -19,16 +19,16 @@
 #include <asm/uaccess.h>
 #include <kcom.h>
 #include <bcm-knet.h>
-#include "bcm-switchdev.h"
 #include "bcm-switchdev-switch.h"
 #include "bcm-switchdev-schan.h"
-#include "bcm-switchdev-merlin16.h"
 #include "bcm-switchdev-extphy.h"
 #include "bcm-switchdev-cancun.h"
+#include "bcm-switchdev-merlin16.h"
 #include "bcm-switchdev-stats.h"
+#include "bcm-switchdev.h"
 
-static ibde_t *kernel_bde = NULL;
-static bcmsw_switch_t *_bcmsw = NULL; 
+ibde_t *_kernel_bde = NULL;
+bcmsw_switch_t *_bcmsw = NULL; 
 
 /*****************************************************************************************/
 /*                             switchdev                                                 */
@@ -284,9 +284,11 @@ int bcmsw_switch_init(void)
     bcmsw->dev = __dev_get_by_name(current->nsproxy->net_ns, "bcm0");
 
     /* Connect to the kernel bde */
-    if ((linux_bde_create(NULL, &kernel_bde) < 0) || kernel_bde == NULL) {
+    if ((linux_bde_create(NULL, &_kernel_bde) < 0) || _kernel_bde == NULL) {
         return -ENODEV;
     }
+
+    bcmsw->kernel_bde = _kernel_bde;
 
     bcm_switch_hw_init(bcmsw);
 

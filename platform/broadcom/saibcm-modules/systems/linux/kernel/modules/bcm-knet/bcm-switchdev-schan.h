@@ -1,19 +1,5 @@
 #ifndef _BCM_SWITCHDEV_SCHAN_H_
 #define _BCM_SWITCHDEV_SCHAN_H_
-#include <linux/module.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/types.h>
-#include <linux/skbuff.h>
-#include <linux/workqueue.h>
-#include <linux/net_namespace.h>
-#include <linux/auxiliary_bus.h>
-#include <net/devlink.h>
-#include <net/switchdev.h>
-#include <net/vxlan.h>
-#include "bcm-switchdev.h"
-
 
 
 /*****************************************************************************************/
@@ -510,6 +496,8 @@ typedef union schan_msg_u {
     uint32 dwords[CMIC_SCHAN_WORDS_ALLOC];
     uint8 bytes[sizeof(uint32) * CMIC_SCHAN_WORDS_ALLOC];
 } schan_msg_t;
+
+int _cmicx_schan_op(struct net_device *dev, schan_msg_t *msg, int dwc_write, int dwc_read, uint32 flags);
 
 int _reg32_write(struct net_device *dev, int dst_blk, uint32_t address, uint32_t data);
 int _reg32_read(struct net_device *dev, int dst_blk, uint32_t address, uint32_t *data);
