@@ -85,14 +85,14 @@ typedef enum {
 * CANCUN version prefix enumeration
 */
 typedef enum {
-CANCUN_VERSION_PREFIX_INVALID,
-CANCUN_VERSION_PREFIX_AV,
-CANCUN_VERSION_PREFIX_CC,
-CANCUN_VERSION_PREFIX_NONE,
+    CANCUN_VERSION_PREFIX_INVALID,
+    CANCUN_VERSION_PREFIX_AV,
+    CANCUN_VERSION_PREFIX_CC,
+    CANCUN_VERSION_PREFIX_NONE,
 
 /*Note: keep CANCUN_VERSION_PREFIX_NUM as the latest element of this enum
  * and update CANCUN_VERSION_PREFIX_INITIALIZER accordingly*/
-CANCUN_VERSION_PREFIX_NUM
+    CANCUN_VERSION_PREFIX_NUM
 } soc_cancun_version_prefix_e;
 
 #define CANCUN_VERSION_PREFIX_INITIALIZER { \
@@ -106,10 +106,10 @@ CANCUN_VERSION_PREFIX_NUM
 * CANCUN file branch ID enumeration, start with 0x01
 */
 typedef enum {
-CANCUN_FILE_BRANCH_ID_DEF = 0x01,
-CANCUN_FILE_BRANCH_ID_HGoE,
-CANCUN_FILE_BRANCH_ID_GSH,
-CANCUN_FILE_BRANCH_ID_NUM
+    CANCUN_FILE_BRANCH_ID_DEF = 0x01,
+    CANCUN_FILE_BRANCH_ID_HGoE,
+    CANCUN_FILE_BRANCH_ID_GSH,
+    CANCUN_FILE_BRANCH_ID_NUM
 } soc_cancun_file_branch_id_e;
 
 /*
@@ -143,14 +143,14 @@ CANCUN_FILE_BRANCH_ID_NUM
 * Contains header format of a CANCUN loadable file
 */
 typedef struct soc_cancun_file_header_s {
-uint32_t file_identifier;     /* Cancun File identifier */
-uint32_t file_type;           /* Cancun File Type */
-uint32_t chip_rev_id;         /* Chip & rev id */
-uint32_t version;             /* Cancun Version */
-uint32_t file_length;         /* File length in 32-bit words */
-uint32_t num_data_blobs;      /* Number of data blobs */
-uint32_t sdk_version;         /* SDK version that builds this file */
-uint32_t rsvd2;
+    uint32_t file_identifier;     /* Cancun File identifier */
+    uint32_t file_type;           /* Cancun File Type */
+    uint32_t chip_rev_id;         /* Chip & rev id */
+    uint32_t version;             /* Cancun Version */
+    uint32_t file_length;         /* File length in 32-bit words */
+    uint32_t num_data_blobs;      /* Number of data blobs */
+    uint32_t sdk_version;         /* SDK version that builds this file */
+    uint32_t rsvd2;
 } soc_cancun_file_header_t;
 
 
@@ -159,21 +159,21 @@ uint32_t rsvd2;
 * Contains information of a CANCUN loadable file
 */
 typedef struct soc_cancun_file_s {
-soc_cancun_file_header_t header;        /* File header */
-soc_cancun_file_type_e type;            /* File type enum */
-soc_cancun_file_format_e format;        /* File format enum */
-char filename[CANCUN_FILENAME_SIZE];    /* Filename */
-int valid;                              /* File validity */
-uint32_t status;                          /* Loading status*/
+    soc_cancun_file_header_t header;        /* File header */
+    soc_cancun_file_type_e type;            /* File type enum */
+    soc_cancun_file_format_e format;        /* File format enum */
+    char filename[CANCUN_FILENAME_SIZE];    /* Filename */
+    int valid;                              /* File validity */
+    uint32_t status;                          /* Loading status*/
 } soc_cancun_file_t;
 
 /* FLOW DB Control Structure */
 typedef struct soc_flow_db_s {
-uint32_t status;
-uint32_t version;
-soc_cancun_file_t file;   /* Flow DB file entry */
-soc_flow_db_flow_map_t *flow_map;
-char *str_tbl;
+    uint32_t status;
+    uint32_t version;
+    soc_cancun_file_t file;   /* Flow DB file entry */
+    soc_flow_db_flow_map_t *flow_map;
+    char *str_tbl;
 } soc_flow_db_t;
 
 /*
@@ -181,9 +181,9 @@ char *str_tbl;
 * Contains information of currently loaded CIH files.
 */
 typedef struct soc_cancun_cih_s {
-uint32_t status;            /* Loading status*/
-uint32_t version;           /* Loaded version */
-soc_cancun_file_t  file;  /* CIH file entry */
+    uint32_t status;            /* Loading status*/
+    uint32_t version;           /* Loaded version */
+    soc_cancun_file_t  file;  /* CIH file entry */
 } soc_cancun_cih_t;
 
 /*
@@ -193,62 +193,62 @@ soc_cancun_file_t  file;  /* CIH file entry */
 *     hash_key = (pa * field_enum + pb * mem_reg_enum + pc) % pd
 */
 typedef struct soc_cancun_hash_table_s {
-uint32_t pa;                  /* Hash function parameter pA */
-uint32_t pb;                  /* Hash function parameter pB */
-uint32_t pc;                  /* Hash function parameter pC */
-uint32_t pd;                  /* Hash function parameter pD */
-uint32_t entry_num;           /* Total entry number in hash table */
-uint32_t table_size;          /* Word count size for hash table */
-uint32_t table_entry;         /* Hash table entry point */
+    uint32_t pa;                  /* Hash function parameter pA */
+    uint32_t pb;                  /* Hash function parameter pB */
+    uint32_t pc;                  /* Hash function parameter pC */
+    uint32_t pd;                  /* Hash function parameter pD */
+    uint32_t entry_num;           /* Total entry number in hash table */
+    uint32_t table_size;          /* Word count size for hash table */
+    uint32_t table_entry;         /* Hash table entry point */
 } soc_cancun_hash_table_t;
 
 /*
 * CANCUN generic hash entry header
 */
 typedef struct soc_cancun_entry_hdr_s {
-uint32_t entry_size;
-uint32_t format;
-uint32_t src_mem;
-uint32_t src_field;
-int src_app;
+    uint32_t entry_size;
+    uint32_t format;
+    uint32_t src_mem;
+    uint32_t src_field;
+    int src_app;
 } soc_cancun_entry_hdr_t;
 
 /*
 * CANCUN coverage list structure
 */
 typedef struct soc_cancun_list_s {
-uint32_t entry_size;
-uint32_t format;
-uint32_t src_mem;
-uint32_t src_field;
-int src_app;
-uint32_t member_num;
-uint32_t members;
+    uint32_t entry_size;
+    uint32_t format;
+    uint32_t src_mem;
+    uint32_t src_field;
+    int src_app;
+    uint32_t member_num;
+    uint32_t members;
 } soc_cancun_list_t;
 
 /*
 * CANCUN destination entry structure for reporting use
 */
 typedef struct soc_cancun_dest_entry_s {
-uint32_t dest_index_num;      /* Destination memory table index number*/
-uint32_t dest_field_num;      /* Destination field number in this memory*/
-uint32_t dest_mems[CANCUN_DEST_MEM_NUM_MAX];      /* Destination memories */
-uint32_t dest_fields[CANCUN_DEST_FIELD_NUM_MAX];  /* Destination fields */
-uint32_t dest_values[CANCUN_DEST_FIELD_NUM_MAX];  /* Destination values */
+    uint32_t dest_index_num;      /* Destination memory table index number*/
+    uint32_t dest_field_num;      /* Destination field number in this memory*/
+    uint32_t dest_mems[CANCUN_DEST_MEM_NUM_MAX];      /* Destination memories */
+    uint32_t dest_fields[CANCUN_DEST_FIELD_NUM_MAX];  /* Destination fields */
+    uint32_t dest_values[CANCUN_DEST_FIELD_NUM_MAX];  /* Destination values */
 } soc_cancun_dest_entry_t;
 
 /*
 * CANCUN CMH map structure
 */
 typedef struct soc_cancun_cmh_map_s {
-uint32_t entry_size;          /* Entry size in word*/
-uint32_t format;              /* CANCUN CMH format */
-uint32_t src_mem;             /* Source memory or register enumeration */
-uint32_t src_field;           /* Source field enumeration */
-int src_app;                /* Source application enumeration */
-uint32_t src_value_num;       /* Number of valid values */
-uint32_t dest_mem_num;        /* Number of destination memories or registers */
-uint32_t dest_map_entry;      /* Entry point for destination mapping */
+    uint32_t entry_size;          /* Entry size in word*/
+    uint32_t format;              /* CANCUN CMH format */
+    uint32_t src_mem;             /* Source memory or register enumeration */
+    uint32_t src_field;           /* Source field enumeration */
+    int src_app;                /* Source application enumeration */
+    uint32_t src_value_num;       /* Number of valid values */
+    uint32_t dest_mem_num;        /* Number of destination memories or registers */
+    uint32_t dest_map_entry;      /* Entry point for destination mapping */
 } soc_cancun_cmh_map_t;
 
 /*
@@ -256,12 +256,12 @@ uint32_t dest_map_entry;      /* Entry point for destination mapping */
 * Contains information of currently loaded CMH files.
 */
 typedef struct soc_cancun_cmh_s {
-uint32_t status;                  /* Loading status*/
-uint32_t version;                 /* Loaded version */
-uint32_t sdk_version;             /* Built SDK version */
-soc_cancun_file_t file;         /* CMH file entry */
-uint32* cmh_table;              /* Entry of CMH hash table */
-uint32* cmh_list;               /* Entry of CMH list of mem/field */
+    uint32_t status;                  /* Loading status*/
+    uint32_t version;                 /* Loaded version */
+    uint32_t sdk_version;             /* Built SDK version */
+    soc_cancun_file_t file;         /* CMH file entry */
+    uint32_t* cmh_table;              /* Entry of CMH hash table */
+    uint32_t* cmh_list;               /* Entry of CMH list of mem/field */
 } soc_cancun_cmh_t;
 
 #define SOC_CANCUN_CMH_LIST_ENTRY_SIZE          (3)
@@ -282,14 +282,14 @@ uint32* cmh_list;               /* Entry of CMH list of mem/field */
 * CANCUN CCH map structure
 */
 typedef struct soc_cancun_cch_map_s {
-uint32_t entry_size;          /* Entry size in word*/
-uint32_t format;              /* CANCUN CCH format */
-uint32_t src_mem;             /* Source memory or register enumeration */
-uint32_t src_field;           /* Source field enumeration */
-int src_app;                /* Source application enumeration */
-uint32_t src_value_num;       /* Number of valid values */
-uint32_t dest_mem_num;        /* Number of destination memories or registers */
-uint32_t dest_map_entry;      /* Entry point for destination mapping */
+    uint32_t entry_size;          /* Entry size in word*/
+    uint32_t format;              /* CANCUN CCH format */
+    uint32_t src_mem;             /* Source memory or register enumeration */
+    uint32_t src_field;           /* Source field enumeration */
+    int src_app;                /* Source application enumeration */
+    uint32_t src_value_num;       /* Number of valid values */
+    uint32_t dest_mem_num;        /* Number of destination memories or registers */
+    uint32_t dest_map_entry;      /* Entry point for destination mapping */
 } soc_cancun_cch_map_t;
 
 /*
@@ -297,12 +297,12 @@ uint32_t dest_map_entry;      /* Entry point for destination mapping */
 * Contains information of currently loaded CMH files.
 */
 typedef struct soc_cancun_cch_s {
-uint32_t status;                  /* Loading status*/
-uint32_t version;                 /* Loaded version */
-uint32_t sdk_version;             /* Built SDK version */
-soc_cancun_file_t file;         /* CCH file entry */
-uint32* cch_table;              /* Entry of CCH hash table */
-uint64* pseudo_regs;            /* Pseudo registers in CCHBLK */
+    uint32_t status;                  /* Loading status*/
+    uint32_t version;                 /* Loaded version */
+    uint32_t sdk_version;             /* Built SDK version */
+    soc_cancun_file_t file;         /* CCH file entry */
+    uint32_t* cch_table;              /* Entry of CCH hash table */
+    uint64_t* pseudo_regs;            /* Pseudo registers in CCHBLK */
 } soc_cancun_cch_t;
 
 /*
@@ -310,29 +310,29 @@ uint64* pseudo_regs;            /* Pseudo registers in CCHBLK */
 * Contains information of currently loaded CEH files.
 */
 typedef struct soc_cancun_ceh_s {
-uint32_t status;                  /* Loading status*/
-uint32_t version;                 /* Loaded version */
-uint32_t sdk_version;             /* Built SDK version */
-soc_cancun_file_t file;         /* CEH file entry */
-uint32* ceh_table;              /* Entry of CEH hash table */
+    uint32_t status;                  /* Loading status*/
+    uint32_t version;                 /* Loaded version */
+    uint32_t sdk_version;             /* Built SDK version */
+    soc_cancun_file_t file;         /* CEH file entry */
+    uint32_t* ceh_table;              /* Entry of CEH hash table */
 } soc_cancun_ceh_t;
 
 typedef struct soc_cancun_ceh_object_s {
-uint32_t name_addr;
-uint32_t width;
-uint32_t num_fields;
+    uint32_t name_addr;
+    uint32_t width;
+    uint32_t num_fields;
 } soc_cancun_ceh_object_t;
 typedef struct soc_cancun_ceh_field_s {
-uint32_t name_addr;
-uint32_t offset;
-uint32_t width;
-uint32_t value;
+    uint32_t name_addr;
+    uint32_t offset;
+    uint32_t width;
+    uint32_t value;
 } soc_cancun_ceh_field_t;
 typedef struct soc_cancun_ceh_field_info_s {
-uint32_t offset;
-uint32_t width;
-uint32_t value;
-uint32_t flags;
+    uint32_t offset;
+    uint32_t width;
+    uint32_t value;
+    uint32_t flags;
 } soc_cancun_ceh_field_info_t;
 
 #define SOC_CANCUN_CEH_BLOCK_HASH_HEADER_LEN  9
@@ -503,13 +503,13 @@ typedef struct soc_cancun_s {
     ((_ver) <= SOC_CANCUN_VERSION(5,1,0xff))
 
 typedef struct soc_cancun_udf_stage_info_s {
-uint32_t size;
-soc_mem_t policy_mem;
-uint32_t start_pos;
-uint32_t unavail_contbmap;
-uint32_t flags;
-uint32_t hfe_prof_ptr_arr_len;
-uint32_t *hfe_profile_ptr;
+    uint32_t size;
+    soc_mem_t policy_mem;
+    uint32_t start_pos;
+    uint32_t unavail_contbmap;
+    uint32_t flags;
+    uint32_t hfe_prof_ptr_arr_len;
+    uint32_t *hfe_profile_ptr;
 } soc_cancun_udf_stage_info_t;
 
 
