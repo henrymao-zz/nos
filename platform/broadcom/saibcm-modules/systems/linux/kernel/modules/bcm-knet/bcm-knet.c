@@ -539,8 +539,8 @@ static volatile int module_initialized;
 
 static ibde_t *kernel_bde = NULL;
 
-extern int bcmsw_switch_init(void);
-extern int bcmsw_switch_uninit(void);
+extern int bcm_switchdev_init(void);
+extern int bcm_switchdev_uninit(void);
 
 /* Descriptor info */
 typedef struct bkn_desc_info_s {
@@ -3950,6 +3950,22 @@ bkn_do_api_rx(bkn_switch_info_t *sinfo, int chan, int budget)
                                 }
                             }
                         }
+                    } else {
+                        uint16_t vlan_proto = PKT_U16_GET(pkt, 12);
+                        /* Strip the VLAN tag for 4095 */
+                        if (vlan_proto == ETH_P_8021Q ||
+                            vlan_proto == ETH_P_8021AD) {
+                            uint16_t tci = PKT_U16_GET(pkt, 14);
+                            
+                            if (tci == 0xFFF) {
+                                DBG_FLTR(("Strip VLAN tag\n"));
+                                for (idx = 11; idx >= 0; idx--) {
+                                    pkt[idx+4] = pkt[idx];
+                                }
+                                pktlen -= 4;
+                                pkt += 4;
+                            }
+                        }
                     }
 
                     skb_copy_to_linear_data(skb, pkt, pktlen);
@@ -4390,6 +4406,32 @@ bkn_do_skb_rx(bkn_switch_info_t *sinfo, int chan, int budget)
                             /* Strip VLAN tag */
                             if (vlan_proto == ETH_P_8021Q ||
                                 vlan_proto == ETH_P_8021AD) {
+                                DBG_FLTR(("Strip VLAN tag\n"));
+                                ((u32*)skb->data)[3] = ((u32*)skb->data)[2];
+                                ((u32*)skb->data)[2] = ((u32*)skb->data)[1];
+                                ((u32*)skb->data)[1] = ((u32*)skb->data)[0];
+                                skb_pull(skb, 4);
+                                if (device_is_sand(sinfo)) {
+                                    for (idx = pkt_hdr_size; idx >= 4; idx--) {
+                                        pkt[idx] = pkt[idx - 4];
+                                    }
+                                } else if (sinfo->cmic_type == 'x') {
+                                    for (idx = pkt_hdr_size / sizeof(uint32_t);
+                                         idx; idx--) {
+                                        meta[idx] = meta[idx - 1];
+                                    }
+                                    meta++;
+                                }
+                            }
+                        }
+                    } else {
+                        uint16_t vlan_proto = PKT_U16_GET(skb->data, 12);
+                        /* Strip the VLAN tag for 4095 */
+                        if (vlan_proto == ETH_P_8021Q ||
+                            vlan_proto == ETH_P_8021AD) {
+                            uint16_t tci = PKT_U16_GET(skb->data, 14);
+                            
+                            if (tci == 0xFFF) {
                                 DBG_FLTR(("Strip VLAN tag\n"));
                                 ((u32*)skb->data)[3] = ((u32*)skb->data)[2];
                                 ((u32*)skb->data)[2] = ((u32*)skb->data)[1];
@@ -5268,7 +5310,7 @@ xgsm_do_dma(bkn_switch_info_t *sinfo, int budget)
 {
     int rx_dcbs_done = 0, tx_dcbs_done = 0;
     int chan_done, budget_chans = 0;
-    uint32_t dma_stat =0, irq_stat = 0;
+    uint32_t dma_stat = 0, irq_stat = 0;
     int chan;
     int unet_chans = 0;
 
@@ -7891,7 +7933,7 @@ bkn_proc_dstats_write(struct file *file, const char *buf,
                       size_t count, loff_t *loff)
 {
     bkn_switch_info_t *sinfo;
-    static char debug_str[40];
+    char debug_str[40];
     char *ptr;
     int unit;
     int clear_mask;
@@ -8698,6 +8740,14 @@ bkn_knet_reprobe(kcom_msg_reprobe_t *kmsg, int len)
 
     return sizeof(kcom_msg_reprobe_t);
 }
+
+int bcm_knet_get_port(struct net_device *dev)
+{
+    bkn_priv_t *priv = netdev_priv(dev);
+
+    return priv->port;
+}
+
 
 static int
 bkn_knet_netif_create(kcom_msg_netif_create_t *kmsg, int len)
@@ -9551,7 +9601,7 @@ _cleanup(void)
     module_initialized = 0;
 
     //TODO switchdev cleanup
-    bcmsw_switch_uninit();
+    bcm_switchdev_uninit();
 
     bkn_proc_cleanup();
     remove_proc_entry("bcm/knet", NULL);
@@ -9792,7 +9842,7 @@ _init(void)
     init_waitqueue_head(&evt->evt_wq);
 
     /* TODO: switchdev related,  move to separate module*/
-    bcmsw_switch_init();
+    bcm_switchdev_init();
 
     module_initialized = 1;
 
@@ -9804,48 +9854,54 @@ static int
 _ioctl(unsigned int cmd, unsigned long arg)
 {
     bkn_ioctl_t io;
-    static kcom_msg_t kmsg;
+    kcom_msg_t *kmsg;
 
     if (!module_initialized) {
         return -EFAULT;
     }
 
+    memset(&io, 0, sizeof(bkn_ioctl_t));
     if (copy_from_user(&io, (void*)arg, sizeof(io))) {
         return -EFAULT;
     }
 
-    if (io.len > sizeof(kmsg)) {
+    if (io.len > sizeof(kcom_msg_t)) {
         return -EINVAL;
     }
 
     io.rc = 0;
 
+    kmsg = kvmalloc(sizeof(kcom_msg_t), GFP_KERNEL);
+    memset(kmsg, 0, sizeof(kcom_msg_t));
+
     switch(cmd) {
     case 0:
         if (io.len > 0) {
-            if (copy_from_user(&kmsg, (void *)(unsigned long)io.buf, io.len)) {
+            if (copy_from_user(kmsg, (void *)(unsigned long)io.buf, io.len)) {
+                kvfree(kmsg);
                 return -EFAULT;
             }
             ioctl_cmd++;
-            io.len = bkn_handle_cmd_req(&kmsg, io.len);
+            io.len = bkn_handle_cmd_req(kmsg, io.len);
             ioctl_cmd--;
         } else {
-            memset(&kmsg, 0, sizeof(kcom_msg_t));
             /*
              * Retrive the kmsg.hdr.unit from user space. The dma event queue
              * selection is based the instance derived from unit.
              */
-            if (copy_from_user(&kmsg, (void *)(unsigned long)io.buf, sizeof(kmsg))) {
+            if (copy_from_user(kmsg, (void *)(unsigned long)io.buf, sizeof(kcom_msg_t))) {
+                kvfree(kmsg);
                 return -EFAULT;
             }
-            kmsg.hdr.type = KCOM_MSG_TYPE_EVT;
-            kmsg.hdr.opcode = KCOM_M_DMA_INFO;
+            kmsg->hdr.type = KCOM_MSG_TYPE_EVT;
+            kmsg->hdr.opcode = KCOM_M_DMA_INFO;
             ioctl_evt++;
-            io.len = bkn_get_next_dma_event((kcom_msg_dma_info_t *)&kmsg);
+            io.len = bkn_get_next_dma_event((kcom_msg_dma_info_t *)kmsg);
             ioctl_evt--;
         }
         if (io.len > 0) {
-            if (copy_to_user((void *)(unsigned long)io.buf, &kmsg, io.len)) {
+            if (copy_to_user((void *)(unsigned long)io.buf, kmsg, io.len)) {
+                kvfree(kmsg);
                 return -EFAULT;
             }
         }
@@ -9857,8 +9913,11 @@ _ioctl(unsigned int cmd, unsigned long arg)
     }
 
     if (copy_to_user((void*)arg, &io, sizeof(io))) {
+        kvfree(kmsg);
         return -EFAULT;
     }
+
+    kvfree(kmsg);
 
     return 0;
 }
