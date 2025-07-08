@@ -1535,10 +1535,8 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 	j2 -f env files/initramfs-tools/union-mount.j2 onie-image.conf > files/initramfs-tools/union-mount
 	j2 -f env files/initramfs-tools/arista-convertfs.j2 onie-image.conf > files/initramfs-tools/arista-convertfs
 
-	$(if $($*_DOCKERS),
-		j2 files/build_templates/sonic_debian_extension.j2 > sonic_debian_extension.sh
-		chmod +x sonic_debian_extension.sh,
-	)
+	j2 files/build_templates/sonic_debian_extension.j2 > sonic_debian_extension.sh
+	chmod +x sonic_debian_extension.sh
 
 	export RFS_SPLIT_FIRST_STAGE=n
 	export RFS_SPLIT_LAST_STAGE=y
