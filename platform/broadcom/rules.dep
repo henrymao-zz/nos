@@ -7,7 +7,7 @@ include $(PLATFORM_PATH)/switchdev.dep
 # * Juniper
 # * Ragile
 #include $(PLATFORM_PATH)/platform-modules-s6000.dep
-#include $(PLATFORM_PATH)/platform-modules-dell.dep
+include $(PLATFORM_PATH)/platform-modules-dell.dep
 ####include $(PLATFORM_PATH)/platform-modules-arista.dep
 ####include $(PLATFORM_PATH)/platform-modules-ingrasys.dep
 ####include $(PLATFORM_PATH)/platform-modules-accton.dep
