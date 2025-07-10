@@ -28,10 +28,6 @@
 [submodule "src/sonic-mgmt-common"]
 	path = src/sonic-mgmt-common
 	url = https://github.com/canonical/sonic-mgmt-common.git
-[submodule "platform/broadcom/saibcm-modules-dnx"]
-	path = platform/broadcom/saibcm-modules-dnx
-	url = https://github.com/canonical/saibcm-modules.git
-	branch = sdk-6.5.29-master_2
 [submodule "src/linkmgrd"]
 	path = src/linkmgrd
 	url = https://github.com/canonical/sonic-linkmgrd.git
