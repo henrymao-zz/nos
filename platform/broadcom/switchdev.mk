@@ -1,6 +1,6 @@
 # Broadcom switchdev modules
 
-BRCM_SWITCHDEV_VERSION = 1.0.0.0 
+BRCM_SWITCHDEV_VERSION = 1.0
 
 BRCM_SWITCHDEV = switchdev-modules_$(BRCM_SWITCHDEV_VERSION)_amd64.deb
 $(BRCM_SWITCHDEV)_SRC_PATH = $(PLATFORM_PATH)/switchdev

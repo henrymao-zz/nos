@@ -1,5 +1,6 @@
 #DPKG FRK
-include $(PLATFORM_PATH)/sai-modules.dep
+#include $(PLATFORM_PATH)/sai-modules.dep
+include $(PLATFORM_PATH)/switchdev.dep
 #include $(PLATFORM_PATH)/sai.dep
 # TODO: re-enable once the following have been updated for bookworm:
 # * Nokia
