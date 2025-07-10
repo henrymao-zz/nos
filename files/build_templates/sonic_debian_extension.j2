@@ -68,196 +68,196 @@ sudo LANG=C chroot $FILESYSTEM_ROOT mount sysfs /sys -t sysfs
 sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get update
 
 # Install efitools to support secure upgrade
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install efitools
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install mokutil
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install efitools
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install mokutil
 
 # Apply environtment configuration files
-sudo cp $IMAGE_CONFIGS/environment/environment $FILESYSTEM_ROOT/etc/
-sudo cp $IMAGE_CONFIGS/environment/motd $FILESYSTEM_ROOT/etc/
-sudo cp $IMAGE_CONFIGS/environment/logout_message $FILESYSTEM_ROOT/etc/
+#sudo cp $IMAGE_CONFIGS/environment/environment $FILESYSTEM_ROOT/etc/
+#sudo cp $IMAGE_CONFIGS/environment/motd $FILESYSTEM_ROOT/etc/
+#sudo cp $IMAGE_CONFIGS/environment/logout_message $FILESYSTEM_ROOT/etc/
 
 # Create all needed directories
-sudo mkdir -p $FILESYSTEM_ROOT/etc/sonic/
-sudo mkdir -p $FILESYSTEM_ROOT/etc/modprobe.d/
-sudo mkdir -p $FILESYSTEM_ROOT/var/cache/sonic/
-sudo mkdir -p $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-sudo mkdir -p $FILESYSTEM_ROOT_USR_SHARE_SONIC_FIRMWARE/
-# This is needed for Stretch and might not be needed for Buster where Linux create this directory by default.
-# Keeping it generic. It should not harm anyways.
-sudo mkdir -p $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/sonic/
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/modprobe.d/
+#sudo mkdir -p $FILESYSTEM_ROOT/var/cache/sonic/
+#sudo mkdir -p $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#sudo mkdir -p $FILESYSTEM_ROOT_USR_SHARE_SONIC_FIRMWARE/
+## This is needed for Stretch and might not be needed for Buster where Linux create this directory by default.
+## Keeping it generic. It should not harm anyways.
+#sudo mkdir -p $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
 
 # Install a patched version of ipmitool  (and its dependencies via 'apt-get -y install -f')
-sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/ipmitool_*.deb || \
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
+#sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/ipmitool_*.deb || \
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 
 # Install a patched version of ntp  (and its dependencies via 'apt-get -y install -f')
-sudo dpkg --root=$FILESYSTEM_ROOT --force-confdef --force-confold -i $debs_path/ntp_*.deb || \
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y \
-    -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -f
+#sudo dpkg --root=$FILESYSTEM_ROOT --force-confdef --force-confold -i $debs_path/ntp_*.deb || \
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y \
+#    -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -f
 
 # Install dependencies for SONiC config engine
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install \
-    python3-dev
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install \
+#    python3-dev
 
 # Install jinjanator for handling jinja template
 #sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install jinjanator 
 
 # Install Python module for psutil
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install psutil
+#sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install psutil
 
 # Install Python module for ipaddr
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install ipaddr
+#sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install ipaddr
 
 # Install Python module for grpcio and grpcio-toole
-if [[ $CONFIGURED_ARCH == amd64 ]]; then
-    sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install "grpcio==1.65.1"
-    sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install "grpcio-tools==1.65.1"
-fi
+#if [[ $CONFIGURED_ARCH == amd64 ]]; then
+#    sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install "grpcio==1.65.1"
+#    sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install "grpcio-tools==1.65.1"
+#fi
 
 # Install customized bash version to patch bash plugin support.
-sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/bash_*.deb || \
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
+#sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/bash_*.deb || \
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 
 # sonic-utilities-data installs bash-completion as a dependency. However, it is disabled by default
 # in bash.bashrc, so we copy a version of the file with it enabled here.
-sudo cp -f $IMAGE_CONFIGS/bash/bash.bashrc $FILESYSTEM_ROOT/etc/
-sudo cp -f $IMAGE_CONFIGS/bash/bash.bash_logout $FILESYSTEM_ROOT/etc/
+#sudo cp -f $IMAGE_CONFIGS/bash/bash.bashrc $FILESYSTEM_ROOT/etc/
+#sudo cp -f $IMAGE_CONFIGS/bash/bash.bash_logout $FILESYSTEM_ROOT/etc/
 
 # Install readline's initialization file
-sudo cp -f $IMAGE_CONFIGS/readline/inputrc $FILESYSTEM_ROOT/etc/
+#sudo cp -f $IMAGE_CONFIGS/readline/inputrc $FILESYSTEM_ROOT/etc/
 
 # Install prerequisites needed for installing the dependent Python packages of sonic-host-services
 # These packages can be uninstalled after installation
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libcairo2-dev libdbus-1-dev libgirepository1.0-dev libsystemd-dev pkg-config python3-dbus
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libcairo2-dev libdbus-1-dev libgirepository1.0-dev libsystemd-dev pkg-config python3-dbus
 
 # Mark runtime dependencies as manually installed to avoid them being auto-removed while uninstalling build dependencies
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-mark manual gir1.2-glib-2.0 libdbus-1-3 libgirepository-1.0-1 libsystemd0 python3-dbus
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-mark manual gir1.2-glib-2.0 libdbus-1-3 libgirepository-1.0-1 libsystemd0 python3-dbus
 
 # Install SONiC Device Data  (and its dependencies via 'apt-get -y install -f')
-sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/sonic-device-data_*.deb || \
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
+#sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/sonic-device-data_*.deb || \
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
 
 # package for supporting password hardening
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libpam-pwquality
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libpam-pwquality
 
 # Install pam-ldap, nss-ldap, ldap-utils
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
-    libnss-ldapd \
-    libpam-ldapd \
-    ldap-utils
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install      \
+#    libnss-ldapd \
+#    libpam-ldapd \
+#    ldap-utils
 
-{% if sonic_asic_platform == 'broadcom' %}
-# Install custom-built flashrom
-sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/flashrom_*.deb
-{% endif %}
+#{% if sonic_asic_platform == 'broadcom' %}
+## Install custom-built flashrom
+#sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/flashrom_*.deb
+#{% endif %}
 
 # Copy crontabs
-sudo cp -f $IMAGE_CONFIGS/cron.d/* $FILESYSTEM_ROOT/etc/cron.d/
+#sudo cp -f $IMAGE_CONFIGS/cron.d/* $FILESYSTEM_ROOT/etc/cron.d/
 
 # Copy NTP configuration files and templates
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT \
-    apt-get -y install ntpdate
-sudo rm -f $FILESYSTEM_ROOT/etc/network/if-up.d/ntpsec-ntpdate
-sudo cp $IMAGE_CONFIGS/ntp/ntp-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "ntp-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
-sudo cp $IMAGE_CONFIGS/ntp/ntp-config.sh $FILESYSTEM_ROOT/usr/bin/
-sudo cp $IMAGE_CONFIGS/ntp/ntp.conf.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-sudo cp $IMAGE_CONFIGS/ntp/ntp.keys.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-sudo cp $IMAGE_CONFIGS/ntp/ntp-systemd-wrapper $FILESYSTEM_ROOT/usr/libexec/ntpsec/
-sudo mkdir $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM/ntpsec.service.d
-sudo cp $IMAGE_CONFIGS/ntp/sonic-target.conf $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM/ntpsec.service.d/
-echo "ntpsec.service" | sudo tee -a $GENERATED_SERVICE_FILE
-
-# Copy logrotate.d configuration files
-sudo cp -f $IMAGE_CONFIGS/logrotate/logrotate.d/* $FILESYSTEM_ROOT/etc/logrotate.d/
-sudo cp $IMAGE_CONFIGS/logrotate/rsyslog.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-sudo cp $IMAGE_CONFIGS/logrotate/logrotate-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-sudo cp $IMAGE_CONFIGS/logrotate/logrotate-config.sh $FILESYSTEM_ROOT/usr/bin/
-sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/logrotate.timer.d
-sudo cp $IMAGE_CONFIGS/logrotate/timerOverride.conf $FILESYSTEM_ROOT/etc/systemd/system/logrotate.timer.d/
-echo "logrotate-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
-
-# Copy systemd-journald configuration files
-sudo cp -f $IMAGE_CONFIGS/systemd/journald.conf $FILESYSTEM_ROOT/etc/systemd/
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT \
+#    apt-get -y install ntpdate
+#sudo rm -f $FILESYSTEM_ROOT/etc/network/if-up.d/ntpsec-ntpdate
+#sudo cp $IMAGE_CONFIGS/ntp/ntp-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#echo "ntp-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#sudo cp $IMAGE_CONFIGS/ntp/ntp-config.sh $FILESYSTEM_ROOT/usr/bin/
+#sudo cp $IMAGE_CONFIGS/ntp/ntp.conf.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#sudo cp $IMAGE_CONFIGS/ntp/ntp.keys.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#sudo cp $IMAGE_CONFIGS/ntp/ntp-systemd-wrapper $FILESYSTEM_ROOT/usr/libexec/ntpsec/
+#sudo mkdir $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM/ntpsec.service.d
+#sudo cp $IMAGE_CONFIGS/ntp/sonic-target.conf $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM/ntpsec.service.d/
+#echo "ntpsec.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#
+## Copy logrotate.d configuration files
+#sudo cp -f $IMAGE_CONFIGS/logrotate/logrotate.d/* $FILESYSTEM_ROOT/etc/logrotate.d/
+#sudo cp $IMAGE_CONFIGS/logrotate/rsyslog.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#sudo cp $IMAGE_CONFIGS/logrotate/logrotate-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo cp $IMAGE_CONFIGS/logrotate/logrotate-config.sh $FILESYSTEM_ROOT/usr/bin/
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/logrotate.timer.d
+#sudo cp $IMAGE_CONFIGS/logrotate/timerOverride.conf $FILESYSTEM_ROOT/etc/systemd/system/logrotate.timer.d/
+#echo "logrotate-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#
+## Copy systemd-journald configuration files
+#sudo cp -f $IMAGE_CONFIGS/systemd/journald.conf $FILESYSTEM_ROOT/etc/systemd/
 
 # Copy interfaces configuration files and templates
-sudo cp $IMAGE_CONFIGS/interfaces/interfaces-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-sudo cp $IMAGE_CONFIGS/interfaces/interfaces-config.sh $FILESYSTEM_ROOT/usr/bin/
-sudo cp $IMAGE_CONFIGS/interfaces/*.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-echo "interfaces-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
-
-# Copy DNS configuration files and templates
-sudo cp $IMAGE_CONFIGS/resolv-config/resolv-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-sudo cp $IMAGE_CONFIGS/resolv-config/resolv-config.sh $FILESYSTEM_ROOT/usr/bin/
-sudo cp $IMAGE_CONFIGS/resolv-config/resolv.conf.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
-echo "resolv-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
-sudo LANG=C chroot $FILESYSTEM_ROOT systemctl disable resolv-config.service
-sudo mkdir -p $FILESYSTEM_ROOT/etc/resolvconf/update-libc.d/
-
-# Copy initial interfaces configuration file, will be overwritten on first boot
-sudo cp $IMAGE_CONFIGS/interfaces/init_interfaces $FILESYSTEM_ROOT/etc/network/interfaces
-sudo mkdir -p $FILESYSTEM_ROOT/etc/network/interfaces.d
-
-# System'd network udev rules
-sudo cp $IMAGE_CONFIGS/systemd/network/* $FILESYSTEM_ROOT_ETC/systemd/network/
+#sudo cp $IMAGE_CONFIGS/interfaces/interfaces-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo cp $IMAGE_CONFIGS/interfaces/interfaces-config.sh $FILESYSTEM_ROOT/usr/bin/
+#sudo cp $IMAGE_CONFIGS/interfaces/*.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#echo "interfaces-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#
+## Copy DNS configuration files and templates
+#sudo cp $IMAGE_CONFIGS/resolv-config/resolv-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo cp $IMAGE_CONFIGS/resolv-config/resolv-config.sh $FILESYSTEM_ROOT/usr/bin/
+#sudo cp $IMAGE_CONFIGS/resolv-config/resolv.conf.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+#echo "resolv-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#sudo LANG=C chroot $FILESYSTEM_ROOT systemctl disable resolv-config.service
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/resolvconf/update-libc.d/
+#
+## Copy initial interfaces configuration file, will be overwritten on first boot
+#sudo cp $IMAGE_CONFIGS/interfaces/init_interfaces $FILESYSTEM_ROOT/etc/network/interfaces
+#sudo mkdir -p $FILESYSTEM_ROOT/etc/network/interfaces.d
+#
+## System'd network udev rules
+#sudo cp $IMAGE_CONFIGS/systemd/network/* $FILESYSTEM_ROOT_ETC/systemd/network/
 
 # copy core file uploader files
-sudo cp $IMAGE_CONFIGS/corefile_uploader/core_uploader.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-sudo LANG=C chroot $FILESYSTEM_ROOT systemctl disable core_uploader.service
-sudo cp $IMAGE_CONFIGS/corefile_uploader/core_uploader.py $FILESYSTEM_ROOT/usr/bin/
-sudo cp $IMAGE_CONFIGS/corefile_uploader/core_analyzer.rc.json $FILESYSTEM_ROOT_ETC_SONIC/
-sudo chmod og-rw $FILESYSTEM_ROOT_ETC_SONIC/core_analyzer.rc.json
+#sudo cp $IMAGE_CONFIGS/corefile_uploader/core_uploader.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo LANG=C chroot $FILESYSTEM_ROOT systemctl disable core_uploader.service
+#sudo cp $IMAGE_CONFIGS/corefile_uploader/core_uploader.py $FILESYSTEM_ROOT/usr/bin/
+#sudo cp $IMAGE_CONFIGS/corefile_uploader/core_analyzer.rc.json $FILESYSTEM_ROOT_ETC_SONIC/
+#sudo chmod og-rw $FILESYSTEM_ROOT_ETC_SONIC/core_analyzer.rc.json
+#
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libffi-dev libssl-dev
 
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libffi-dev libssl-dev
+#{% if include_bootchart == 'y' %}
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install systemd-bootchart
+#sudo tee $FILESYSTEM_ROOT_ETC/systemd/bootchart.conf > /dev/null <<EOF
+#[Bootchart]
+#Samples=4500
+#Frequency=25
+#Cmdline=yes
+#EOF
+#{% if enable_bootchart == 'y' %}
+#sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable systemd-bootchart
+#{% endif %}
+#{% endif %}
 
-{% if include_bootchart == 'y' %}
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install systemd-bootchart
-sudo tee $FILESYSTEM_ROOT_ETC/systemd/bootchart.conf > /dev/null <<EOF
-[Bootchart]
-Samples=4500
-Frequency=25
-Cmdline=yes
-EOF
-{% if enable_bootchart == 'y' %}
-sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable systemd-bootchart
-{% endif %}
-{% endif %}
-
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install azure-storage==0.36.0
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install watchdog==4.0.1
-
+#sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install azure-storage==0.36.0
+#sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install watchdog==4.0.1
+#
 # Copy sudoers configuration file
-sudo cp $IMAGE_CONFIGS/sudoers/sudoers $FILESYSTEM_ROOT/etc/
-sudo cp $IMAGE_CONFIGS/sudoers/sudoers.lecture $FILESYSTEM_ROOT/etc/
+#sudo cp $IMAGE_CONFIGS/sudoers/sudoers $FILESYSTEM_ROOT/etc/
+#sudo cp $IMAGE_CONFIGS/sudoers/sudoers.lecture $FILESYSTEM_ROOT/etc/
 
 # Copy pcie-check service files
-sudo cp $IMAGE_CONFIGS/pcie-check/pcie-check.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-echo "pcie-check.service" | sudo tee -a $GENERATED_SERVICE_FILE
-sudo cp $IMAGE_CONFIGS/pcie-check/pcie-check.sh $FILESYSTEM_ROOT/usr/bin/
+#sudo cp $IMAGE_CONFIGS/pcie-check/pcie-check.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#echo "pcie-check.service" | sudo tee -a $GENERATED_SERVICE_FILE
+#sudo cp $IMAGE_CONFIGS/pcie-check/pcie-check.sh $FILESYSTEM_ROOT/usr/bin/
 
 ## Install package without starting service
 ## ref: https://wiki.debian.org/chroot
-sudo tee -a $FILESYSTEM_ROOT/usr/sbin/policy-rc.d > /dev/null <<EOF
-#!/bin/sh
-exit 101
-EOF
-sudo chmod a+x $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
+#sudo tee -a $FILESYSTEM_ROOT/usr/sbin/policy-rc.d > /dev/null <<EOF
+##!/bin/sh
+#exit 101
+#EOF
+#sudo chmod a+x $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
 
-if [ "$INCLUDE_FIPS" == y ]; then
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libatomic1
-    # The package openssh-client 9.2 is conflict with FIPS, the line below can be removed when the openssh-client version>=9.4
-    # The package will be reinstalled when isntalling the FIPS packages
-    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y remove openssh-client
-fi
-
-{% if installer_debs.strip() -%}
-{% for deb in installer_debs.strip().split(' ') -%}
-sudo dpkg --root=$FILESYSTEM_ROOT -i {{deb}} || sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
-{% endfor %}
-{% endif %}
+#if [ "$INCLUDE_FIPS" == y ]; then
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libatomic1
+#    # The package openssh-client 9.2 is conflict with FIPS, the line below can be removed when the openssh-client version>=9.4
+#    # The package will be reinstalled when isntalling the FIPS packages
+#    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y remove openssh-client
+#fi
+#
+#{% if installer_debs.strip() -%}
+#{% for deb in installer_debs.strip().split(' ') -%}
+#sudo dpkg --root=$FILESYSTEM_ROOT -i {{deb}} || sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
+#{% endfor %}
+#{% endif %}
 
 ## Run depmod command for target kernel modules
-sudo LANG=C chroot $FILESYSTEM_ROOT depmod -a {{kversion}}
+#sudo LANG=C chroot $FILESYSTEM_ROOT depmod -a {{kversion}}
 
 ## download all dependency packages for platform debian packages
 {% if lazy_installer_debs.strip() -%}
@@ -293,27 +293,27 @@ fi
 # Remove sshd host keys, and will regenerate on first sshd start. This needs to be
 # done again here because our custom version of sshd is being installed, which
 # will regenerate the sshd host keys.
-sudo rm -f $FILESYSTEM_ROOT/etc/ssh/ssh_host_*_key*
+#sudo rm -f $FILESYSTEM_ROOT/etc/ssh/ssh_host_*_key*
 
-sudo rm -f $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
+#sudo rm -f $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
 
 # Copy fstrim service and timer file, enable fstrim timer
-sudo cp $IMAGE_CONFIGS/fstrim/* $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
-sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable fstrim.timer
+#sudo cp $IMAGE_CONFIGS/fstrim/* $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+#sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable fstrim.timer
 
 ## copy platform rc.local
 sudo cp $IMAGE_CONFIGS/platform/rc.local $FILESYSTEM_ROOT/etc/
 
 ## copy blacklist file
-sudo cp $IMAGE_CONFIGS/platform/linux_kernel_bde.conf $FILESYSTEM_ROOT/etc/modprobe.d/
+#sudo cp $IMAGE_CONFIGS/platform/linux_kernel_bde.conf $FILESYSTEM_ROOT/etc/modprobe.d/
 
 # Enable psample drivers to support sFlow on vs
-{% if sonic_asic_platform == "vs" %}
-sudo tee -a $FILESYSTEM_ROOT/etc/modules-load.d/modules.conf > /dev/null <<EOF
-psample
-act_sample
-EOF
-{% endif %}
+#{% if sonic_asic_platform == "vs" %}
+#sudo tee -a $FILESYSTEM_ROOT/etc/modules-load.d/modules.conf > /dev/null <<EOF
+#psample
+#act_sample
+#EOF
+#{% endif %}
 
 # Mask services which are disabled by default
 #sudo cp $BUILD_SCRIPTS_DIR/mask_disabled_services.py $FILESYSTEM_ROOT/tmp/
@@ -322,4 +322,4 @@ EOF
 #sudo rm -rf $FILESYSTEM_ROOT/tmp/mask_disabled_services.py
 
 
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install python3-dbus
+#sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install python3-dbus
