@@ -305,6 +305,13 @@ if [ -f $FIRST_BOOT_FILE ]; then
         fi
     fi
 
+    # create link to platform specific config files
+    if [ -d /usr/share/sonic/device/$platform/ ]; then
+        # get default hwsku
+        hwsku=$(head -1 /usr/share/sonic/device/$platform/default_sku | awk '{print $1}')
+        ln -s /usr/share/sonic/device/$platform/$hwsku  /etc/bcm
+    fi
+
     sync
 
     # If the unit booted into SONiC from another NOS's grub,
