@@ -1,0 +1,22 @@
+INTERVAL=5
+# "tmp75-i2c-7-49"  "Switch Near Temperature"
+# "tmp75-i2c-7-4a"  "Switch Rear Temperature"
+# "tmp75-i2c-7-4b"  "Front Panel PHY Temperature"
+# "tmp75-i2c-7-4c"  "Near Front Panel Temperature"
+# "tmp75-i2c-7-4f"   "Middle Fan Tray Temperature"
+DEVPATH=hwmon1=devices/pci0000:00/0000:00:12.0/i2c-0/i2c-7/7-002c hwmon2=devices/pci0000:00/0000:00:12.0/i2c-0/i2c-7/7-0049  hwmon3=devices/pci0000:00/0000:00:12.0/i2c-0/i2c-7/7-004a hwmon4=devices/pci0000:00/0000:00:12.0/i2c-0/i2c-7/7-004b 
+DEVNAME=hwmon1=emc2305 hwmon2=tmp75 hwmon3=tmp75 hwmon4=tmp75
+
+# temp to PWM binding
+FCTEMPS=hwmon1/pwm1=hwmon2/temp1_input hwmon1/pwm2=hwmon3/temp1_input hwmon1/pwm3=hwmon4/temp1_input 
+# fan to PWM binding
+FCFANS=hwmon1/pwm1=hwmon1/fan1_input hwmon1/pwm2=hwmon1/fan2_input hwmon1/pwm3=hwmon1/fan3_input 
+
+MINTEMP=hwmon1/pwm1=0  hwmon1/pwm2=0 hwmon1/pwm3=0
+MAXTEMP=hwmon1/pwm1=40  hwmon1/pwm2=40 hwmon1/pwm3=40
+
+MINSTART=hwmon1/pwm1=100  hwmon1/pwm2=100 hwmon1/pwm3=100
+MINSTOP=hwmon1/pwm1=0  hwmon1/pwm2=0 hwmon1/pwm3=0
+
+MINPWM=hwmon1/pwm1=0  hwmon1/pwm2=0 hwmon1/pwm3=0
+MAXPWM=hwmon1/pwm1=150  hwmon1/pwm2=150 hwmon1/pwm3=150
