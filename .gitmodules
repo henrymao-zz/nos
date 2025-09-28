@@ -55,7 +55,3 @@
 [submodule "platform/innovium/sonic-platform-marvell"]
 	path = platform/innovium/sonic-platform-marvell
 	url = https://github.com/Marvell-switching/sonic-platform-marvell
-[submodule "platform/broadcom/switchdev"]
-	path = platform/broadcom/switchdev
-	url = https://github.com/henrymao-zz/Openbcm.git
-	branch = switchdev
