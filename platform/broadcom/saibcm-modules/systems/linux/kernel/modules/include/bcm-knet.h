@@ -182,16 +182,6 @@ bkn_netif_destroy_cb_register(knet_netif_cb_f netif_cb);
 
 extern int
 bkn_netif_destroy_cb_unregister(knet_netif_cb_f netif_cb);
-
-extern int
-bkn_handle_cmd_req(kcom_msg_t *kmsg, int len);
-
-extern uint32_t
-bkn_dev_read32(struct net_device *dev, uint32_t address);
-
-extern void
-bkn_dev_write32(struct net_device *dev, uint32_t address, uint32_t value);
-
 #endif
 
 #endif /* __LINUX_BCM_KNET_H__ */
