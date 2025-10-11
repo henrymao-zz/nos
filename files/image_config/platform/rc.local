@@ -310,6 +310,9 @@ if [ -f $FIRST_BOOT_FILE ]; then
         # get default hwsku
         hwsku=$(head -1 /usr/share/sonic/device/$platform/default_sku | awk '{print $1}')
         ln -s /usr/share/sonic/device/$platform/$hwsku  /etc/bcm
+
+        # copy fancontrol
+        cp /usr/share/sonic/device/$platform/fancontrol /etc/
     fi
 
     sync
