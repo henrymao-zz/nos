@@ -34,6 +34,8 @@ function create_devices()
         mknod /dev/linux-bcm-knet   c 122 0
         mknod /dev/linux-bcm-bde    c 126 0
         mknod /dev/linux-kernel-bde c 127 0
+        # from syncd_init_common.sh
+        mknod /dev/linux-user-bde   c 126 0
    fi
 }
 

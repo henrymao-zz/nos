@@ -31,6 +31,7 @@ install:
 	install -d $(DESTDIR)/usr/bin
 	install -D $(DSSERVE) $(DESTDIR)/usr/bin/$(DSSERVE)
 	install -D $(BCMCMD) $(DESTDIR)/usr/bin/$(BCMCMD)
+	install -D bcmsh $(DESTDIR)/usr/bin/bcmsh
 
 clean:
 	rm -f $(DSSERVE) $(BCMCMD)
