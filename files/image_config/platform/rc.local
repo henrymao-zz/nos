@@ -414,4 +414,7 @@ if [ -f /var/log/fsck.log.gz ]; then
     rm -f /var/log/fsck.log.gz
 fi
 
+# Create directory for sai
+mkdir -p /var/run/sswsyncd
+
 exit 0

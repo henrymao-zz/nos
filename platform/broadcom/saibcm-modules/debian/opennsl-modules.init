@@ -28,6 +28,7 @@ function create_devices()
         rm -f /dev/linux-bcm-bde
         rm -f /dev/linux-kernel-bde
         rm -f /dev/linux_ngbde
+        rm -f /dev/linux-user-bde
 
         mknod /dev/linux_ngbde      c 120 0
         mknod /dev/linux-knet-cb    c 121 0
